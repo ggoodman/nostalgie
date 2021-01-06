@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "./dist",
+    "emitDeclarationOnly": true,
+    "rootDir": "./runtime/browser",
+    "tsBuildInfoFile": "./dist/tsconfig.types.tsbuildinfo"
+  },
+  "files": ["./runtime/browser/head.tsx", "./runtime/browser/index.ts"],
+}

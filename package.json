@@ -1,0 +1,73 @@
+{
+  "name": "nostalgie",
+  "version": "0.0.0",
+  "description": "Opinionated template repository for creating a TypeScript library",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "nostalgie": "bin/nostalgie"
+  },
+  "files": [
+    "dist/**/!(tsconfig.tsbuildinfo)",
+    "runtime/**/*"
+  ],
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "build:cli": "node ./scripts/buildCli.js",
+    "build:stub": "node ./scripts/buildStub.js",
+    "build:types": "node ./scripts/buildTypes.js",
+    "build": "npm-run-all --silent clean --parallel build:*",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/hapi-pino": "^8.0.1",
+    "@types/hapi__inert": "^5.2.2",
+    "@types/node": "14",
+    "@types/pino": "^6.3.4",
+    "@types/react": "16",
+    "@types/react-dom": "16",
+    "@types/react-router-dom": "5",
+    "@types/react-side-effect": "^1.1.1",
+    "jest": "^26.6.3",
+    "npm-run-all": "^4.1.5",
+    "ts-jest": "^26.4.4",
+    "typescript": "^4.1.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ggoodman/typescript-library-template.git"
+  },
+  "keywords": [],
+  "author": "Geoffrey Goodman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ggoodman/typescript-library-template/issues"
+  },
+  "homepage": "https://github.com/ggoodman/typescript-library-template#readme",
+  "engines": {
+    "node": ">=10.16.0"
+  },
+  "prettier": {
+    "arrowParens": "always",
+    "printWidth": 100,
+    "singleQuote": true
+  },
+  "dependencies": {
+    "@hapi/boom": "^9.1.1",
+    "@hapi/hapi": "^20.0.3",
+    "@hapi/inert": "^6.0.3",
+    "abort-controller": "^3.0.0",
+    "esbuild": "^0.8.29",
+    "hapi-pino": "^8.3.0",
+    "pino": "^6.8.0",
+    "pino-pretty": "^4.3.0",
+    "react": "16",
+    "react-dom": "16",
+    "react-lightyear": "^16.10.0",
+    "react-router-dom": "^5.2.0",
+    "react-side-effect": "^2.1.1",
+    "rollup": "^2.36.0",
+    "twind": "^0.11.0",
+    "yargs": "^16.2.0"
+  }
+}
