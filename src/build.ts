@@ -20,7 +20,7 @@ const loaders: {
 export async function build(
   settings: NostalgieSettingsReader
 ): Promise<{
-  loadHapiServer(): typeof import('../runtime/server/hapi');
+  loadHapiServer(): typeof import('../runtime/server/node');
 }> {
   return withCleanup(async (defer) => {
     const service = await startService();
@@ -33,10 +33,10 @@ export async function build(
       Path.resolve(settings.get('rootDir'), './build/static/*')
     );
 
-    await buildHapiServer(service, settings, clientBuildMetadata);
+    await buildNodeServer(service, settings, clientBuildMetadata);
 
     console.error(
-      '✅ Successfully wrote the hapi server build to: %s',
+      '✅ Successfully wrote the node server build to: %s',
       Path.resolve(settings.get('rootDir'), './build/index.js')
     );
 
@@ -62,7 +62,7 @@ export async function build(
         const createRequire = Module.createRequire || Module.createRequireFromPath;
         const require = createRequire(Path.join(settings.get('rootDir'), 'index.js'));
 
-        return require('./build/index.js') as typeof import('../runtime/server/hapi');
+        return require('./build/index.js') as typeof import('../runtime/server/node');
       },
     };
   });
@@ -128,7 +128,7 @@ async function buildClient(service: Service, settings: NostalgieSettingsReader):
   });
 }
 
-async function buildHapiServer(
+async function buildNodeServer(
   service: Service,
   settings: NostalgieSettingsReader,
   clientBuildMetadata: Metadata
@@ -136,7 +136,7 @@ async function buildHapiServer(
   const buildDir = settings.get('buildDir');
   const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
   const rootDir = settings.get('rootDir');
-  const nostalgieHapiServerPath = Path.resolve(__dirname, '../runtime/server/hapi.ts');
+  const nostalgieHapiServerPath = Path.resolve(__dirname, '../runtime/server/node.ts');
   const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');
   const nostalgieSsrWorkerPath = Path.resolve(__dirname, '../runtime/server/ssr.tsx');
 
@@ -150,7 +150,7 @@ async function buildHapiServer(
     logLevel: 'error',
     minify: settings.get('buildEnvironment') === 'production',
     outbase: Path.dirname(settings.get('applicationEntryPoint')),
-    outdir: Path.resolve(rootDir, './build/'),
+    outdir: settings.get('buildDir'),
     publicPath: '/static/build',
     platform: 'node',
     plugins: [
@@ -187,7 +187,7 @@ async function buildHapiServer(
     logLevel: 'error',
     minify: settings.get('buildEnvironment') === 'production',
     outbase: Path.dirname(settings.get('applicationEntryPoint')),
-    outdir: Path.resolve(rootDir, './build/'),
+    outdir: settings.get('buildDir'),
     publicPath: '/static/build',
     platform: 'node',
     plugins: [
@@ -224,7 +224,7 @@ async function buildHapiServer(
     logLevel: 'error',
     minify: settings.get('buildEnvironment') === 'production',
     outbase: Path.dirname(settings.get('applicationEntryPoint')),
-    outdir: Path.resolve(rootDir, './build/'),
+    outdir: settings.get('buildDir'),
     publicPath: '/static/build',
     platform: 'node',
     plugins: [
@@ -250,6 +250,18 @@ async function buildHapiServer(
     treeShaking: true,
     write: true,
   });
+
+  await Fs.writeFile(
+    Path.resolve(settings.get('buildDir'), './Dockerfile'),
+    `
+FROM node:14-alpine
+USER node
+WORKDIR /srv
+ADD . /srv/
+ENV PORT=8080 NODE_ENV=${settings.get('buildEnvironment')}
+CMD [ "node",  "/srv/index.js" ]
+  `.trim() + '\n'
+  );
 }
 
 type DeferredCleanupFunction = (...args: any[]) => any;
