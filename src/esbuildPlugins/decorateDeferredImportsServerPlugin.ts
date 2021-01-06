@@ -27,6 +27,8 @@ export function decorateDeferredImportsServerPlugin(options: {
     }
   }
 
+  const rx = /\(\)\s*=>\s*import\(\s*(['"])([^)]+)\1\s*\)/gm;
+
   return {
     name: name,
     setup(build) {
@@ -37,48 +39,47 @@ export function decorateDeferredImportsServerPlugin(options: {
 
         let contents = await Fs.readFile(path, 'utf8');
 
+        if (!rx.test(contents)) {
+          return;
+        }
+
         return {
           loader: loaderForPath(path),
-          contents: contents.replace(
-            /\(\)\s*=>\s*import\(\s*(['"])([^)]+)\1\s*\)/gm,
-            (match: string, _quote: string, spec: string) => {
-              const importerPath = Path.relative(process.cwd(), path);
-              const input = options.clientBuildMetadata.inputs[importerPath];
-              const lazyImport = Path.resolve(Path.dirname(path), spec);
+          contents: contents.replace(rx, (match: string, _quote: string, spec: string) => {
+            const importerPath = Path.relative(process.cwd(), path);
+            const input = options.clientBuildMetadata.inputs[importerPath];
+            const lazyImport = Path.resolve(Path.dirname(path), spec);
 
-              const resolvedEntry = input.imports.find((entry) => {
-                const entryPath = Path.resolve(process.cwd(), entry.path);
+            const resolvedEntry = input.imports.find((entry) => {
+              const entryPath = Path.resolve(process.cwd(), entry.path);
 
-                if (entryPath === lazyImport) {
+              if (entryPath === lazyImport) {
+                return true;
+              }
+
+              for (const ext of options.resolveExtensions) {
+                if (entryPath === `${lazyImport}${ext}`) {
                   return true;
                 }
-
-                for (const ext of options.resolveExtensions) {
-                  if (entryPath === `${lazyImport}${ext}`) {
-                    return true;
-                  }
-                }
-
-                return false;
-              });
-
-              if (!resolvedEntry) {
-                return match;
               }
 
-              const chunk = chunkByFile.get(Path.resolve(process.cwd(), resolvedEntry.path));
+              return false;
+            });
 
-              if (!chunk) {
-                return match;
-              }
-
-              return `Object.assign(() => import(${JSON.stringify(
-                spec
-              )}), { chunk: ${JSON.stringify(chunk)}, lazyImport: ${JSON.stringify(
-                Path.relative(options.rootDir, lazyImport)
-              )} })`;
+            if (!resolvedEntry) {
+              return match;
             }
-          ),
+
+            const chunk = chunkByFile.get(Path.resolve(process.cwd(), resolvedEntry.path));
+
+            if (!chunk) {
+              return match;
+            }
+
+            return `Object.assign(() => import(${JSON.stringify(spec)}), { chunk: ${JSON.stringify(
+              chunk
+            )}, lazyImport: ${JSON.stringify(Path.relative(options.rootDir, lazyImport))} })`;
+          }),
         };
       });
     },

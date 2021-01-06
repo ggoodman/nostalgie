@@ -24,3 +24,4 @@ export type {
   RouterChildContext,
   SwitchProps,
 } from 'react-router-dom';
+export type { MarkdownComponent } from './markdown';

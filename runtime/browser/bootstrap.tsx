@@ -10,6 +10,7 @@ import { ChunkManager, LazyContext, register } from 'nostalgie/internals';
 // will be remapped at build time.
 import App from '__nostalgie_app__';
 import { HeadProvider } from 'react-head';
+import typography from '@twind/typography';
 
 declare const App: React.ComponentType;
 
@@ -30,6 +31,9 @@ export async function start(options: BootstrapOptions) {
 
   setup({
     mode: silent,
+    plugins: {
+      ...typography(),
+    },
   });
 
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {

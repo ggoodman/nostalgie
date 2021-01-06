@@ -20,7 +20,15 @@
     },
     "editor.formatOnSave": true
   },
-  "cSpell.words": [
-    "nostalgie"
-  ]
+  "cSpell.words": ["nostalgie"],
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  }
+
 }

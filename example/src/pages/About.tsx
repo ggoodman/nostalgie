@@ -1,31 +1,14 @@
+import { Head } from 'nostalgie';
 import * as React from 'react';
-import { Head, Link } from 'nostalgie';
+import { Markdown } from 'src/components/Markdown';
+import About from './About.md';
 
-export default function About() {
+export default function AboutPage() {
   return (
     <>
       <Head.Title>Nostalgie - About</Head.Title>
 
-      <div className="bg-white dark:bg-green-800 ">
-        <div className="lg:flex lg:items-center lg:justify-between w-full mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 z-20">
-          <h2 className="text-3xl font-extrabold text-black dark:text-white sm:text-4xl">
-            <span className="block">This is</span>
-            <span className="block text-yellow-500">
-              The <strong>About</strong> page.
-            </span>
-          </h2>
-          <div className="lg:mt-0 lg:flex-shrink-0">
-            <div className=" inline-flex rounded-md shadow">
-              <Link
-                to="/"
-                className="py-4 px-6 bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500 focus:ring-offset-yellow-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-              >
-                Home
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Markdown for={About} />
     </>
   );
 }

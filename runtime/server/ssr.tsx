@@ -9,6 +9,7 @@ import { StaticRouter } from 'react-router-dom';
 import { create, Sheet, silent } from 'twind';
 import { shim } from 'twind/server';
 import { ChunkManager, LazyContext } from 'nostalgie/internals';
+import typography from '@twind/typography';
 
 export async function renderAppOnServer(App: React.ComponentType, path: string) {
   const context = {};
@@ -31,6 +32,9 @@ export async function renderAppOnServer(App: React.ComponentType, path: string) 
     sheet: customSheet,
     mode: silent,
     prefix: true,
+    plugins: {
+      ...typography(),
+    },
   });
   const headTags: React.ReactElement<unknown>[] = [];
 

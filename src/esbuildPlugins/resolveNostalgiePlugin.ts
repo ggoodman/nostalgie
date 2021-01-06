@@ -10,6 +10,12 @@ export function resolveNostalgiePlugin(): Plugin {
           path: Path.resolve(__dirname, '../runtime/browser/index.ts'),
         };
       });
+
+      build.onResolve({ filter: /^nostalgie\/internals$/ }, () => {
+        return {
+          path: Path.resolve(__dirname, '../runtime/browser/internals.ts'),
+        };
+      });
     },
   };
 }

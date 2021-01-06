@@ -13,6 +13,8 @@ export function loaderForPath(path: string): Loader {
     case 'css':
     case 'json':
       return slicedExt;
+    case 'md':
+      return 'text';
     case 'ico':
       return 'file';
   }

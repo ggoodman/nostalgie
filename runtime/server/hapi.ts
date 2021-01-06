@@ -133,8 +133,9 @@ export async function startServer(
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root">${markup}</div>
     <script type="module">
-      import("${publicUrl}/static/build/bootstrap.js")
-        .then(({ start }) => start(${JSON.stringify(bootstrapOptions)}))
+      import { start } from "${publicUrl}/static/build/bootstrap.js";
+
+      start(${JSON.stringify(bootstrapOptions)});
     </script>
   </body>
 </html>

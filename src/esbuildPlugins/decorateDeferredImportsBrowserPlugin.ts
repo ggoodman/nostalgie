@@ -5,6 +5,7 @@ import { loaderForPath } from '../loaderForPath';
 
 export function decorateDeferredImportsBrowserPlugin(options: { rootDir: string }): Plugin {
   const name = 'decorate-deferred-imports-browser-plugin';
+  const rx = /\(\)\s*=>\s*import\(\s*(['"])([^)]+)\1\s*\)/gm;
 
   return {
     name,
@@ -16,18 +17,19 @@ export function decorateDeferredImportsBrowserPlugin(options: { rootDir: string 
 
         let contents = await Fs.readFile(path, 'utf8');
 
+        if (!rx.test(contents)) {
+          return;
+        }
+
         return {
           loader: loaderForPath(path),
-          contents: contents.replace(
-            /\(\)\s*=>\s*import\(\s*(['"])([^)]+)\1\s*\)/gm,
-            (_match: string, _quote: string, spec: string) => {
-              const lazyImport = Path.resolve(Path.dirname(path), spec);
+          contents: contents.replace(rx, (_match: string, _quote: string, spec: string) => {
+            const lazyImport = Path.resolve(Path.dirname(path), spec);
 
-              return `Object.assign(() => import(${JSON.stringify(
-                spec
-              )}), { lazyImport: ${JSON.stringify(Path.relative(options.rootDir, lazyImport))} })`;
-            }
-          ),
+            return `Object.assign(() => import(${JSON.stringify(
+              spec
+            )}), { lazyImport: ${JSON.stringify(Path.relative(options.rootDir, lazyImport))} })`;
+          }),
         };
       });
     },
