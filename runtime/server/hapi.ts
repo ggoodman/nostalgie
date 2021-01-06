@@ -5,14 +5,8 @@ import { AbortController } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import * as Path from 'path';
 import Pino, { Logger } from 'pino';
-// @ts-ignore
-// We need to ignore this because the import specifier
-// will be remapped at build time.
-import App from '__nostalgie_app__';
+import Piscina from 'piscina';
 import type { BootstrapOptions } from '../browser/bootstrap';
-import { renderAppOnServer } from './ssr';
-
-declare const App: React.ComponentType;
 
 export async function startServer(
   logger: Logger,
@@ -53,6 +47,10 @@ export async function startServer(
       options: {},
     },
   ]);
+
+  const piscina = new Piscina({
+    filename: Path.resolve(options.buildDir || __dirname, './ssr'),
+  });
 
   server.route({
     method: 'GET',
@@ -104,7 +102,9 @@ export async function startServer(
     method: 'GET',
     path: '/{any*}',
     handler: async (request, h) => {
-      const { headTags, markup, preloadScripts } = await renderAppOnServer(App, request.path);
+      const { headTags, markup, preloadScripts } = await (piscina.runTask(
+        request.path
+      ) as ReturnType<typeof import('./ssr').default>);
       const publicUrl = encodeURI('');
 
       const bootstrapOptions: BootstrapOptions = {

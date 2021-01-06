@@ -8,5 +8,5 @@
     "rootDir": "./runtime/browser",
     "tsBuildInfoFile": "./dist/tsconfig.types.tsbuildinfo"
   },
-  "files": ["./runtime/browser/head.tsx", "./runtime/browser/index.ts","./runtime/browser/markdown.tsx"],
+  "include": ["./runtime/browser"],
 }

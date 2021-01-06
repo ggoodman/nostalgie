@@ -6,7 +6,21 @@
     },
     "editor.formatOnSave": true
   },
+  "[typescriptreact]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": true,
+      "source.organizeImports": true
+    },
+    "editor.formatOnSave": true
+  },
   "[javascript]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": true,
+      "source.organizeImports": true
+    },
+    "editor.formatOnSave": true
+  },
+  "[javascriptreact]": {
     "editor.codeActionsOnSave": {
       "source.fixAll": true,
       "source.organizeImports": true

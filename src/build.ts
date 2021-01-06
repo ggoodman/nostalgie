@@ -137,13 +137,82 @@ async function buildHapiServer(
   const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
   const rootDir = settings.get('rootDir');
   const nostalgieHapiServerPath = Path.resolve(__dirname, '../runtime/server/hapi.ts');
-  // const nostalgieBuildWorkerPath = Path.resolve(__dirname, '../runtime/server/ssr.ts');
+  const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');
+  const nostalgieSsrWorkerPath = Path.resolve(__dirname, '../runtime/server/ssr.tsx');
 
-  // await service.build({
-  //   bundle: true,
-  //   define: {},
+  await service.build({
+    bundle: true,
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
+      'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
+    },
+    loader: loaders,
+    logLevel: 'error',
+    minify: settings.get('buildEnvironment') === 'production',
+    outbase: Path.dirname(settings.get('applicationEntryPoint')),
+    outdir: Path.resolve(rootDir, './build/'),
+    publicPath: '/static/build',
+    platform: 'node',
+    plugins: [
+      resolveNostalgiePlugin(),
+      markdownPlugin(settings.get('applicationEntryPoint')),
+      reactShimPlugin(),
+      decorateDeferredImportsServerPlugin({
+        buildDir,
+        clientBuildMetadata,
+        resolveExtensions,
+        rootDir: settings.get('rootDir'),
+      }),
+      resolveAppEntryPointPlugin(settings.get('applicationEntryPoint')),
+    ],
+    resolveExtensions,
+    stdin: {
+      contents: await Fs.readFile(nostalgiePiscinaWorkerPath, 'utf8'),
+      loader: 'tsx',
+      resolveDir: Path.dirname(nostalgiePiscinaWorkerPath),
+      sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../worker.ts'),
+    },
+    target: 'es2017',
+    treeShaking: true,
+    write: true,
+  });
 
-  // })
+  await service.build({
+    bundle: true,
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
+      'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
+    },
+    loader: loaders,
+    logLevel: 'error',
+    minify: settings.get('buildEnvironment') === 'production',
+    outbase: Path.dirname(settings.get('applicationEntryPoint')),
+    outdir: Path.resolve(rootDir, './build/'),
+    publicPath: '/static/build',
+    platform: 'node',
+    plugins: [
+      resolveNostalgiePlugin(),
+      markdownPlugin(settings.get('applicationEntryPoint')),
+      reactShimPlugin(),
+      decorateDeferredImportsServerPlugin({
+        buildDir,
+        clientBuildMetadata,
+        resolveExtensions,
+        rootDir: settings.get('rootDir'),
+      }),
+      resolveAppEntryPointPlugin(settings.get('applicationEntryPoint')),
+    ],
+    resolveExtensions,
+    stdin: {
+      contents: await Fs.readFile(nostalgieSsrWorkerPath, 'utf8'),
+      loader: 'tsx',
+      resolveDir: Path.dirname(nostalgieSsrWorkerPath),
+      sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../ssr.tsx'),
+    },
+    target: 'es2017',
+    treeShaking: true,
+    write: true,
+  });
 
   await service.build({
     bundle: true,

@@ -1,17 +1,21 @@
+import typography from '@twind/typography';
+import { ChunkManager, LazyContext } from 'nostalgie/internals';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { HeadProvider, Style } from 'react-head';
+import { HeadProvider } from 'react-head';
 //@ts-ignore
 import { renderToStringAsync as renderToStringAsyncLightyear } from 'react-lightyear/server';
-//@ts-ignore
-import { renderToStringAsync } from 'react-async-ssr';
 import { StaticRouter } from 'react-router-dom';
 import { create, Sheet, silent } from 'twind';
 import { shim } from 'twind/server';
-import { ChunkManager, LazyContext } from 'nostalgie/internals';
-import typography from '@twind/typography';
+// @ts-ignore
+// We need to ignore this because the import specifier
+// will be remapped at build time.
+import App from '__nostalgie_app__';
 
-export async function renderAppOnServer(App: React.ComponentType, path: string) {
+declare const App: React.ComponentType;
+
+export default async function renderAppOnServer(path: string) {
   const context = {};
   const chunkCtx: ChunkManager = {
     chunks: new Map(),
