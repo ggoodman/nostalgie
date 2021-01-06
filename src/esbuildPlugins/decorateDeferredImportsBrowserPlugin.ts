@@ -1,6 +1,7 @@
-import type { Loader, Plugin } from 'esbuild';
+import type { Plugin } from 'esbuild';
 import { promises as Fs } from 'fs';
 import * as Path from 'path';
+import { loaderForPath } from '../loaderForPath';
 
 export function decorateDeferredImportsBrowserPlugin(options: { rootDir: string }): Plugin {
   const name = 'decorate-deferred-imports-browser-plugin';
@@ -31,8 +32,4 @@ export function decorateDeferredImportsBrowserPlugin(options: { rootDir: string 
       });
     },
   };
-}
-
-function loaderForPath(path: string): Loader {
-  return Path.extname(path).slice(1) as Loader;
 }

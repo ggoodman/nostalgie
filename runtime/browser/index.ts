@@ -1,3 +1,4 @@
+export * as Head from 'react-head';
 export {
   generatePath,
   Link,
@@ -23,4 +24,3 @@ export type {
   RouterChildContext,
   SwitchProps,
 } from 'react-router-dom';
-export { Head } from './head';

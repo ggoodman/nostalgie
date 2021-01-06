@@ -1,6 +1,10 @@
 import * as React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { HeadProvider, Style } from 'react-head';
 //@ts-ignore
-import { renderToStringAsync } from 'react-lightyear/server';
+import { renderToStringAsync as renderToStringAsyncLightyear } from 'react-lightyear/server';
+//@ts-ignore
+import { renderToStringAsync } from 'react-async-ssr';
 import { StaticRouter } from 'react-router-dom';
 import { create, Sheet, silent } from 'twind';
 import { shim } from 'twind/server';
@@ -28,22 +32,27 @@ export async function renderAppOnServer(App: React.ComponentType, path: string) 
     mode: silent,
     prefix: true,
   });
+  const headTags: React.ReactElement<unknown>[] = [];
 
-  const markup: string = shim(
-    await renderToStringAsync(
-      <LazyContext.Provider value={chunkCtx}>
+  const markup = await renderToStringAsyncLightyear(
+    <LazyContext.Provider value={chunkCtx}>
+      <HeadProvider headTags={headTags}>
         <StaticRouter location={path} context={context}>
           <App />
         </StaticRouter>
-      </LazyContext.Provider>
-    ),
-    tw
+      </HeadProvider>
+    </LazyContext.Provider>
   );
+
+  const shimmedMarkup = shim(markup, tw);
   const initialRules = target.join('\n');
 
   return {
     preloadScripts: [...chunkCtx.chunks],
-    headTags: [`<style id="__twind" type="text/css">${initialRules}</style>`],
-    markup,
+    headTags: [
+      ...headTags.map(renderToStaticMarkup),
+      `<style id="__twind">${initialRules}</style>`,
+    ],
+    markup: shimmedMarkup,
   };
 }

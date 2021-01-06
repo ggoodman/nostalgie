@@ -1,45 +1,47 @@
 import * as React from 'react';
-import withSideEffect from 'react-side-effect';
 
-type OneOrMore<T> = T | Array<T>;
+type ChildrenTypes = React.ReactElement<JSX.IntrinsicElements[ChildType], ChildType>;
 
-type ChildrenTypes = React.ReactElement<JSX.IntrinsicElements['link' | 'title'], 'link' | 'title'>;
+type ChildType = 'link' | 'title';
+type ChildElement<T extends ChildType> = React.ReactElement<JSX.IntrinsicElements[T], T>;
 
-interface HeadProps {
-  children?: OneOrMore<ChildrenTypes>;
-}
+export const HeadContext = React.createContext<HeadState>({
+  links: [],
+  title: '',
+});
 
-export const Head = withSideEffect(
-  reducePropsToState,
-  handleStateChangeOnClient,
-  mapStateOnServer
-)(() => <></>);
+export function Head(props: { children?: ChildrenTypes }) {
+  const state = React.useContext(HeadContext);
+  const children = React.Children.toArray(props.children) as ChildrenTypes[];
 
-function reducePropsToState(propList: HeadProps[]) {
-  const state = {
-    title: '',
-  };
+  for (const child of children) {
+    const childType = child.type;
 
-  for (const props of propList) {
-    React.Children.forEach(props.children, (child) => {
-      if (!child) {
+    switch (childType) {
+      case 'link':
+        const typedChild: ChildElement<'link'> = child as any;
+        state.links.push({ href: typedChild.props.href!, rel: typedChild.props.rel! });
+        return;
+      case 'title': {
+        const typedChild: ChildElement<'title'> = child as any;
+
+        if (typeof typedChild.props.children === 'string') {
+          state.title = typedChild.props.children;
+        }
         return;
       }
-      switch (child.type) {
-        case 'link':
-          return;
-        case 'title': {
-          if (typeof child.props.children === 'string') {
-            state.title = child.props.children;
-          }
-          return;
-        }
-      }
-    });
+    }
   }
-  return state;
+
+  return <></>;
 }
 
-function handleStateChangeOnClient() {}
+interface Link {
+  rel: string;
+  href: string;
+}
 
-function mapStateOnServer() {}
+interface HeadState {
+  links: Link[];
+  title: string;
+}

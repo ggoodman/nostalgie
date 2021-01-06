@@ -1,6 +1,7 @@
-import type { Loader, Metadata, Plugin } from 'esbuild';
+import type { Metadata, Plugin } from 'esbuild';
 import { promises as Fs } from 'fs';
 import * as Path from 'path';
+import { loaderForPath } from '../loaderForPath';
 
 export function decorateDeferredImportsServerPlugin(options: {
   buildDir: string;
@@ -10,7 +11,6 @@ export function decorateDeferredImportsServerPlugin(options: {
 }): Plugin {
   const name = 'import-meta';
 
-  const staticDir = Path.join(options.buildDir, 'static');
   const chunkByFile = new Map();
 
   for (const chunkName in options.clientBuildMetadata.outputs) {
@@ -30,10 +30,6 @@ export function decorateDeferredImportsServerPlugin(options: {
   return {
     name: name,
     setup(build) {
-      const loaderForPath = (path: string) => {
-        return Path.extname(path).slice(1) as Loader;
-      };
-
       build.onLoad({ filter: /.*/, namespace: 'file' }, async ({ path }) => {
         if (/\/node_modules\//.test(path)) {
           return;

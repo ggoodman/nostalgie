@@ -102,10 +102,13 @@ async function buildClient(service: Service, settings: NostalgieSettingsReader):
       external: [],
       format: 'esm',
       incremental: true,
+      loader: {
+        '.ico': 'binary',
+      },
       metafile: clientMetaPath,
-      outbase: Path.dirname(settings.get('applicationEntryPoint')),
-      outdir: Path.resolve(rootDir, './build/static/'),
       minify: false,
+      outbase: Path.dirname(settings.get('applicationEntryPoint')),
+      outdir: Path.resolve(rootDir, './build/static/build'),
       platform: 'browser',
       plugins: [
         decorateDeferredImportsBrowserPlugin({
@@ -115,6 +118,7 @@ async function buildClient(service: Service, settings: NostalgieSettingsReader):
         resolveAppEntryPointPlugin(settings.get('applicationEntryPoint')),
         resolveNostalgiePlugin(),
       ],
+      publicPath: '/static/build',
       resolveExtensions: ['.js', '.jsx', '.ts', '.tsx'],
       sourcemap: true,
       splitting: true,
@@ -154,9 +158,13 @@ async function buildHapiServer(
       'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
       'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
     },
+    loader: {
+      '.ico': 'binary',
+    },
     logLevel: 'error',
     outbase: Path.dirname(settings.get('applicationEntryPoint')),
     outdir: Path.resolve(rootDir, './build/'),
+    publicPath: '/static/build',
     platform: 'node',
     plugins: [
       decorateDeferredImportsServerPlugin({

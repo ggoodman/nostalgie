@@ -35,7 +35,7 @@ interface LazyFactory<T extends React.ComponentType<any>> {
   lazyImport?: string;
 }
 
-const ARBITRARY_LAZY_TIMEOUT = 3000000;
+const ARBITRARY_LAZY_TIMEOUT = 3000;
 
 export function lazy<T extends React.ComponentType<any>>(
   factory: LazyFactory<T>

@@ -81,6 +81,12 @@ export async function startServer(
   server.route({
     method: 'GET',
     path: '/static/{path*}',
+    options: {
+      cache: {
+        expiresIn: 30 * 1000,
+        privacy: 'public',
+      },
+    },
     handler: {
       directory: {
         etagMethod: 'hash',
@@ -110,7 +116,6 @@ export async function startServer(
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="${publicUrl}/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
@@ -121,15 +126,14 @@ export async function startServer(
     ${preloadScripts.map(
       ([href]) => `<link rel="modulepreload" href="${publicUrl}/${encodeURI(href)}" />`
     )}
-    <link rel="modulepreload" href="${publicUrl}/static/bootstrap.js" />
+    <link rel="modulepreload" href="${publicUrl}/static/build/bootstrap.js" />
     ${headTags.join('\n')}
-    <title>Nostalgie App</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root">${markup}</div>
     <script type="module">
-      import("${publicUrl}/static/bootstrap.js")
+      import("${publicUrl}/static/build/bootstrap.js")
         .then(({ start }) => start(${JSON.stringify(bootstrapOptions)}))
     </script>
   </body>

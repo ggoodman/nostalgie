@@ -3,11 +3,13 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
 import 'twind/shim';
+import { setup, silent } from 'twind';
 import { ChunkManager, LazyContext, register } from 'nostalgie/internals';
 // @ts-ignore
 // We need to ignore this because the import specifier
 // will be remapped at build time.
 import App from '__nostalgie_app__';
+import { HeadProvider } from 'react-head';
 
 declare const App: React.ComponentType;
 
@@ -26,6 +28,10 @@ export async function start(options: BootstrapOptions) {
     lazyComponentState: new Map(),
   };
 
+  setup({
+    mode: silent,
+  });
+
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {
     return import(`/${chunk}`).then((m) => {
       register(chunkCtx, chunk, lazyImport, m);
@@ -36,9 +42,11 @@ export async function start(options: BootstrapOptions) {
 
   ReactDOM.hydrate(
     <LazyContext.Provider value={chunkCtx}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <HeadProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </HeadProvider>
     </LazyContext.Provider>,
     document.getElementById('root')
   );
