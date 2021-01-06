@@ -48,6 +48,21 @@ export async function startServer(
     },
   ]);
 
+  server.method(
+    'renderOnServer',
+    (pathname: string) => {
+      return piscina.runTask(pathname) as ReturnType<typeof import('./ssr').default>;
+    },
+    {
+      cache: {
+        expiresIn: 20000,
+        generateTimeout: 5000,
+        staleIn: 5000,
+        staleTimeout: 10,
+      },
+    }
+  );
+
   const piscina = new Piscina({
     filename: Path.resolve(options.buildDir || __dirname, './ssr'),
   });
@@ -102,7 +117,7 @@ export async function startServer(
     method: 'GET',
     path: '/{any*}',
     handler: async (request, h) => {
-      const { headTags, markup, preloadScripts } = await (piscina.runTask(
+      const { headTags, markup, preloadScripts } = await (server.methods['renderOnServer'](
         request.path
       ) as ReturnType<typeof import('./ssr').default>);
       const publicUrl = encodeURI('');
