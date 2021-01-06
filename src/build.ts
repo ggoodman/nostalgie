@@ -1,4 +1,4 @@
-import { Metadata, Service, startService } from 'esbuild';
+import { Loader, Metadata, Service, startService } from 'esbuild';
 import { promises as Fs } from 'fs';
 import Module from 'module';
 import * as Path from 'path';
@@ -9,6 +9,13 @@ import { reactShimPlugin } from './esbuildPlugins/reactShimPlugin';
 import { resolveAppEntryPointPlugin } from './esbuildPlugins/resolveAppEntryPointPlugin';
 import { resolveNostalgiePlugin } from './esbuildPlugins/resolveNostalgiePlugin';
 import type { NostalgieSettingsReader } from './settings';
+
+const loaders: {
+  [ext: string]: Loader;
+} = {
+  '.ico': 'file',
+  '.png': 'file',
+};
 
 export async function build(
   settings: NostalgieSettingsReader
@@ -31,6 +38,23 @@ export async function build(
     console.error(
       '✅ Successfully wrote the hapi server build to: %s',
       Path.resolve(settings.get('rootDir'), './build/index.js')
+    );
+
+    await Fs.writeFile(
+      Path.join(settings.get('buildDir'), 'package.json'),
+      JSON.stringify(
+        {
+          name: 'nostalgie-app',
+          version: '0.0.0',
+          private: true,
+          main: './index.js',
+          scripts: {
+            start: 'node ./index.js',
+          },
+        },
+        null,
+        2
+      )
     );
 
     return {
@@ -65,9 +89,7 @@ async function buildClient(service: Service, settings: NostalgieSettingsReader):
       external: [],
       format: 'esm',
       incremental: true,
-      loader: {
-        '.ico': 'file',
-      },
+      loader: loaders,
       metafile: clientMetaPath,
       minify: settings.get('buildEnvironment') === 'production',
       outbase: Path.dirname(settings.get('applicationEntryPoint')),
@@ -129,9 +151,7 @@ async function buildHapiServer(
       'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
       'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
     },
-    loader: {
-      '.ico': 'file',
-    },
+    loader: loaders,
     logLevel: 'error',
     minify: settings.get('buildEnvironment') === 'production',
     outbase: Path.dirname(settings.get('applicationEntryPoint')),

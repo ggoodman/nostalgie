@@ -1,9 +1,11 @@
 import { Head, Route, Switch, NavLink } from 'nostalgie';
 import * as React from 'react';
 import Favicon from './favicon.ico';
+import PlunkerImg from './plunker.png';
 
-const About = React.lazy(() => import('./pages/About'));
-const Home = React.lazy(() => import('./pages/Home'));
+const LazyDocsPage = React.lazy(() => import('./pages/Docs'));
+const LazyHomePage = React.lazy(() => import('./pages/Home'));
+const LazyNotFoundPage = React.lazy(() => import('./pages/NotFound'));
 
 function Loading() {
   console.log('loading');
@@ -18,23 +20,44 @@ export default function App() {
   return (
     <>
       <Head.Link rel="icon" href={Favicon} />
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <header style={{ flex: '0 0 40px' }}>
-          <NavLink exact to="/" activeStyle={{ textDecoration: 'underline' }}>
-            Home
-          </NavLink>
-          <NavLink exact to="/about" activeStyle={{ textDecoration: 'underline' }}>
-            About
-          </NavLink>
+      <Head.Style>{`
+      html {
+        overflow-x: hidden;
+        margin-right: calc(-1 * (100vw - 100%));
+      }
+      `}</Head.Style>
+      <div className="flex flex-col">
+        <header className="bg-blue-600 text-gray-50">
+          <nav className="flex flex-row flex-nowrap space-x-4 items-end container mx-auto text-xl h-12">
+            <img className="block h-10 w-10 self-center" src={PlunkerImg} />
+            <NavLink
+              className="border-b-4 block border-red-600 border-opacity-0 px-3"
+              exact
+              to="/"
+              activeClassName="border-opacity-100"
+            >
+              Home
+            </NavLink>
+            <NavLink
+              className="border-b-4 block border-red-600 border-opacity-0 px-3"
+              to="/docs"
+              activeClassName="border-opacity-100"
+            >
+              Docs
+            </NavLink>
+          </nav>
         </header>
-        <div style={{ flex: '1' }}>
+        <div className="flex-1 container mx-auto">
           <React.Suspense fallback={<Loading />}>
             <Switch>
               <Route exact path="/">
-                <Home />
+                <LazyHomePage />
               </Route>
-              <Route exact path="/about">
-                <About />
+              <Route exact path="/docs">
+                <LazyDocsPage />
+              </Route>
+              <Route path="/*">
+                <LazyNotFoundPage />
               </Route>
             </Switch>
           </React.Suspense>

@@ -24,8 +24,8 @@ export async function startServer(
 ) {
   const buildDir = options.buildDir || __dirname;
   const server = new Hapi.Server({
-    address: options.host ?? '127.0.0.1',
-    port: options.port ?? 9090,
+    address: options.host ?? '0.0.0.0',
+    port: options.port ?? process.env.PORT ?? 8080,
     host: options.host,
   });
 

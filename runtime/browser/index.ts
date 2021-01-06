@@ -1,3 +1,4 @@
+export { default as Markdown } from 'markdown-to-jsx';
 export * as Head from 'react-head';
 export {
   generatePath,
