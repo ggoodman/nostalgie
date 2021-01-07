@@ -1,4 +1,4 @@
-import { Head, Route, Switch, NavLink } from 'nostalgie';
+import { Head, NavLink, Route, Switch } from 'nostalgie';
 import * as React from 'react';
 import Favicon from './favicon.ico';
 import PlunkerImg from './plunker.png';
@@ -28,10 +28,10 @@ export default function App() {
       `}</Head.Style>
       <div className="flex flex-col">
         <header className="bg-blue-600 text-gray-50">
-          <nav className="flex flex-row flex-nowrap space-x-4 items-end container mx-auto text-xl h-12">
+          <nav className="flex flex-row flex-nowrap space-x-4 items-end container px-2 mx-auto text-xl h-12">
             <img className="block h-10 w-10 self-center" src={PlunkerImg} />
             <NavLink
-              className="border-b-4 block border-red-600 border-opacity-0 px-3"
+              className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
               exact
               to="/"
               activeClassName="border-opacity-100"
@@ -39,15 +39,23 @@ export default function App() {
               Home
             </NavLink>
             <NavLink
-              className="border-b-4 block border-red-600 border-opacity-0 px-3"
+              className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
               to="/docs"
               activeClassName="border-opacity-100"
             >
               Docs
             </NavLink>
+            <div className="flex-1"></div>
+            <a
+              className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
+              href="https://github.com/ggoodman/nostalgie"
+              rel="noopener noreferrer _blank"
+            >
+              On GitHub
+            </a>
           </nav>
         </header>
-        <div className="flex-1 container mx-auto">
+        <div className="flex-1 container px-2 mx-auto">
           <React.Suspense fallback={<Loading />}>
             <Switch>
               <Route exact path="/">
