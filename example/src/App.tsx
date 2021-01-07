@@ -46,6 +46,9 @@ export default function App() {
               Docs
             </NavLink>
             <div className="flex-1"></div>
+            <Route path="/docs">
+              <input className="m-1 px-2 py-1" type="text" placeholder="Search docs..." />
+            </Route>
             <a
               className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
               href="https://github.com/ggoodman/nostalgie"
