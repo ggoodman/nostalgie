@@ -4,7 +4,7 @@ import * as React from 'react';
 export function ProseMarkdown(props: { for: MarkdownComponent }) {
   return (
     <props.for
-      className="p-3 prose prose-sm sm:prose max-w-none"
+      className="p-3 prose max-w-none"
       options={{
         overrides: {
           img: {
@@ -21,7 +21,7 @@ export function ProseMarkdown(props: { for: MarkdownComponent }) {
 
 export function ProseMarkdownText(props: { children: string }) {
   return (
-    <div className="p-3 prose prose-sm sm:prose max-w-none">
+    <div className="p-3 prose max-w-none">
       <Markdown
         options={{
           overrides: {
