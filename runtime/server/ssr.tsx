@@ -1,13 +1,23 @@
 import typography from '@twind/typography';
-import { ChunkManager, LazyContext } from 'nostalgie/internals';
+import {
+  ChunkManager,
+  LazyContext,
+  QueryClient,
+  QueryClientProvider,
+  StaticRouter,
+} from 'nostalgie/internals';
 import * as React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { HeadProvider } from 'react-head';
-//@ts-ignore
-import { renderToStringAsync as renderToStringAsyncLightyear } from 'react-lightyear/server';
-import { StaticRouter } from 'react-router-dom';
+import { MutationCache, QueryCache } from 'react-query';
+import { dehydrate, Hydrate } from 'react-query/hydration';
+import ssrPrepass from 'react-ssr-prepass';
+// @ts-ignore
+// import { renderToStringAsync as renderToStringAsyncLightyear } from 'react-lightyear/server.node';
+// import * as Stream from 'stream';
 import { create, Sheet, silent } from 'twind';
 import { shim } from 'twind/server';
+// import * as Util from 'util';
 // @ts-ignore
 // We need to ignore this because the import specifier
 // will be remapped at build time.
@@ -15,13 +25,26 @@ import App from '__nostalgie_app__';
 
 declare const App: React.ComponentType;
 
+// const finishedAsync = Util.promisify(Stream.finished);
+
+const queryCache = new QueryCache({});
+const mutationCache = new MutationCache({});
+const DEFAULT_SERVER_STALE_TIME = 2000;
+
 export default async function renderAppOnServer(path: string) {
-  const context = {};
   const chunkCtx: ChunkManager = {
     chunks: new Map(),
     lazyComponentState: new Map(),
   };
-
+  const queryClient = new QueryClient({
+    queryCache,
+    mutationCache,
+    defaultOptions: {
+      queries: {
+        staleTime: DEFAULT_SERVER_STALE_TIME,
+      },
+    },
+  });
   const target: string[] = [];
   const customSheet: Sheet<string[]> = {
     target,
@@ -40,20 +63,28 @@ export default async function renderAppOnServer(path: string) {
       ...typography(),
     },
   });
+  const initialReactQueryState = dehydrate(queryClient);
   const headTags: React.ReactElement<unknown>[] = [];
-
-  const markup = await renderToStringAsyncLightyear(
-    <LazyContext.Provider value={chunkCtx}>
-      <HeadProvider headTags={headTags}>
-        <StaticRouter location={path} context={context}>
-          <App />
-        </StaticRouter>
-      </HeadProvider>
-    </LazyContext.Provider>
+  const model = (
+    <StaticRouter location={path}>
+      <LazyContext.Provider value={chunkCtx}>
+        <QueryClientProvider client={queryClient}>
+          <Hydrate state={initialReactQueryState}>
+            <HeadProvider headTags={headTags}>
+              <App />
+            </HeadProvider>
+          </Hydrate>
+        </QueryClientProvider>
+      </LazyContext.Provider>
+    </StaticRouter>
   );
 
+  await ssrPrepass(model);
+
+  const markup = renderToString(model);
   const shimmedMarkup = shim(markup, tw);
   const initialRules = target.join('\n');
+  const queryClientData = dehydrate(queryClient);
 
   return {
     preloadScripts: [...chunkCtx.chunks],
@@ -62,5 +93,6 @@ export default async function renderAppOnServer(path: string) {
       `<style id="__twind">${initialRules}</style>`,
     ],
     markup: shimmedMarkup,
+    reactQueryState: queryClientData,
   };
 }

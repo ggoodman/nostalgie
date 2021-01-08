@@ -35,7 +35,7 @@ interface LazyFactory<T extends React.ComponentType<any>> {
   lazyImport?: string;
 }
 
-const ARBITRARY_LAZY_TIMEOUT = 3000;
+// const ARBITRARY_LAZY_TIMEOUT = 3000;
 
 export function lazy<T extends React.ComponentType<any>>(
   factory: LazyFactory<T>
@@ -49,29 +49,29 @@ export function lazy<T extends React.ComponentType<any>>(
   let loadAheadTimeout: number | undefined = undefined;
   let loadAheadState: LazyComponentState | undefined;
 
-  if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
-    loadAheadTimeout = (setTimeout(
-      () =>
-        factory().then(
-          (mod) => {
-            const component = Object.hasOwnProperty.call(mod, 'default')
-              ? (mod as any).default
-              : mod;
-            loadAheadState = {
-              state: 'loaded',
-              component,
-            };
-          },
-          (error) => {
-            loadAheadState = {
-              state: 'error',
-              error,
-            };
-          }
-        ),
-      ARBITRARY_LAZY_TIMEOUT
-    ) as unknown) as number;
-  }
+  // if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
+  //   loadAheadTimeout = (setTimeout(
+  //     () =>
+  //       factory().then(
+  //         (mod) => {
+  //           const component = Object.hasOwnProperty.call(mod, 'default')
+  //             ? (mod as any).default
+  //             : mod;
+  //           loadAheadState = {
+  //             state: 'loaded',
+  //             component,
+  //           };
+  //         },
+  //         (error) => {
+  //           loadAheadState = {
+  //             state: 'error',
+  //             error,
+  //           };
+  //         }
+  //       ),
+  //     ARBITRARY_LAZY_TIMEOUT
+  //   ) as unknown) as number;
+  // }
 
   return function LazyComponent<P extends {}>(props: P, ...children: React.ReactChild[]) {
     const chunkManager = React.useContext(LazyContext);
@@ -86,23 +86,20 @@ export function lazy<T extends React.ComponentType<any>>(
       clearTimeout(loadAheadTimeout);
     }
 
-
     let lazyComponentState = chunkManager.lazyComponentState.get(lazyImport) || loadAheadState;
 
     if (!lazyComponentState) {
-      const loadingPromise = resolvedPromise
-        .then(factory)
-        .then(
-          (mod) => {
-            register(chunkManager, factory.chunk, lazyImport, mod);
-          },
-          (error) => {
-            chunkManager.lazyComponentState.set(lazyImport, {
-              state: 'error',
-              error,
-            });
-          }
-        );
+      const loadingPromise = resolvedPromise.then(factory).then(
+        (mod) => {
+          register(chunkManager, factory.chunk, lazyImport, mod);
+        },
+        (error) => {
+          chunkManager.lazyComponentState.set(lazyImport, {
+            state: 'error',
+            error,
+          });
+        }
+      );
 
       lazyComponentState = {
         state: 'loading',

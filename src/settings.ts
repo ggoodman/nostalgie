@@ -2,6 +2,7 @@ import * as Path from 'path';
 
 export interface NostalgieSettings {
   applicationEntryPoint: string;
+  functionsEntryPoint: string;
   buildDir: string;
   buildEnvironment: 'development' | 'production';
   rootDir: string;
@@ -26,6 +27,8 @@ class StaticNostalgieSettings implements NostalgieSettingsReader {
         return Path.resolve(rootDir, './build') as NostalgieSettings[K];
       case 'buildEnvironment':
         return (this.options.buildEnvironment || 'development') as NostalgieSettings[K];
+      case 'functionsEntryPoint':
+        return Path.resolve(rootDir, './src/functions') as NostalgieSettings[K];
       case 'rootDir':
         return rootDir as NostalgieSettings[K];
     }

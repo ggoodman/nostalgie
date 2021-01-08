@@ -11,6 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "nostalgie": "file:../",
-    "react": "^17.0.1"
+    "react": "^16.14.0"
   }
 }

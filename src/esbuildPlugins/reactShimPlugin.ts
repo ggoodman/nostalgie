@@ -26,9 +26,14 @@ export function reactShimPlugin(): Plugin {
 
       build.onLoad({ filter: /.*/, namespace: 'react-shim' }, async ({ path }) => {
         return {
-          contents: `module.exports = { ...require('react'), lazy: require(${JSON.stringify(
-            lazyPath
-          )}).lazy };`,
+          contents: `
+const React = require('react');
+module.exports = {
+  ...React,
+  Suspense: process.env.NOSTALGIE_BUILD_TARGET === 'browser' ? React.Suspense : (props) => props.children,
+  lazy: require(${JSON.stringify(lazyPath)}).lazy,
+};
+          `,
           resolveDir: path,
         };
       });

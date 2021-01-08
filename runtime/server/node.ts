@@ -1,22 +1,24 @@
-import * as Boom from '@hapi/boom';
+import Boom from '@hapi/boom';
 import * as Hapi from '@hapi/hapi';
 import HapiInert from '@hapi/inert';
 import { AbortController } from 'abort-controller';
 import HapiPino from 'hapi-pino';
+import Joi from 'joi';
+import Module from 'module';
+import type { BootstrapOptions, ServerFunction } from 'nostalgie/internals';
 import * as Path from 'path';
 import Pino, { Logger } from 'pino';
-import Piscina from 'piscina';
-import type { BootstrapOptions } from '../browser/bootstrap';
+import type Piscina from 'piscina';
 
 export async function startServer(
   logger: Logger,
   options: {
-    buildDir?: string;
+    buildDir: string;
     port?: number;
     host?: string;
-  } = {}
+  }
 ) {
-  const buildDir = options.buildDir || __dirname;
+  const buildDir = options.buildDir;
   const server = new Hapi.Server({
     address: options.host ?? '0.0.0.0',
     port: options.port ?? process.env.PORT ?? 8080,
@@ -50,44 +52,72 @@ export async function startServer(
 
   server.method(
     'renderOnServer',
-    (pathname: string) => {
-      return piscina.runTask(pathname) as ReturnType<typeof import('./ssr').default>;
+    async (pathname: string) => {
+      if (!piscina || Math.random() >= 0) {
+        const { default: renderOnServer } = await dynamicImport('./ssr.js');
+
+        return renderOnServer(pathname);
+      }
+
+      const mc = new MessageChannel();
+
+      mc.port2.onmessage = (...args) => {
+        console.log('got rpc from piscina worker', args);
+      };
+
+      return piscina.runTask({ pathname, port: mc.port1 }, [mc.port1 as any]) as ReturnType<
+        typeof import('./ssr').default
+      >;
     },
     {
       cache: {
-        expiresIn: 20000,
+        expiresIn: 1000,
         generateTimeout: 5000,
-        staleIn: 5000,
-        staleTimeout: 10,
+        staleIn: 500,
+        staleTimeout: 1,
       },
     }
   );
 
-  const piscina = new Piscina({
-    filename: Path.resolve(options.buildDir || __dirname, './ssr'),
-  });
+  let piscina: Piscina | undefined = undefined;
+
+  if (Module.builtinModules.includes('worker_threads')) {
+    const { default: Piscina } = await import('piscina');
+
+    piscina = new Piscina({
+      filename: Path.resolve(options.buildDir, './ssr.js'),
+    });
+  }
+
+  const dynamicImport = Function('uri', 'return import(uri);');
+
+  const serverFunctions = (await dynamicImport('./functions/functions.js')) as {
+    [functionName: string]: ServerFunction | undefined;
+  };
 
   server.route({
-    method: 'GET',
-    path: '/favicon.ico',
-    handler: async (request, h) => {
-      return Boom.notImplemented();
+    method: 'POST',
+    path: '/_nostalgie/rpc',
+    options: {
+      cors: false,
+      validate: {
+        payload: Joi.object({
+          functionName: Joi.string().required(),
+          args: Joi.array().required(),
+        }),
+      },
     },
-  });
-
-  server.route({
-    method: 'GET',
-    path: '/logo192.png',
     handler: async (request, h) => {
-      return Boom.notImplemented();
-    },
-  });
+      const { functionName, args } = request.payload as { functionName: string; args: any[] };
+      const serverFunction = serverFunctions[functionName];
 
-  server.route({
-    method: 'GET',
-    path: '/manifest.json',
-    handler: async (request, h) => {
-      return Boom.notImplemented();
+      if (!serverFunction) {
+        throw Boom.badImplementation();
+      }
+
+      const functionResult = await serverFunction({ user: null }, ...args);
+
+      return h.response(JSON.stringify(functionResult)).type('application/json');
     },
   });
 
@@ -117,13 +147,14 @@ export async function startServer(
     method: 'GET',
     path: '/{any*}',
     handler: async (request, h) => {
-      const { headTags, markup, preloadScripts } = await (server.methods['renderOnServer'](
-        request.path
-      ) as ReturnType<typeof import('./ssr').default>);
+      const { headTags, markup, preloadScripts, reactQueryState } = await (server.methods[
+        'renderOnServer'
+      ](request.path) as ReturnType<typeof import('./ssr').default>);
       const publicUrl = encodeURI('');
 
       const bootstrapOptions: BootstrapOptions = {
         lazyComponents: preloadScripts.map(([chunk, lazyImport]) => ({ chunk, lazyImport })),
+        reactQueryState,
       };
 
       const html = `
@@ -197,8 +228,10 @@ export const logger = Pino({
   timestamp: Pino.stdTimeFunctions.isoTime,
 });
 
-if (!module.parent) {
-  startServer(logger).catch((err) => {
+if (!require.main) {
+  startServer(logger, {
+    buildDir: __dirname,
+  }).catch((err) => {
     logger.fatal({ err }, 'exception thrown while starting server');
   });
 }

@@ -39,7 +39,7 @@ export function setup(commandHost: CommandHost) {
       });
 
       const { loadHapiServer } = await build(settings);
-      const { logger, startServer } = loadHapiServer();
+      const { logger, startServer } = await loadHapiServer();
 
       await startServer(logger, {
         buildDir: settings.get('buildDir'),
