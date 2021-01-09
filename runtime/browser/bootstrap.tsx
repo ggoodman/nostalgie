@@ -25,7 +25,7 @@ export interface BootstrapOptions {
   reactQueryState: DehydratedState;
 }
 
-const DEFAULT_BROWSER_STALE_TIME = 2000;
+const DEFAULT_BROWSER_STALE_TIME = 16;
 
 export async function start(options: BootstrapOptions) {
   const queryClient = new QueryClient({
@@ -72,12 +72,4 @@ export async function start(options: BootstrapOptions) {
     </LazyContext.Provider>,
     document.getElementById('root')
   );
-
-  queryClient.setDefaultOptions({
-    queries: {
-      staleTime: 0,
-    },
-  });
-
-  queryClient.refetchQueries({ stale: true });
 }

@@ -1,4 +1,5 @@
-import { useQuery, UseQueryOptions } from 'react-query';
+// import DataLoader from 'dataloader';
+import { QueryObserverResult, useQuery, UseQueryOptions } from 'react-query';
 
 export interface ServerFunctionContext {
   user: unknown;
@@ -8,7 +9,7 @@ export interface ServerFunction {
   (ctx: ServerFunctionContext, ...args: any[]): any;
 }
 
-export interface UseFunctionOptions extends UseQueryOptions {}
+export interface UseFunctionOptions extends Omit<UseQueryOptions, 'queryFn'> {}
 
 type NonContextFunctionArgs<T extends ServerFunction> = T extends (
   ctx: ServerFunctionContext,
@@ -21,10 +22,10 @@ type FunctionReturnType<T extends ServerFunction> = ReturnType<T> extends Promis
   ? U
   : ReturnType<T>;
 
-function useFunctionWithOptions<T extends ServerFunction>(
+export function useFunction<T extends ServerFunction>(
   fn: T,
   args: NonContextFunctionArgs<T>,
-  options: UseFunctionOptions = {}
+  options?: UseFunctionOptions
 ) {
   if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
     if (!isFunctionFacade(fn)) {
@@ -33,47 +34,50 @@ function useFunctionWithOptions<T extends ServerFunction>(
       );
     }
 
+    // const loader = React.useRef(
+    //   new DataLoader(batchFetch, {
+    //     batchScheduleFn: (callback) => queueMicrotask(callback),
+    //     cache: false,
+    //   })
+    // );
+
     return useQuery(
       [fn.name, [...args]],
-      async (ctx) => {
-        const url = new URL(
-          process.env.NOSTALGIE_RPC_PATH!,
-          process.env.NOSTALGIE_PUBLIC_URL || import.meta.url
-        );
-        const res = await fetch(url.href, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({ functionName: ctx.queryKey[0], args: ctx.queryKey[1] }),
-        });
-
-        if (!res.ok) {
-          // TODO: This is a crappy experience. We should have an error protocol.
-          throw new Error(`Request failed`);
-        }
-
-        return res.json() as Promise<FunctionReturnType<T>>;
+      (ctx) => {
+        return batchFetch({ functionName: ctx.queryKey[0], args: ctx.queryKey[1] });
       },
       { ...options, retry: false }
-    );
+    ) as QueryObserverResult<FunctionReturnType<T>>;
   }
 
   return useQuery(
     [fn.name, [...args]],
     () => {
-      return fn({ user: undefined }, ...args);
+      return fn({ user: undefined }, ...args) as Promise<FunctionReturnType<T>>;
     },
-    { ...options, retry: false, suspense: true }
-  );
+    { ...options, retry: false }
+  ) as QueryObserverResult<FunctionReturnType<T>>;
 }
 
-export function useFunction<T extends ServerFunction>(
-  fn: T,
-  args: NonContextFunctionArgs<T>,
-  options?: UseFunctionOptions
-) {
-  return useFunctionWithOptions(fn, args, options);
+async function batchFetch(batch: { functionName: string; args: any[] }): Promise<any[]> {
+  const url = new URL(
+    process.env.NOSTALGIE_RPC_PATH!,
+    process.env.NOSTALGIE_PUBLIC_URL || import.meta.url
+  );
+  const res = await fetch(url.href, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(batch),
+  });
+
+  if (!res.ok) {
+    // TODO: This is a crappy experience. We should have an error protocol.
+    throw new Error(`Request failed`);
+  }
+
+  return res.json();
 }
 
 interface FunctionFacade {

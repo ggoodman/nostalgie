@@ -10,7 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "got": "^11.8.1",
     "nostalgie": "file:../",
+    "quick-lru": "^5.1.1",
     "react": "^16.14.0"
   }
 }

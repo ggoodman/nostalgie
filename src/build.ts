@@ -1,9 +1,9 @@
 import { Loader, Metadata, Service, startService } from 'esbuild';
 import { promises as Fs } from 'fs';
+import Module from 'module';
 import * as Path from 'path';
 import { decorateDeferredImportsBrowserPlugin } from './esbuildPlugins/decorateDeferredImportsBrowserPlugin';
 import { decorateDeferredImportsServerPlugin } from './esbuildPlugins/decorateDeferredImportsServerPlugin';
-import { externalizePlugin } from './esbuildPlugins/externalizePlugin';
 import { markdownPlugin } from './esbuildPlugins/markdownPlugin';
 import { reactShimPlugin } from './esbuildPlugins/reactShimPlugin';
 import { resolveNostalgiePlugin } from './esbuildPlugins/resolveNostalgiePlugin';
@@ -38,7 +38,7 @@ export async function build(
 
       console.error(
         '✅ Successfully wrote server functions to: %s',
-        Path.resolve(settings.get('rootDir'), './build/functions.js')
+        Path.resolve(settings.get('rootDir'), './build/functions.mjs')
       );
 
       return functionNames;
@@ -57,9 +57,9 @@ export async function build(
 
     const nodeServerPromise = (async () => {
       const clientBuildMetadata = await clientBuildMetadataPromise;
-      const { serverFunctionsSourcePath } = await functionNamesPromise;
+      // const { serverFunctionsSourcePath } = await functionNamesPromise;
 
-      await buildNodeServer(service, settings, clientBuildMetadata, serverFunctionsSourcePath);
+      await buildNodeServer(service, settings, clientBuildMetadata);
 
       console.error(
         '✅ Successfully wrote the node server build to: %s',
@@ -77,10 +77,11 @@ export async function build(
             version: '0.0.0',
             private: true,
             main: './index.js',
-            type: 'module',
+            // type: 'module',
             engines: {
-              node: '>= ',
+              node: '> 12.2.0',
             },
+            engineStrict: true,
             scripts: {
               start: 'node ./index.js',
             },
@@ -100,13 +101,10 @@ export async function build(
 
     return {
       async loadHapiServer() {
-        const dynamicImport = new Function('path', 'return import(path);');
-        // const createRequire = Module.createRequire || Module.createRequireFromPath;
-        // const require = createRequire(Path.join(settings.get('rootDir'), 'index.js'));
+        // const dynamicImport = new Function('path', 'return import(path);');
+        const require = Module.createRequire(Path.join(settings.get('rootDir'), 'index.js'));
 
-        return dynamicImport(Path.resolve(settings.get('buildDir'), './index.js')) as Promise<
-          typeof import('../runtime/server/node')
-        >;
+        return require('./build/index.js') as typeof import('../runtime/server/node');
       },
     };
   });
@@ -147,7 +145,7 @@ async function buildClient(
       decorateDeferredImportsBrowserPlugin({
         rootDir: settings.get('rootDir'),
       }),
-      resolvePlugin('__nostalgie_app__', settings.get('applicationEntryPoint')),
+      resolvePlugin('__nostalgie_app__', settings.get('applicationEntryPoint'), ['default']),
       serverFunctionProxyPlugin(resolveExtensions, serverFunctionsPath, functionNames),
     ],
     publicPath: '/static/build',
@@ -176,20 +174,16 @@ async function buildClient(
 async function buildServerFunctions(service: Service, settings: NostalgieSettingsReader) {
   const rootDir = settings.get('rootDir');
   const functionsMetaPath = Path.resolve(rootDir, 'build/functions/meta.json');
-  const functionsBuildPath = 'build/functions/functions.js';
-  const functionsShimPath = Path.resolve(
-    settings.get('functionsEntryPoint'),
-    '../nostalgie/functions.js'
-  );
+  const functionsBuildPath = 'build/functions/functions.mjs';
 
-  await service.build({
-    bundle: true,
+  const buildResult = await service.build({
+    bundle: false,
     define: {
       'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
       'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
     },
     logLevel: 'error',
-    // entryPoints: [`./${Path.relative(rootDir, settings.get('functionsEntryPoint'))}`],
+    entryPoints: [`./${Path.relative(rootDir, settings.get('functionsEntryPoint'))}`],
     external: [],
     format: 'esm',
     incremental: true,
@@ -202,23 +196,32 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
     plugins: [],
     publicPath: '/static/build',
     resolveExtensions,
-    sourcemap: true,
+    sourcemap: false,
     splitting: false,
-    stdin: {
-      contents: `export * from ${JSON.stringify(
-        `./${Path.relative(rootDir, settings.get('functionsEntryPoint'))}`
-      )};`,
-      loader: 'js',
-      resolveDir: rootDir,
-      sourcefile: functionsShimPath,
-    },
+    // stdin: {
+    //   contents: `export * from ${JSON.stringify(
+    //     `./${Path.relative(rootDir, settings.get('functionsEntryPoint'))}`
+    //   )};`,
+    //   loader: 'js',
+    //   resolveDir: rootDir,
+    //   sourcefile: functionsShimPath,
+    // },
     treeShaking: true,
+    write: false,
   });
 
-  const metaFileContents = await Fs.readFile(functionsMetaPath, 'utf8');
+  const metaFile = buildResult.outputFiles.find((file) => file.path === functionsMetaPath);
+
+  if (!metaFile) {
+    throw new Error(
+      `Invariant violation: Unable to locate the functions build result in the function build metadata for ${functionsBuildPath}`
+    );
+  }
+
+  const metaFileContents = metaFile.text;
 
   // The metadata has potentially sensitive info like local paths
-  await Fs.unlink(functionsMetaPath);
+  // await Fs.unlink(functionsMetaPath);
 
   const metaFileData: Metadata = JSON.parse(metaFileContents);
   const functionsOutput = metaFileData.outputs[functionsBuildPath];
@@ -231,22 +234,16 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
     );
   }
 
-  const relativeFunctionsShimPath = Path.relative(rootDir, functionsShimPath);
-  const functionsShimImports = metaFileData.inputs[relativeFunctionsShimPath];
+  const functionsShimImports = metaFileData.inputs[Object.keys(metaFileData.inputs)[0]];
 
   if (!functionsShimImports) {
     console.error(metaFileData.outputs, functionsBuildPath);
 
     throw new Error(
-      `Invariant violation: Unable to locate the functions shim metadata in the function build input metadata for ${relativeFunctionsShimPath}`
-    );
-  }
-
-  if (functionsShimImports.imports.length !== 1) {
-    console.error(metaFileData.outputs, functionsBuildPath);
-
-    throw new Error(
-      `Invariant violation: Expected there to be exactly 1 import, got ${functionsShimImports.imports.length} for ${relativeFunctionsShimPath}`
+      `Invariant violation: Unable to locate the functions shim metadata in the function build input metadata for ${Path.resolve(
+        rootDir,
+        functionsBuildPath
+      )}`
     );
   }
 
@@ -255,7 +252,7 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
     /**
      * Absolute path to the USER's functions file
      */
-    serverFunctionsSourcePath: Path.resolve(rootDir, functionsShimImports.imports[0].path),
+    // serverFunctionsSourcePath: Path.resolve(rootDir, functionsShimImports.imports[0].path),
     serverFunctionsEntry: Path.resolve(rootDir, functionsBuildPath),
   };
 }
@@ -263,31 +260,22 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
 async function buildNodeServer(
   service: Service,
   settings: NostalgieSettingsReader,
-  clientBuildMetadata: Metadata,
-  serverFunctionsSourcePath: string
+  clientBuildMetadata: Metadata
 ) {
   const buildDir = settings.get('buildDir');
   const nostalgieHapiServerPath = Path.resolve(__dirname, '../runtime/server/node.ts');
   const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');
   const nostalgieSsrWorkerPath = Path.resolve(__dirname, '../runtime/server/ssr.tsx');
 
-  const esmInteropBanner = `
-import { default as nostalgieModule } from 'module';
-import { dirname as nostalgieDirname } from 'path';
-const require = nostalgieModule.createRequire(import.meta.url);
-const __dirname = nostalgieDirname(new URL(import.meta.url).pathname);
-  `;
-
   const buildPromises: Array<Promise<unknown>> = [
     // Build the Piscina worker shim needed to act as a wrapper around the ssr entrypoint
     service.build({
-      banner: esmInteropBanner,
       bundle: true,
       define: {
         'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
       },
-      format: 'esm',
+      format: 'cjs',
       loader: loaders,
       logLevel: 'error',
       minify: settings.get('buildEnvironment') === 'production',
@@ -304,20 +292,19 @@ const __dirname = nostalgieDirname(new URL(import.meta.url).pathname);
         resolveDir: Path.dirname(nostalgiePiscinaWorkerPath),
         sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../worker.js'),
       },
-      target: 'es2017',
+      target: ['node12'],
       treeShaking: true,
       write: true,
     }),
 
     // Build the SSR library
     service.build({
-      banner: esmInteropBanner,
       bundle: true,
       define: {
         'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
       },
-      format: 'esm',
+      format: 'cjs',
       loader: loaders,
       logLevel: 'error',
       minify: settings.get('buildEnvironment') === 'production',
@@ -335,8 +322,9 @@ const __dirname = nostalgieDirname(new URL(import.meta.url).pathname);
           resolveExtensions,
           rootDir: settings.get('rootDir'),
         }),
-        resolvePlugin('__nostalgie_app__', settings.get('applicationEntryPoint')),
-        externalizePlugin(serverFunctionsSourcePath, './functions/functions.js'),
+        resolvePlugin('__nostalgie_app__', settings.get('applicationEntryPoint'), ['default']),
+        resolvePlugin('__nostalgie_functions__', settings.get('functionsEntryPoint'), ['*']),
+        // externalizePlugin(serverFunctionsSourcePath, './functions/functions.mjs'),
       ],
       resolveExtensions,
       sourcemap: true,
@@ -346,21 +334,20 @@ const __dirname = nostalgieDirname(new URL(import.meta.url).pathname);
         resolveDir: Path.dirname(nostalgieSsrWorkerPath),
         sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../ssr.tsx'),
       },
-      target: 'es2017',
+      target: ['node12'],
       treeShaking: true,
       write: true,
     }),
 
     // Build the node runtime
     service.build({
-      banner: esmInteropBanner,
       bundle: true,
       define: {
         'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
       },
       entryPoints: [nostalgieHapiServerPath],
-      format: 'esm',
+      format: 'cjs',
       // loader: loaders,
       logLevel: 'error',
       minify: settings.get('buildEnvironment') === 'production',
@@ -377,7 +364,7 @@ const __dirname = nostalgieDirname(new URL(import.meta.url).pathname);
       //   resolveDir: Path.dirname(nostalgieHapiServerPath),
       //   sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../index.tsx'),
       // },
-      target: 'es2017',
+      target: ['node12'],
       treeShaking: true,
       write: true,
     }),

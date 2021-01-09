@@ -1,0 +1,4 @@
+export enum MethodKind {
+  INVOKE_FUNCTION = 'INVOKE_METHOD',
+  RENDER_TREE = 'RENDER_TREE',
+}

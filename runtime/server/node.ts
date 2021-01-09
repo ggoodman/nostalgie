@@ -1,14 +1,15 @@
-import Boom from '@hapi/boom';
 import * as Hapi from '@hapi/hapi';
 import HapiInert from '@hapi/inert';
 import { AbortController } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import Joi from 'joi';
-import Module from 'module';
-import type { BootstrapOptions, ServerFunction } from 'nostalgie/internals';
+import type { ServerFunctionContext } from 'nostalgie';
+import type { BootstrapOptions } from 'nostalgie/internals';
 import * as Path from 'path';
 import Pino, { Logger } from 'pino';
-import type Piscina from 'piscina';
+import Piscina from 'piscina';
+import { MethodKind } from './constants';
+import type { RenderTreeResult } from './ssr';
 
 export async function startServer(
   logger: Logger,
@@ -50,25 +51,25 @@ export async function startServer(
     },
   ]);
 
+  const piscina = new Piscina({
+    filename: Path.resolve(options.buildDir, './ssr.js'),
+  });
+
+  function invokeWorker(
+    op: MethodKind.INVOKE_FUNCTION,
+    args: { functionName: string; ctx: ServerFunctionContext; args: any[] }
+  ): Promise<unknown>;
+  function invokeWorker(
+    op: MethodKind.RENDER_TREE,
+    args: { path: string }
+  ): Promise<RenderTreeResult>;
+  function invokeWorker(op: MethodKind, args: unknown) {
+    return piscina.runTask({ op, args });
+  }
+
   server.method(
     'renderOnServer',
-    async (pathname: string) => {
-      if (!piscina || Math.random() >= 0) {
-        const { default: renderOnServer } = await dynamicImport('./ssr.js');
-
-        return renderOnServer(pathname);
-      }
-
-      const mc = new MessageChannel();
-
-      mc.port2.onmessage = (...args) => {
-        console.log('got rpc from piscina worker', args);
-      };
-
-      return piscina.runTask({ pathname, port: mc.port1 }, [mc.port1 as any]) as ReturnType<
-        typeof import('./ssr').default
-      >;
-    },
+    (pathname: string) => invokeWorker(MethodKind.RENDER_TREE, { path: pathname }),
     {
       cache: {
         expiresIn: 1000,
@@ -78,22 +79,18 @@ export async function startServer(
       },
     }
   );
+  const renderOnServer = server.methods.renderOnServer as (
+    pathname: string
+  ) => Promise<RenderTreeResult>;
 
-  let piscina: Piscina | undefined = undefined;
-
-  if (Module.builtinModules.includes('worker_threads')) {
-    const { default: Piscina } = await import('piscina');
-
-    piscina = new Piscina({
-      filename: Path.resolve(options.buildDir, './ssr.js'),
-    });
-  }
-
-  const dynamicImport = Function('uri', 'return import(uri);');
-
-  const serverFunctions = (await dynamicImport('./functions/functions.js')) as {
-    [functionName: string]: ServerFunction | undefined;
-  };
+  server.method('invokeFunction', (functionName: string, ctx: ServerFunctionContext, args: any[]) =>
+    invokeWorker(MethodKind.INVOKE_FUNCTION, { functionName, ctx, args })
+  );
+  const invokeFunction = server.methods.invokeFunction as (
+    functionName: string,
+    ctx: ServerFunctionContext,
+    args: any[]
+  ) => Promise<unknown>;
 
   server.route({
     method: 'POST',
@@ -108,16 +105,16 @@ export async function startServer(
       },
     },
     handler: async (request, h) => {
-      const { functionName, args } = request.payload as { functionName: string; args: any[] };
-      const serverFunction = serverFunctions[functionName];
+      const { functionName, args } = request.payload as {
+        functionName: string;
+        args: any[];
+      };
+      const ctx: ServerFunctionContext = {
+        user: null,
+      };
+      const functionResults = await invokeFunction(functionName, ctx, args);
 
-      if (!serverFunction) {
-        throw Boom.badImplementation();
-      }
-
-      const functionResult = await serverFunction({ user: null }, ...args);
-
-      return h.response(JSON.stringify(functionResult)).type('application/json');
+      return h.response(JSON.stringify(functionResults)).type('application/json');
     },
   });
 
@@ -147,9 +144,9 @@ export async function startServer(
     method: 'GET',
     path: '/{any*}',
     handler: async (request, h) => {
-      const { headTags, markup, preloadScripts, reactQueryState } = await (server.methods[
-        'renderOnServer'
-      ](request.path) as ReturnType<typeof import('./ssr').default>);
+      const { headTags, markup, preloadScripts, reactQueryState } = await renderOnServer(
+        request.path
+      );
       const publicUrl = encodeURI('');
 
       const bootstrapOptions: BootstrapOptions = {

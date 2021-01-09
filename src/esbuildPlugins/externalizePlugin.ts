@@ -12,7 +12,7 @@ export function externalizePlugin(specifier: string, asSpecifier: string): Plugi
 
       build.onResolve(
         { filter: new RegExp(`^${escapeStringRegexp(nonce)}$`, 'g'), namespace: 'file' },
-        () => {
+        (arg) => {
           return {
             path: asSpecifier,
             external: true,
@@ -23,7 +23,7 @@ export function externalizePlugin(specifier: string, asSpecifier: string): Plugi
 
       build.onLoad({ filter, namespace: 'file' }, (arg) => {
         return {
-          contents: `export * from ${JSON.stringify(nonce)};`,
+          contents: `module.exports = require(${JSON.stringify(nonce)});`,
         };
       });
     },

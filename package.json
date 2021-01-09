@@ -46,8 +46,9 @@
   },
   "homepage": "https://github.com/ggoodman/typescript-library-template#readme",
   "engines": {
-    "node": ">=10.16.0"
+    "node": ">12.2.0"
   },
+  "engineStrict": true,
   "prettier": {
     "arrowParens": "always",
     "printWidth": 100,
@@ -59,6 +60,7 @@
     "@hapi/inert": "^6.0.3",
     "@twind/typography": "0.0.1",
     "abort-controller": "^3.0.0",
+    "dataloader": "^2.0.0",
     "esbuild": "^0.8.31",
     "escape-string-regexp": "^4.0.0",
     "hapi-pino": "^8.3.0",
