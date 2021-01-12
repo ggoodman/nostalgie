@@ -9,6 +9,7 @@ import { reactShimPlugin } from './esbuildPlugins/reactShimPlugin';
 import { resolveNostalgiePlugin } from './esbuildPlugins/resolveNostalgiePlugin';
 import { resolvePlugin } from './esbuildPlugins/resolvePlugin';
 import { serverFunctionProxyPlugin } from './esbuildPlugins/serverFunctionProxyPlugin';
+import { svgPlugin } from './esbuildPlugins/svgPlugin';
 import type { NostalgieSettingsReader } from './settings';
 
 const loaders: {
@@ -16,6 +17,7 @@ const loaders: {
 } = {
   '.ico': 'file',
   '.png': 'file',
+  '.svg': 'file',
 };
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
 
@@ -141,6 +143,7 @@ async function buildClient(
     plugins: [
       resolveNostalgiePlugin(),
       markdownPlugin(settings.get('applicationEntryPoint')),
+      svgPlugin(),
       reactShimPlugin(),
       decorateDeferredImportsBrowserPlugin({
         rootDir: settings.get('rootDir'),
@@ -315,6 +318,7 @@ async function buildNodeServer(
       plugins: [
         resolveNostalgiePlugin(),
         markdownPlugin(settings.get('applicationEntryPoint')),
+        svgPlugin(),
         reactShimPlugin(),
         decorateDeferredImportsServerPlugin({
           buildDir,

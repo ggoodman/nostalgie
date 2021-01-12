@@ -1,6 +1,6 @@
 import * as Hapi from '@hapi/hapi';
 import HapiInert from '@hapi/inert';
-import { AbortController } from 'abort-controller';
+import { AbortController, AbortSignal } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import Joi from 'joi';
 import type { ServerFunctionContext } from 'nostalgie';
@@ -52,19 +52,23 @@ export async function startServer(
   ]);
 
   const piscina = new Piscina({
+    concurrentTasksPerWorker: 8,
     filename: Path.resolve(options.buildDir, './ssr.js'),
+    idleTimeout: 30000,
   });
 
   function invokeWorker(
     op: MethodKind.INVOKE_FUNCTION,
-    args: { functionName: string; ctx: ServerFunctionContext; args: any[] }
+    args: { functionName: string; ctx: ServerFunctionContext; args: any[] },
+    options?: { signal?: AbortSignal }
   ): Promise<unknown>;
   function invokeWorker(
     op: MethodKind.RENDER_TREE,
-    args: { path: string }
+    args: { path: string },
+    options?: { signal?: AbortSignal }
   ): Promise<RenderTreeResult>;
-  function invokeWorker(op: MethodKind, args: unknown) {
-    return piscina.runTask({ op, args });
+  function invokeWorker(op: MethodKind, args: unknown, options: { signal?: AbortSignal } = {}) {
+    return piscina.runTask({ op, args }, options.signal);
   }
 
   server.method(
@@ -83,8 +87,15 @@ export async function startServer(
     pathname: string
   ) => Promise<RenderTreeResult>;
 
-  server.method('invokeFunction', (functionName: string, ctx: ServerFunctionContext, args: any[]) =>
-    invokeWorker(MethodKind.INVOKE_FUNCTION, { functionName, ctx, args })
+  server.method(
+    'invokeFunction',
+    (functionName: string, ctx: ServerFunctionContext, args: any[]) => {
+      return invokeWorker(
+        MethodKind.INVOKE_FUNCTION,
+        { functionName, ctx, args },
+        { signal: ctx.signal }
+      );
+    }
   );
   const invokeFunction = server.methods.invokeFunction as (
     functionName: string,
@@ -105,12 +116,14 @@ export async function startServer(
       },
     },
     handler: async (request, h) => {
+      const abortController = new AbortController();
       const { functionName, args } = request.payload as {
         functionName: string;
         args: any[];
       };
       const ctx: ServerFunctionContext = {
         user: null,
+        signal: abortController.signal,
       };
       const functionResults = await invokeFunction(functionName, ctx, args);
 

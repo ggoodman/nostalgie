@@ -1,7 +1,7 @@
 import { Head, NavLink, Route, Switch } from 'nostalgie';
 import * as React from 'react';
+import PlunkerImg from './assets/Nostalgie.svg';
 import Favicon from './favicon.ico';
-import PlunkerImg from './plunker.png';
 
 const LazyDocsPage = React.lazy(() => import('./pages/Docs'));
 const LazyHomePage = React.lazy(() => import('./pages/Home'));
@@ -28,7 +28,7 @@ export default function App() {
       <div className="flex flex-col">
         <header className="bg-blue-600 text-gray-50">
           <nav className="flex flex-row flex-nowrap space-x-4 items-end container px-2 mx-auto text-xl h-12">
-            <img className="block h-10 w-10 self-center" src={PlunkerImg} />
+            <PlunkerImg width="22px" className="block h-10 self-center fill-current text-gray-50" />
             <NavLink
               className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
               to="/"

@@ -1,29 +1,35 @@
 import got from 'got';
-// import * as Http from 'http';
-// import * as Https from 'https';
 import type { ServerFunctionContext } from 'nostalgie';
-// import QuickLRU from 'quick-lru';
+const cachedGot = got.extend({});
 
-// const cache = new QuickLRU({ maxSize: 256 });
-// const httpAgent = new Http.Agent({ keepAlive: true });
-// const httpsAgent = new Https.Agent({ keepAlive: true });
-const cachedGot = got.extend({
-  // agent: { http: httpAgent, https: httpsAgent },
-  // cache,
-});
+export async function getHackerNewsStories(ctx: ServerFunctionContext, listKey: 'front_page') {
+  const result = await getWithGot<{ hits: { objectID: string; title: string }[] }>(
+    ctx,
+    `https://hn.algolia.com/api/v1/search?tags=${encodeURIComponent(listKey)}`
+  );
 
-export async function getStoriesList(_ctx: ServerFunctionContext, listKey: 'topstories') {
-  const res = await cachedGot(`https://hacker-news.firebaseio.com/v0/${listKey}.json`, {
-    responseType: 'json',
-  });
-
-  return (res.body as number[]).slice(0, 20);
+  return result.hits;
 }
 
-export async function getStory(_ctx: ServerFunctionContext, storyId: number) {
-  const res = await cachedGot(`https://hacker-news.firebaseio.com/v0/item/${storyId}.json`, {
+export async function getStory(ctx: ServerFunctionContext, storyId: number) {
+  const result = await getWithGot(
+    ctx,
+    `http://hn.algolia.com/api/v1/items/${encodeURIComponent(storyId)}`
+  );
+
+  return result;
+}
+
+async function getWithGot<T = unknown>(ctx: ServerFunctionContext, url: string): Promise<T> {
+  const req = cachedGot(url, {
     responseType: 'json',
   });
 
-  return res.body;
+  if (ctx.signal) {
+    ctx.signal.onabort = () => req.cancel();
+  }
+
+  const res = await req;
+
+  return res.body as T;
 }
