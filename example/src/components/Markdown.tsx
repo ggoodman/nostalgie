@@ -1,22 +1,27 @@
-import 'github-markdown-css/github-markdown.css';
-import { Markdown, MarkdownComponent } from 'nostalgie';
+import sheetUri from 'github-markdown-css/github-markdown.css';
+import { Helmet, Markdown, MarkdownComponent } from 'nostalgie';
 import * as React from 'react';
 
 export function ProseMarkdown(props: { for: MarkdownComponent }) {
   return (
-    <props.for
-      className="markdown-body"
-      options={{
-        overrides: {
-          img: {
-            props: {
-              className: 'h-5 inline-block my-0',
+    <>
+      <Helmet>
+        <link rel="stylesheet" href={sheetUri} />
+      </Helmet>
+      <props.for
+        className="markdown-body"
+        options={{
+          overrides: {
+            img: {
+              props: {
+                className: 'h-5 inline-block my-0',
+              },
+              component: (props) => <img {...props} style={{ marginTop: 0, marginBottom: 0 }} />,
             },
-            component: (props) => <img {...props} style={{ marginTop: 0, marginBottom: 0 }} />,
           },
-        },
-      }}
-    />
+        }}
+      />
+    </>
   );
 }
 

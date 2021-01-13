@@ -1,12 +1,14 @@
+import { Helmet } from 'nostalgie';
 import * as React from 'react';
-import { Head, Link } from 'nostalgie';
-import Readme from '../../../README.md';
 import { ProseMarkdown } from 'src/components/Markdown';
+import Readme from '../../../README.md';
 
 export default function HomePage() {
   return (
     <>
-      <Head.Title>Nostalgie - Home</Head.Title>
+      <Helmet>
+        <title>Nostalgie - Home</title>
+      </Helmet>
 
       <ProseMarkdown for={Readme} />
     </>

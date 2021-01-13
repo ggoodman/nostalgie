@@ -2,6 +2,14 @@ import type * as React from 'react';
 import type { MarkdownComponent } from './markdown';
 
 declare global {
+  module '*.css' {
+    const value: string;
+    /**
+     * A URI pointing to the external stylesheet
+     */
+    export default value;
+  }
+
   module '*.ico' {
     const value: string;
     export default value;

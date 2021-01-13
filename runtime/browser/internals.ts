@@ -1,3 +1,5 @@
+export { HelmetProvider } from 'react-helmet-async';
+export type { FilledContext, ProviderProps } from 'react-helmet-async';
 export { QueryClient, QueryClientProvider } from 'react-query';
 export { BrowserRouter, StaticRouter } from 'react-router-dom';
 export type { BootstrapOptions } from './bootstrap';

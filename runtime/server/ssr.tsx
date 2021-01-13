@@ -1,9 +1,12 @@
 import Boom from '@hapi/boom';
 import typography from '@twind/typography';
-import type {} from 'nostalgie';
 import {
+  BootstrapOptions,
   ChunkManager,
+  FilledContext,
+  HelmetProvider,
   LazyContext,
+  ProviderProps,
   QueryClient,
   ServerFunction,
   ServerFunctionContext,
@@ -12,9 +15,8 @@ import {
   StaticRouter,
 } from 'nostalgie/internals';
 import * as React from 'react';
-import { renderToStaticMarkup, renderToString } from 'react-dom/server';
-import { HeadProvider } from 'react-head';
-import { dehydrate, DehydratedState, Hydrate } from 'react-query/hydration';
+import { renderToString } from 'react-dom/server';
+import { dehydrate, Hydrate } from 'react-query/hydration';
 import ssrPrepass from 'react-ssr-prepass';
 import { create, silent } from 'twind';
 import { getStyleTag, shim, virtualSheet } from 'twind/server';
@@ -27,6 +29,7 @@ import App from '__nostalgie_app__';
 // We need to ignore this because the import specifier
 // will be remapped at build time.
 import * as Functions from '__nostalgie_functions__';
+export { HelmetProvider } from 'react-helmet-async';
 // import { MethodKind } from './constants';
 
 declare const App: React.ComponentType;
@@ -35,13 +38,6 @@ declare const Functions: { [functionName: string]: ServerFunction | undefined };
 declare const __nostalgie_chunks__: any;
 
 const MAX_ASYNC_PREPASS_ITERATIONS = 20;
-
-export interface RenderTreeResult {
-  preloadScripts: { chunk: string; lazyImport: string }[];
-  headTags: string[];
-  markup: string;
-  reactQueryState: DehydratedState;
-}
 
 worker({
   invokeFunction,
@@ -82,7 +78,8 @@ export async function invokeFunction(
 export async function renderAppOnServer(
   path: string,
   deadline: number = 500
-): Promise<RenderTreeResult> {
+): Promise<{ html: string }> {
+  const helmetCtx: ProviderProps = {};
   const chunkDependencies = __nostalgie_chunks__;
   const chunkCtx: ChunkManager = {
     chunks: [],
@@ -101,16 +98,15 @@ export async function renderAppOnServer(
     },
   });
   const initialReactQueryState = dehydrate(queryClient);
-  const headTagElements: React.ReactElement<unknown>[] = [];
   const queryExecutor = new ServerQueryExecutorImpl(queryClient);
   const model = (
     <StaticRouter location={path}>
       <LazyContext.Provider value={chunkCtx}>
         <ServerQueryContextProvider queryExecutor={queryExecutor}>
           <Hydrate state={initialReactQueryState}>
-            <HeadProvider headTags={headTagElements}>
+            <HelmetProvider context={helmetCtx}>
               <App />
-            </HeadProvider>
+            </HelmetProvider>
           </Hydrate>
         </ServerQueryContextProvider>
       </LazyContext.Provider>
@@ -157,6 +153,7 @@ export async function renderAppOnServer(
   const queryClientData = dehydrate(queryClient);
   const renderedMarkup = html ?? renderToString(model);
 
+  // They didn't make it in time for the deadline so we'll cancel them
   queryClient.cancelQueries();
 
   // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
@@ -164,6 +161,8 @@ export async function renderAppOnServer(
 
   const shimmedMarkup = shim(renderedMarkup, tw);
   const headTags = [];
+
+  const { helmet } = helmetCtx as FilledContext;
 
   for (const { chunk } of chunkCtx.chunks) {
     const chunkDeps = chunkDependencies[chunk];
@@ -175,10 +174,44 @@ export async function renderAppOnServer(
     }
   }
 
-  return {
-    preloadScripts: [...chunkCtx.chunks],
-    headTags: [...headTags, ...headTagElements.map(renderToStaticMarkup), getStyleTag(customSheet)],
-    markup: shimmedMarkup,
+  const publicUrl = encodeURI('');
+  const htmlAttrs = helmet.htmlAttributes.toString();
+  const bodyAttrs = helmet.bodyAttributes.toString();
+
+  const bootstrapOptions: BootstrapOptions = {
+    lazyComponents: chunkCtx.chunks,
     reactQueryState: queryClientData,
+  };
+  const wrapper = `
+  <!doctype html>
+  <html ${htmlAttrs}>
+    <head>
+      ${helmet.title.toString()}
+      ${helmet.meta.toString()}
+      <link rel="modulepreload" href="${publicUrl}/static/build/bootstrap.js" />
+      ${chunkCtx.chunks.map(
+        ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}/${encodeURI(chunk)}" />`
+      )}
+      ${helmet.link.toString()}
+      ${headTags.join('\n')}
+      ${helmet.noscript.toString()}
+      ${helmet.script.toString()}
+      ${getStyleTag(customSheet)}
+      ${helmet.style.toString()}
+    </head>
+    <body ${bodyAttrs}>
+      <noscript>You need to enable JavaScript to run this app.</noscript>
+      <div id="root">${shimmedMarkup}</div>
+      <script type="module">
+        import { start } from "${publicUrl}/static/build/bootstrap.js";
+  
+        start(${JSON.stringify(bootstrapOptions)});
+      </script>
+    </body>
+  </html>
+        `.trim();
+
+  return {
+    html: wrapper,
   };
 }

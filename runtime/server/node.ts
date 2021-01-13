@@ -4,7 +4,6 @@ import { AbortController, AbortSignal } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import Joi from 'joi';
 import type { ServerFunctionContext } from 'nostalgie';
-import type { BootstrapOptions } from 'nostalgie/internals';
 import { cpus } from 'os';
 import * as Path from 'path';
 import { pool } from 'workerpool';
@@ -141,45 +140,7 @@ export async function startServer(
     method: 'GET',
     path: '/{any*}',
     handler: async (request, h) => {
-      const { headTags, markup, preloadScripts, reactQueryState } = await renderAppOnServer(
-        request.path
-      );
-      const publicUrl = encodeURI('');
-
-      const bootstrapOptions: BootstrapOptions = {
-        lazyComponents: preloadScripts,
-        reactQueryState,
-      };
-
-      const html = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using nostalgie"
-    />
-    <link rel="apple-touch-icon" href="${publicUrl}/logo192.png" />
-    <link rel="modulepreload" href="${publicUrl}/static/build/bootstrap.js" />
-    ${preloadScripts.map(
-      ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}/${encodeURI(chunk)}" />`
-    )}
-    ${headTags.join('\n')}
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root">${markup}</div>
-    <script type="module">
-      import { start } from "${publicUrl}/static/build/bootstrap.js";
-
-      start(${JSON.stringify(bootstrapOptions)});
-    </script>
-  </body>
-</html>
-      `.trim();
+      const { html } = await renderAppOnServer(request.path);
 
       return h.response(html).header('content-type', 'text/html');
     },

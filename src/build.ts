@@ -19,6 +19,7 @@ const createRequire = Module.createRequire || Module.createRequireFromPath;
 const loaders: {
   [ext: string]: Loader;
 } = {
+  '.css': 'file',
   '.ico': 'file',
   '.png': 'file',
   '.svg': 'file',
@@ -170,7 +171,7 @@ async function buildClient(
   const metaFileContents = await Fs.readFile(clientMetaPath, 'utf8');
 
   // The metadata has potentially sensitive info like local paths
-  await Fs.unlink(clientMetaPath);
+  // await Fs.unlink(clientMetaPath);
 
   const metaFileData: Metadata = JSON.parse(metaFileContents);
 
@@ -259,38 +260,38 @@ async function buildNodeServer(
 ) {
   const buildDir = settings.get('buildDir');
   const nostalgieHapiServerPath = Path.resolve(__dirname, '../runtime/server/node.ts');
-  const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');
+  // const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');
   const nostalgieSsrWorkerPath = Path.resolve(__dirname, '../runtime/server/ssr.tsx');
 
   const buildPromises: Array<Promise<unknown>> = [
     // Build the Piscina worker shim needed to act as a wrapper around the ssr entrypoint
-    service.build({
-      bundle: true,
-      define: {
-        'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
-        'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
-      },
-      format: 'cjs',
-      loader: loaders,
-      logLevel: 'error',
-      minify: settings.get('buildEnvironment') === 'production',
-      outbase: Path.dirname(settings.get('applicationEntryPoint')),
-      outdir: settings.get('buildDir'),
-      publicPath: '/static/build',
-      platform: 'node',
-      plugins: [],
-      resolveExtensions,
-      sourcemap: true,
-      stdin: {
-        contents: await Fs.readFile(nostalgiePiscinaWorkerPath, 'utf8'),
-        loader: 'js',
-        resolveDir: Path.dirname(nostalgiePiscinaWorkerPath),
-        sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../worker.js'),
-      },
-      target: ['node12'],
-      treeShaking: true,
-      write: true,
-    }),
+    // service.build({
+    //   bundle: true,
+    //   define: {
+    //     'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
+    //     'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
+    //   },
+    //   format: 'cjs',
+    //   loader: loaders,
+    //   logLevel: 'error',
+    //   minify: settings.get('buildEnvironment') === 'production',
+    //   outbase: Path.dirname(settings.get('applicationEntryPoint')),
+    //   outdir: settings.get('buildDir'),
+    //   publicPath: '/static/build',
+    //   platform: 'node',
+    //   plugins: [],
+    //   resolveExtensions,
+    //   sourcemap: true,
+    //   stdin: {
+    //     contents: await Fs.readFile(nostalgiePiscinaWorkerPath, 'utf8'),
+    //     loader: 'js',
+    //     resolveDir: Path.dirname(nostalgiePiscinaWorkerPath),
+    //     sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../worker.js'),
+    //   },
+    //   target: ['node12'],
+    //   treeShaking: true,
+    //   write: true,
+    // }),
 
     // Build the SSR library
     service.build({

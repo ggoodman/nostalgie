@@ -1,4 +1,4 @@
-import { Head } from 'nostalgie';
+import { Helmet } from 'nostalgie';
 import * as React from 'react';
 import { ProseMarkdown } from '../components/Markdown';
 import Docs from './Docs.md';
@@ -6,7 +6,9 @@ import Docs from './Docs.md';
 export default function DocsPage() {
   return (
     <>
-      <Head.Title>Nostalgie - Docs</Head.Title>
+      <Helmet>
+        <title>Nostalgie - Docs</title>
+      </Helmet>
 
       <ProseMarkdown for={Docs} />
     </>

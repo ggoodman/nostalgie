@@ -3,7 +3,7 @@ import typography from '@twind/typography';
 import { BrowserRouter, ChunkManager, LazyContext, register } from 'nostalgie/internals';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { HeadProvider } from 'react-head';
+import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { DehydratedState, Hydrate } from 'react-query/hydration';
 import { setup, silent } from 'twind';
@@ -52,7 +52,7 @@ export async function start(options: BootstrapOptions) {
 
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {
     return import(`/${chunk}`).then((m) => {
-      register(chunkCtx, [chunk], lazyImport, m);
+      register(chunkCtx, chunk, lazyImport, m);
     });
   });
 
@@ -60,15 +60,15 @@ export async function start(options: BootstrapOptions) {
 
   ReactDOM.hydrate(
     <LazyContext.Provider value={chunkCtx}>
-      <HeadProvider>
-        <QueryClientProvider client={queryClient}>
-          <Hydrate state={options.reactQueryState}>
-            <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <Hydrate state={options.reactQueryState}>
+          <BrowserRouter>
+            <HelmetProvider>
               <App />
-            </BrowserRouter>
-          </Hydrate>
-        </QueryClientProvider>
-      </HeadProvider>
+            </HelmetProvider>
+          </BrowserRouter>
+        </Hydrate>
+      </QueryClientProvider>
     </LazyContext.Provider>,
     document.getElementById('root')
   );
