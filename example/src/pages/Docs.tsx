@@ -1,16 +1,18 @@
+import sheetUri from 'github-markdown-css/github-markdown.css';
 import { Helmet } from 'nostalgie';
 import * as React from 'react';
-import { ProseMarkdown } from '../components/Markdown';
-import Docs from './Docs.md';
+import Docs from './Docs.mdx';
 
 export default function DocsPage() {
   return (
     <>
       <Helmet>
         <title>Nostalgie - Docs</title>
+        <link rel="stylesheet" href={sheetUri} />
       </Helmet>
-
-      <ProseMarkdown for={Docs} />
+      <div className="py-3 markdown-body">
+        <Docs />
+      </div>
     </>
   );
 }

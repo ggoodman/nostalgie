@@ -21,6 +21,11 @@ declare global {
     export default Component;
   }
 
+  module '*.mdx' {
+    const Component: React.ComponentType<Partial<import('@mdx-js/react').MDXProviderProps>>;
+    export default Component;
+  }
+
   module '*.png' {
     const value: string;
     export default value;

@@ -1,6 +1,6 @@
+import sheetUri from 'github-markdown-css/github-markdown.css';
 import { Helmet } from 'nostalgie';
 import * as React from 'react';
-import { ProseMarkdown } from 'src/components/Markdown';
 import Readme from '../../../README.md';
 
 export default function HomePage() {
@@ -8,9 +8,11 @@ export default function HomePage() {
     <>
       <Helmet>
         <title>Nostalgie - Home</title>
+        <link rel="stylesheet" href={sheetUri} />
       </Helmet>
-
-      <ProseMarkdown for={Readme} />
+      <div className="py-3 markdown-body">
+        <Readme />
+      </div>
     </>
   );
 }

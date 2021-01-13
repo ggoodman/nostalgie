@@ -1,6 +1,5 @@
 import { Helmet } from 'nostalgie';
 import * as React from 'react';
-import { ProseMarkdownText } from '../components/Markdown';
 
 export default function DocsPage() {
   return (
@@ -9,7 +8,7 @@ export default function DocsPage() {
         <title>Nostalgie - Not Found</title>
       </Helmet>
 
-      <ProseMarkdownText>{`# Not Found`}</ProseMarkdownText>
+      <h1>Page not found</h1>
     </>
   );
 }

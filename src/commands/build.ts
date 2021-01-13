@@ -15,7 +15,7 @@ export function setup(commandHost: CommandHost) {
         env: {
           choices: ['development', 'production'],
           description: 'The environment for which you want to build your nostalgie server and app.',
-          default: 'development',
+          default: 'production',
         },
         'root-dir': {
           string: true,

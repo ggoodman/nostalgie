@@ -5,7 +5,7 @@ import * as Path from 'path';
 import type { Logger } from 'pino';
 import { decorateDeferredImportsBrowserPlugin } from './esbuildPlugins/decorateDeferredImportsBrowserPlugin';
 import { decorateDeferredImportsServerPlugin } from './esbuildPlugins/decorateDeferredImportsServerPlugin';
-import { markdownPlugin } from './esbuildPlugins/markdownPlugin';
+import { mdxPlugin } from './esbuildPlugins/mdxPlugin';
 import { reactShimPlugin } from './esbuildPlugins/reactShimPlugin';
 import { resolveNostalgiePlugin } from './esbuildPlugins/resolveNostalgiePlugin';
 import { resolvePlugin } from './esbuildPlugins/resolvePlugin';
@@ -141,7 +141,7 @@ async function buildClient(
     platform: 'browser',
     plugins: [
       resolveNostalgiePlugin(),
-      markdownPlugin(settings.get('applicationEntryPoint')),
+      mdxPlugin(settings.get('applicationEntryPoint')),
       svgPlugin(),
       reactShimPlugin(),
       decorateDeferredImportsBrowserPlugin({
@@ -171,7 +171,7 @@ async function buildClient(
   const metaFileContents = await Fs.readFile(clientMetaPath, 'utf8');
 
   // The metadata has potentially sensitive info like local paths
-  // await Fs.unlink(clientMetaPath);
+  await Fs.unlink(clientMetaPath);
 
   const metaFileData: Metadata = JSON.parse(metaFileContents);
 
@@ -264,35 +264,6 @@ async function buildNodeServer(
   const nostalgieSsrWorkerPath = Path.resolve(__dirname, '../runtime/server/ssr.tsx');
 
   const buildPromises: Array<Promise<unknown>> = [
-    // Build the Piscina worker shim needed to act as a wrapper around the ssr entrypoint
-    // service.build({
-    //   bundle: true,
-    //   define: {
-    //     'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
-    //     'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
-    //   },
-    //   format: 'cjs',
-    //   loader: loaders,
-    //   logLevel: 'error',
-    //   minify: settings.get('buildEnvironment') === 'production',
-    //   outbase: Path.dirname(settings.get('applicationEntryPoint')),
-    //   outdir: settings.get('buildDir'),
-    //   publicPath: '/static/build',
-    //   platform: 'node',
-    //   plugins: [],
-    //   resolveExtensions,
-    //   sourcemap: true,
-    //   stdin: {
-    //     contents: await Fs.readFile(nostalgiePiscinaWorkerPath, 'utf8'),
-    //     loader: 'js',
-    //     resolveDir: Path.dirname(nostalgiePiscinaWorkerPath),
-    //     sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../worker.js'),
-    //   },
-    //   target: ['node12'],
-    //   treeShaking: true,
-    //   write: true,
-    // }),
-
     // Build the SSR library
     service.build({
       bundle: true,
@@ -311,7 +282,7 @@ async function buildNodeServer(
       platform: 'node',
       plugins: [
         resolveNostalgiePlugin(),
-        markdownPlugin(settings.get('applicationEntryPoint')),
+        mdxPlugin(),
         svgPlugin(),
         reactShimPlugin(),
         decorateDeferredImportsServerPlugin({
