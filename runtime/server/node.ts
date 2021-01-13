@@ -3,12 +3,16 @@ import HapiInert from '@hapi/inert';
 import { AbortController, AbortSignal } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import Joi from 'joi';
+import Module from 'module';
 import type { ServerFunctionContext } from 'nostalgie';
 import { cpus } from 'os';
 import * as Path from 'path';
 import { pool } from 'workerpool';
 import { wireAbortController } from './lifecycle';
 import { createDefaultLogger, Logger } from './logging';
+
+const createRequire = Module.createRequire || Module.createRequireFromPath;
+const require = createRequire(__filename);
 
 export async function startServer(
   logger: Logger,
@@ -151,7 +155,7 @@ export async function startServer(
   return server;
 }
 
-if (!require.main) {
+if (require.main === module) {
   const logger = createDefaultLogger();
   const signal = wireAbortController(logger);
 
