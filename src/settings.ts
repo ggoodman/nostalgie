@@ -6,6 +6,7 @@ export interface NostalgieSettings {
   buildDir: string;
   buildEnvironment: 'development' | 'production';
   rootDir: string;
+  staticDir: string;
 }
 
 type NostalgieSetting = keyof NostalgieSettings;
@@ -19,18 +20,21 @@ class StaticNostalgieSettings implements NostalgieSettingsReader {
 
   get<K extends NostalgieSetting>(setting: K): NostalgieSettings[K] {
     const rootDir = this.options.rootDir || process.cwd();
+    const buildDir = Path.resolve(rootDir, './build');
 
     switch (setting) {
       case 'applicationEntryPoint':
         return Path.resolve(rootDir, './src/App') as NostalgieSettings[K];
       case 'buildDir':
-        return Path.resolve(rootDir, './build') as NostalgieSettings[K];
+        return buildDir as NostalgieSettings[K];
       case 'buildEnvironment':
         return (this.options.buildEnvironment || 'development') as NostalgieSettings[K];
       case 'functionsEntryPoint':
         return Path.resolve(rootDir, './src/functions') as NostalgieSettings[K];
       case 'rootDir':
         return rootDir as NostalgieSettings[K];
+      case 'staticDir':
+        return Path.resolve(buildDir, './static') as NostalgieSettings[K];
     }
 
     throw new Error(`Invariant violation: Unknown setting ${JSON.stringify(setting)}`);

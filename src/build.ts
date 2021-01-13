@@ -1,7 +1,8 @@
-import { Loader, Metadata, Service, startService } from 'esbuild';
+import type { Loader, Metadata, Service } from 'esbuild';
 import { promises as Fs } from 'fs';
 import Module from 'module';
 import * as Path from 'path';
+import type { Logger } from 'pino';
 import { decorateDeferredImportsBrowserPlugin } from './esbuildPlugins/decorateDeferredImportsBrowserPlugin';
 import { decorateDeferredImportsServerPlugin } from './esbuildPlugins/decorateDeferredImportsServerPlugin';
 import { markdownPlugin } from './esbuildPlugins/markdownPlugin';
@@ -10,7 +11,10 @@ import { resolveNostalgiePlugin } from './esbuildPlugins/resolveNostalgiePlugin'
 import { resolvePlugin } from './esbuildPlugins/resolvePlugin';
 import { serverFunctionProxyPlugin } from './esbuildPlugins/serverFunctionProxyPlugin';
 import { svgPlugin } from './esbuildPlugins/svgPlugin';
+import { ClientBuildMetadata } from './metadata';
 import type { NostalgieSettingsReader } from './settings';
+
+const createRequire = Module.createRequire || Module.createRequireFromPath;
 
 const loaders: {
   [ext: string]: Loader;
@@ -21,26 +25,20 @@ const loaders: {
 };
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
 
-export async function build(
-  settings: NostalgieSettingsReader
-): Promise<{
-  loadHapiServer(): Promise<typeof import('../runtime/server/node')>;
-}> {
-  return withCleanup(async (defer) => {
-    const rootDir = settings.get('rootDir');
-    const cwd = process.cwd();
-    process.chdir(rootDir);
-    defer(() => process.chdir(cwd));
+export async function build(options: {
+  logger: Logger;
+  settings: NostalgieSettingsReader;
+  service: Service;
+}) {
+  const { logger, settings, service } = options;
 
-    const service = await startService();
-    defer(() => service.stop());
-
+  const rebuild = async () => {
     const functionNamesPromise = (async () => {
       const functionNames = await buildServerFunctions(service, settings);
 
-      console.error(
-        '✅ Successfully wrote server functions to: %s',
-        Path.resolve(settings.get('rootDir'), './build/functions.mjs')
+      logger.info(
+        { pathName: Path.resolve(settings.get('rootDir'), './build/functions.js') },
+        'server functions build'
       );
 
       return functionNames;
@@ -49,23 +47,20 @@ export async function build(
       const { functionNames } = await functionNamesPromise;
       const clientBuildMetadata = await buildClient(service, settings, functionNames);
 
-      console.error(
-        '✅ Successfully wrote the client assets to: %s',
-        Path.resolve(settings.get('rootDir'), './build/static/')
-      );
+      logger.info({ pathName: settings.get('staticDir') }, 'client assets written');
 
-      return clientBuildMetadata;
+      return new ClientBuildMetadata(settings, clientBuildMetadata);
     })();
 
     const nodeServerPromise = (async () => {
       const clientBuildMetadata = await clientBuildMetadataPromise;
       // const { serverFunctionsSourcePath } = await functionNamesPromise;
 
-      await buildNodeServer(service, settings, clientBuildMetadata);
+      await buildNodeServer(service, settings, logger, clientBuildMetadata);
 
-      console.error(
-        '✅ Successfully wrote the node server build to: %s',
-        Path.resolve(settings.get('rootDir'), './build/index.js')
+      logger.info(
+        { pathName: Path.relative(settings.get('rootDir'), './build/index.js') },
+        'node server written'
       );
     })();
 
@@ -100,16 +95,18 @@ export async function build(
       nodeServerPromise,
       packageJsonPromise,
     ]);
+  };
 
-    return {
-      async loadHapiServer() {
-        // const dynamicImport = new Function('path', 'return import(path);');
-        const require = Module.createRequire(Path.join(settings.get('rootDir'), 'index.js'));
+  await rebuild();
 
-        return require('./build/index.js') as typeof import('../runtime/server/node');
-      },
-    };
-  });
+  return {
+    async loadHapiServer() {
+      const require = createRequire(Path.join(settings.get('rootDir'), 'index.js'));
+
+      return require('./build/index') as typeof import('../runtime/server/node');
+    },
+    rebuild,
+  };
 }
 
 async function buildClient(
@@ -118,7 +115,8 @@ async function buildClient(
   functionNames: string[]
 ): Promise<Metadata> {
   const rootDir = settings.get('rootDir');
-  const clientMetaPath = Path.resolve(rootDir, 'build/static/clientMetadata.json');
+  const staticDir = settings.get('staticDir');
+  const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
   const serverFunctionsPath = Path.resolve(rootDir, settings.get('functionsEntryPoint'));
   const nostalgieBootstrapPath = Path.resolve(__dirname, '../runtime/browser/bootstrap.tsx');
 
@@ -138,7 +136,7 @@ async function buildClient(
     metafile: clientMetaPath,
     minify: settings.get('buildEnvironment') === 'production',
     outbase: Path.dirname(settings.get('applicationEntryPoint')),
-    outdir: Path.resolve(rootDir, './build/static/build'),
+    outdir: Path.resolve(staticDir, './build'),
     platform: 'browser',
     plugins: [
       resolveNostalgiePlugin(),
@@ -148,7 +146,12 @@ async function buildClient(
       decorateDeferredImportsBrowserPlugin({
         rootDir: settings.get('rootDir'),
       }),
-      resolvePlugin('__nostalgie_app__', settings.get('applicationEntryPoint'), ['default']),
+      resolvePlugin(
+        settings.get('rootDir'),
+        '__nostalgie_app__',
+        settings.get('applicationEntryPoint'),
+        ['default']
+      ),
       serverFunctionProxyPlugin(resolveExtensions, serverFunctionsPath, functionNames),
     ],
     publicPath: '/static/build',
@@ -177,7 +180,7 @@ async function buildClient(
 async function buildServerFunctions(service: Service, settings: NostalgieSettingsReader) {
   const rootDir = settings.get('rootDir');
   const functionsMetaPath = Path.resolve(rootDir, 'build/functions/meta.json');
-  const functionsBuildPath = 'build/functions/functions.mjs';
+  const functionsBuildPath = 'build/functions/functions.js';
 
   const buildResult = await service.build({
     bundle: false,
@@ -201,14 +204,6 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
     resolveExtensions,
     sourcemap: false,
     splitting: false,
-    // stdin: {
-    //   contents: `export * from ${JSON.stringify(
-    //     `./${Path.relative(rootDir, settings.get('functionsEntryPoint'))}`
-    //   )};`,
-    //   loader: 'js',
-    //   resolveDir: rootDir,
-    //   sourcefile: functionsShimPath,
-    // },
     treeShaking: true,
     write: false,
   });
@@ -230,8 +225,6 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
   const functionsOutput = metaFileData.outputs[functionsBuildPath];
 
   if (!functionsOutput) {
-    console.error(metaFileData.outputs, functionsBuildPath);
-
     throw new Error(
       `Invariant violation: Unable to locate the functions build result in the function build metadata for ${functionsBuildPath}`
     );
@@ -240,8 +233,6 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
   const functionsShimImports = metaFileData.inputs[Object.keys(metaFileData.inputs)[0]];
 
   if (!functionsShimImports) {
-    console.error(metaFileData.outputs, functionsBuildPath);
-
     throw new Error(
       `Invariant violation: Unable to locate the functions shim metadata in the function build input metadata for ${Path.resolve(
         rootDir,
@@ -263,7 +254,8 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
 async function buildNodeServer(
   service: Service,
   settings: NostalgieSettingsReader,
-  clientBuildMetadata: Metadata
+  logger: Logger,
+  clientBuildMetadata: ClientBuildMetadata
 ) {
   const buildDir = settings.get('buildDir');
   const nostalgieHapiServerPath = Path.resolve(__dirname, '../runtime/server/node.ts');
@@ -306,6 +298,7 @@ async function buildNodeServer(
       define: {
         'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
+        __nostalgie_chunks__: JSON.stringify(clientBuildMetadata.getChunkDependenciesObject()),
       },
       format: 'cjs',
       loader: loaders,
@@ -321,14 +314,25 @@ async function buildNodeServer(
         svgPlugin(),
         reactShimPlugin(),
         decorateDeferredImportsServerPlugin({
+          relativePath: settings.get('applicationEntryPoint'),
           buildDir,
           clientBuildMetadata,
+          logger,
           resolveExtensions,
           rootDir: settings.get('rootDir'),
         }),
-        resolvePlugin('__nostalgie_app__', settings.get('applicationEntryPoint'), ['default']),
-        resolvePlugin('__nostalgie_functions__', settings.get('functionsEntryPoint'), ['*']),
-        // externalizePlugin(serverFunctionsSourcePath, './functions/functions.mjs'),
+        resolvePlugin(
+          settings.get('rootDir'),
+          '__nostalgie_app__',
+          settings.get('applicationEntryPoint'),
+          ['default']
+        ),
+        resolvePlugin(
+          settings.get('rootDir'),
+          '__nostalgie_functions__',
+          settings.get('functionsEntryPoint'),
+          ['*']
+        ),
       ],
       resolveExtensions,
       sourcemap: true,
@@ -352,22 +356,14 @@ async function buildNodeServer(
       },
       entryPoints: [nostalgieHapiServerPath],
       format: 'cjs',
-      // loader: loaders,
       logLevel: 'error',
       minify: settings.get('buildEnvironment') === 'production',
       outfile: Path.resolve(settings.get('buildDir'), './index.js'),
-      // outdir: settings.get('buildDir'),
       publicPath: '/static/build',
       platform: 'node',
       plugins: [],
       resolveExtensions,
       sourcemap: true,
-      // stdin: {
-      //   contents: await Fs.readFile(nostalgieHapiServerPath, 'utf8'),
-      //   loader: 'ts',
-      //   resolveDir: Path.dirname(nostalgieHapiServerPath),
-      //   sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../index.tsx'),
-      // },
       target: ['node12'],
       treeShaking: true,
       write: true,
@@ -388,28 +384,4 @@ CMD [ "node",  "/srv/index.js" ]
   ];
 
   await Promise.all(buildPromises);
-}
-
-type DeferredCleanupFunction = (...args: any[]) => any;
-type WithCleanupFunction = (deferredFn: DeferredCleanupFunction) => void;
-export async function withCleanup<
-  TResult,
-  TFunc extends (defer: WithCleanupFunction) => Promise<any>
->(func: TFunc): Promise<TResult> {
-  const onCleanup: DeferredCleanupFunction[] = [];
-  const defer: WithCleanupFunction = (deferredFn) => {
-    onCleanup.unshift(deferredFn);
-  };
-
-  try {
-    return await func(defer);
-  } finally {
-    for (const onCleanupFn of onCleanup) {
-      try {
-        await onCleanupFn();
-      } catch (err) {
-        console.error({ err }, 'Error while calling clean-up function');
-      }
-    }
-  }
 }

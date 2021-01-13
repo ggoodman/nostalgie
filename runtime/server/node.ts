@@ -6,9 +6,10 @@ import Joi from 'joi';
 import type { ServerFunctionContext } from 'nostalgie';
 import type { BootstrapOptions } from 'nostalgie/internals';
 import * as Path from 'path';
-import Pino, { Logger } from 'pino';
 import Piscina from 'piscina';
 import { MethodKind } from './constants';
+import { wireAbortController } from './lifecycle';
+import { createDefaultLogger, Logger } from './logging';
 import type { RenderTreeResult } from './ssr';
 
 export async function startServer(
@@ -17,6 +18,7 @@ export async function startServer(
     buildDir: string;
     port?: number;
     host?: string;
+    signal: AbortSignal;
   }
 ) {
   const buildDir = options.buildDir;
@@ -26,14 +28,15 @@ export async function startServer(
     host: options.host,
   });
 
-  const signal = wireAbortController(logger);
-
-  signal.addEventListener('abort', () => {
-    logger.info({ timeout: 60000 }, 'starting graceful server shutdown');
-    server.stop({ timeout: 60000 }).catch((err) => {
+  const signal = options.signal;
+  const onAbort = () => {
+    signal.removeEventListener('abort', onAbort);
+    logger.info({ timeout: 5000 }, 'starting graceful server shutdown');
+    server.stop({ timeout: 5000 }).catch((err) => {
       logger.error({ err }, 'error stopping server');
     });
-  });
+  };
+  signal.addEventListener('abort', onAbort);
 
   await server.register([
     {
@@ -163,7 +166,7 @@ export async function startServer(
       const publicUrl = encodeURI('');
 
       const bootstrapOptions: BootstrapOptions = {
-        lazyComponents: preloadScripts.map(([chunk, lazyImport]) => ({ chunk, lazyImport })),
+        lazyComponents: preloadScripts,
         reactQueryState,
       };
 
@@ -179,10 +182,10 @@ export async function startServer(
       content="Web site created using nostalgie"
     />
     <link rel="apple-touch-icon" href="${publicUrl}/logo192.png" />
-    ${preloadScripts.map(
-      ([href]) => `<link rel="modulepreload" href="${publicUrl}/${encodeURI(href)}" />`
-    )}
     <link rel="modulepreload" href="${publicUrl}/static/build/bootstrap.js" />
+    ${preloadScripts.map(
+      ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}/${encodeURI(chunk)}" />`
+    )}
     ${headTags.join('\n')}
   </head>
   <body>
@@ -202,45 +205,17 @@ export async function startServer(
   });
 
   await server.start();
+
+  return server;
 }
-
-function wireAbortController(logger: Logger) {
-  const abortController = new AbortController();
-
-  const onSignal: NodeJS.SignalsListener = (signal) => {
-    logger.warn({ signal }, 'signal received, shutting down');
-    abortController.abort();
-  };
-
-  const onUncaughtException: NodeJS.UncaughtExceptionListener = (err) => {
-    logger.fatal({ err }, 'uncaught exception, shutting down');
-    abortController.abort();
-  };
-
-  const onUnhandledRejection: NodeJS.UnhandledRejectionListener = (err) => {
-    logger.fatal({ err }, 'unhandled rejection, shutting down');
-    abortController.abort();
-  };
-
-  process
-    .once('SIGINT', onSignal)
-    .once('SIGTERM', onSignal)
-    .on('uncaughtException', onUncaughtException)
-    .on('unhandledRejection', onUnhandledRejection);
-
-  return abortController.signal;
-}
-
-export const logger = Pino({
-  serializers: Pino.stdSerializers,
-  name: '@nostalgie/server',
-  prettyPrint: process.env.NODE_ENV !== 'production',
-  timestamp: Pino.stdTimeFunctions.isoTime,
-});
 
 if (!require.main) {
+  const logger = createDefaultLogger();
+  const signal = wireAbortController(logger);
+
   startServer(logger, {
     buildDir: __dirname,
+    signal,
   }).catch((err) => {
     logger.fatal({ err }, 'exception thrown while starting server');
   });

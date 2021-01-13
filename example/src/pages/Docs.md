@@ -1,3 +1,5 @@
-# About Nostalgie
+## Getting started
 
-TBD
+```sh
+npx nostalgie scaffold ./example-app
+```

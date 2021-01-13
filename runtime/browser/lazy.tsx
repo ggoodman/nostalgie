@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 export interface ChunkManager {
-  readonly chunks: Map<string, string>;
+  readonly chunks: { chunk: string; lazyImport: string }[];
   readonly lazyComponentState: Map<string, LazyComponentState>;
 }
 
@@ -29,10 +29,13 @@ export const LazyContext = React.createContext<ChunkManager | undefined>(undefin
 
 const resolvedPromise = Promise.resolve();
 
-interface LazyFactory<T extends React.ComponentType<any>> {
-  (): Promise<{ default: T }>;
+export interface LazyFactoryMeta {
   chunk?: string;
   lazyImport?: string;
+}
+
+interface LazyFactory<T extends React.ComponentType<any>> extends LazyFactoryMeta {
+  (): Promise<{ default: T }>;
 }
 
 // const ARBITRARY_LAZY_TIMEOUT = 3000;
@@ -48,30 +51,6 @@ export function lazy<T extends React.ComponentType<any>>(
 
   let loadAheadTimeout: number | undefined = undefined;
   let loadAheadState: LazyComponentState | undefined;
-
-  // if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
-  //   loadAheadTimeout = (setTimeout(
-  //     () =>
-  //       factory().then(
-  //         (mod) => {
-  //           const component = Object.hasOwnProperty.call(mod, 'default')
-  //             ? (mod as any).default
-  //             : mod;
-  //           loadAheadState = {
-  //             state: 'loaded',
-  //             component,
-  //           };
-  //         },
-  //         (error) => {
-  //           loadAheadState = {
-  //             state: 'error',
-  //             error,
-  //           };
-  //         }
-  //       ),
-  //     ARBITRARY_LAZY_TIMEOUT
-  //   ) as unknown) as number;
-  // }
 
   return function LazyComponent<P extends {}>(props: P, ...children: React.ReactChild[]) {
     const chunkManager = React.useContext(LazyContext);
@@ -98,6 +77,8 @@ export function lazy<T extends React.ComponentType<any>>(
             state: 'error',
             error,
           });
+
+          throw error;
         }
       );
 
@@ -130,11 +111,7 @@ export function register(
 
   if (process.env.NOSTALGIE_BUILD_TARGET === 'server') {
     if (chunk) {
-      if (chunkManager.chunks.has(chunk)) {
-        throw new Error('WAT?');
-      }
-
-      chunkManager.chunks.set(chunk, lazyImport);
+      chunkManager.chunks.push({ chunk, lazyImport });
     }
   }
 

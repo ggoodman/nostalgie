@@ -1,4 +1,8 @@
+import { watch } from 'chokidar';
+import { startService } from 'esbuild';
 import * as Path from 'path';
+import { wireAbortController, withCleanup } from '../../runtime/server/lifecycle';
+import { createDefaultLogger } from '../../runtime/server/logging';
 import { build } from '../build';
 import type { CommandHost } from '../command';
 import { readNormalizedSettings } from '../settings';
@@ -28,23 +32,79 @@ export function setup(commandHost: CommandHost) {
         'root-dir': {
           string: true,
           description: 'The root of your nostalgie project',
-          default: process.cwd(),
         },
       } as const,
     },
     async (argv) => {
+      const logger = createDefaultLogger();
+      const signal = wireAbortController(logger);
+      const cwd = process.cwd();
       const settings = readNormalizedSettings({
-        rootDir: Path.resolve(process.cwd(), argv['root-dir']),
+        rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
         buildEnvironment: argv.env,
       });
 
-      const { loadHapiServer } = await build(settings);
-      const { logger, startServer } = await loadHapiServer();
+      await withCleanup(async (defer) => {
+        // ESBuild works based on CWD :|
+        const cwd = process.cwd();
+        process.chdir(settings.get('rootDir'));
+        const service = await startService();
+        process.chdir(cwd);
+        defer(() => service.stop());
 
-      await startServer(logger, {
-        buildDir: settings.get('buildDir'),
-        host: argv.host,
-        port: argv.port,
+        const watcher = watch('.', {
+          cwd: settings.get('rootDir'),
+          // atomic: true,
+          // depth: 16,
+          ignored: Path.resolve(settings.get('rootDir'), './build'),
+          // ignored: /\/(build|node_modules)\//,
+          ignoreInitial: true,
+          interval: 16,
+          followSymlinks: false,
+        });
+        defer(() => watcher.close());
+
+        const { loadHapiServer, rebuild } = await build({ logger, service, settings });
+        const { startServer } = await loadHapiServer();
+        const restartServer = () =>
+          startServer(logger, {
+            buildDir: settings.get('buildDir'),
+            host: argv.host,
+            port: argv.port,
+            signal,
+          });
+
+        let serverStartPromise = restartServer();
+        let rebuildDepth = 0;
+
+        watcher.on('all', (eventName, path) => {
+          rebuildDepth++;
+          if (rebuildDepth <= 2) {
+            logger.info(
+              { eventName, path, rebuildDepth },
+              'change detected, rebuilding and restarting'
+            );
+
+            serverStartPromise = serverStartPromise.then(async (lastServer) => {
+              try {
+                const rebuildPromise = rebuild();
+                const stopPromise = lastServer.stop({ timeout: 5000 });
+
+                await Promise.all([rebuildPromise, stopPromise]);
+
+                return restartServer();
+              } finally {
+                rebuildDepth--;
+              }
+            });
+          }
+        });
+
+        await serverStartPromise;
+
+        await new Promise((resolve) => {
+          signal.onabort = resolve;
+        });
       });
     }
   );

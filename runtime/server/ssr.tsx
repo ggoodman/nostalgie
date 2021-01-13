@@ -31,10 +31,12 @@ import { MethodKind } from './constants';
 declare const App: React.ComponentType;
 declare const Functions: { [functionName: string]: ServerFunction | undefined };
 
+declare const __nostalgie_chunks__: any;
+
 const MAX_ASYNC_PREPASS_ITERATIONS = 20;
 
 export interface RenderTreeResult {
-  preloadScripts: [chunk: string, lazyImport: string][];
+  preloadScripts: { chunk: string; lazyImport: string }[];
   headTags: string[];
   markup: string;
   reactQueryState: DehydratedState;
@@ -68,8 +70,9 @@ function invokeFunction(functionName: string, ctx: ServerFunctionContext, args: 
 }
 
 async function renderAppOnServer(path: string, deadline: number = 500): Promise<RenderTreeResult> {
+  const chunkDependencies = __nostalgie_chunks__;
   const chunkCtx: ChunkManager = {
-    chunks: new Map(),
+    chunks: [],
     lazyComponentState: new Map(),
   };
   const queryClient = new QueryClient();
@@ -85,14 +88,14 @@ async function renderAppOnServer(path: string, deadline: number = 500): Promise<
     },
   });
   const initialReactQueryState = dehydrate(queryClient);
-  const headTags: React.ReactElement<unknown>[] = [];
+  const headTagElements: React.ReactElement<unknown>[] = [];
   const queryExecutor = new ServerQueryExecutorImpl(queryClient);
   const model = (
     <StaticRouter location={path}>
       <LazyContext.Provider value={chunkCtx}>
         <ServerQueryContextProvider queryExecutor={queryExecutor}>
           <Hydrate state={initialReactQueryState}>
-            <HeadProvider headTags={headTags}>
+            <HeadProvider headTags={headTagElements}>
               <App />
             </HeadProvider>
           </Hydrate>
@@ -147,10 +150,21 @@ async function renderAppOnServer(path: string, deadline: number = 500): Promise<
   customSheet.reset();
 
   const shimmedMarkup = shim(renderedMarkup, tw);
+  const headTags = [];
+
+  for (const { chunk } of chunkCtx.chunks) {
+    const chunkDeps = chunkDependencies[chunk];
+
+    if (chunkDeps) {
+      for (const chunkDep of chunkDeps) {
+        headTags.push(`<link rel="modulepreload" href="${chunkDep}">`);
+      }
+    }
+  }
 
   return {
     preloadScripts: [...chunkCtx.chunks],
-    headTags: [...headTags.map(renderToStaticMarkup), getStyleTag(customSheet)],
+    headTags: [...headTags, ...headTagElements.map(renderToStaticMarkup), getStyleTag(customSheet)],
     markup: shimmedMarkup,
     reactQueryState: queryClientData,
   };

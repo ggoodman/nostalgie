@@ -39,7 +39,7 @@ export async function start(options: BootstrapOptions) {
   });
 
   const chunkCtx: ChunkManager = {
-    chunks: new Map(),
+    chunks: [],
     lazyComponentState: new Map(),
   };
 
@@ -52,7 +52,7 @@ export async function start(options: BootstrapOptions) {
 
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {
     return import(`/${chunk}`).then((m) => {
-      register(chunkCtx, chunk, lazyImport, m);
+      register(chunkCtx, [chunk], lazyImport, m);
     });
   });
 

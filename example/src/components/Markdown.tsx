@@ -1,10 +1,11 @@
+import 'github-markdown-css/github-markdown.css';
 import { Markdown, MarkdownComponent } from 'nostalgie';
 import * as React from 'react';
 
 export function ProseMarkdown(props: { for: MarkdownComponent }) {
   return (
     <props.for
-      className="py-3 prose max-w-none"
+      className="markdown-body"
       options={{
         overrides: {
           img: {

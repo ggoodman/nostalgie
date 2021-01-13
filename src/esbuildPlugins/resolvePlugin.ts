@@ -3,6 +3,7 @@ import escapeStringRegexp from 'escape-string-regexp';
 import * as Path from 'path';
 
 export function resolvePlugin(
+  rootDir: string,
   specifier: string,
   entryPoint: string,
   exportTypes: Array<'default' | '*'>
@@ -16,15 +17,13 @@ export function resolvePlugin(
 
       if (exportTypes.includes('*')) {
         reExportCode += `
-          export * from ${JSON.stringify(`./${Path.relative(process.cwd(), entryPoint)}`)};
+          export * from ${JSON.stringify(`./${Path.relative(rootDir, entryPoint)}`)};
         `;
       }
 
       if (exportTypes.includes('default')) {
         reExportCode += `
-          import defaultExport from ${JSON.stringify(
-            `./${Path.relative(process.cwd(), entryPoint)}`
-          )};
+          import defaultExport from ${JSON.stringify(`./${Path.relative(rootDir, entryPoint)}`)};
           export default defaultExport; 
         `;
       }
@@ -39,7 +38,7 @@ export function resolvePlugin(
       build.onLoad({ filter: /.*/, namespace: specifier }, () => {
         return {
           contents: reExportCode,
-          resolveDir: process.cwd(),
+          resolveDir: rootDir,
         };
       });
     },

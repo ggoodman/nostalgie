@@ -1,4 +1,7 @@
+import { startService } from 'esbuild';
 import * as Path from 'path';
+import { wireAbortController, withCleanup } from '../../runtime/server/lifecycle';
+import { createDefaultLogger } from '../../runtime/server/logging';
 import { build } from '../build';
 import type { CommandHost } from '../command';
 import { readNormalizedSettings } from '../settings';
@@ -17,17 +20,29 @@ export function setup(commandHost: CommandHost) {
         'root-dir': {
           string: true,
           description: 'The root of your nostalgie project',
-          default: process.cwd(),
         },
       } as const,
     },
     async (argv) => {
+      const logger = createDefaultLogger();
+      const signal = wireAbortController(logger);
+      const cwd = process.cwd();
       const settings = readNormalizedSettings({
-        rootDir: Path.resolve(process.cwd(), argv['root-dir']),
+        rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
         buildEnvironment: argv.env,
       });
 
-      await build(settings);
+      await withCleanup(async (defer) => {
+        // ESBuild works based on CWD :|
+        const cwd = process.cwd();
+        process.chdir(settings.get('rootDir'));
+        const service = await startService();
+        process.chdir(cwd);
+        defer(() => service.stop());
+        signal.onabort = () => service.stop();
+
+        await build({ logger, service, settings });
+      });
     }
   );
 }
