@@ -18,6 +18,7 @@ import { dehydrate, DehydratedState, Hydrate } from 'react-query/hydration';
 import ssrPrepass from 'react-ssr-prepass';
 import { create, silent } from 'twind';
 import { getStyleTag, shim, virtualSheet } from 'twind/server';
+import { worker } from 'workerpool';
 // @ts-ignore
 // We need to ignore this because the import specifier
 // will be remapped at build time.
@@ -26,7 +27,7 @@ import App from '__nostalgie_app__';
 // We need to ignore this because the import specifier
 // will be remapped at build time.
 import * as Functions from '__nostalgie_functions__';
-import { MethodKind } from './constants';
+// import { MethodKind } from './constants';
 
 declare const App: React.ComponentType;
 declare const Functions: { [functionName: string]: ServerFunction | undefined };
@@ -42,24 +43,33 @@ export interface RenderTreeResult {
   reactQueryState: DehydratedState;
 }
 
-export function dispatch(request: {
-  op: MethodKind.INVOKE_FUNCTION;
-  args: { functionName: string; ctx: ServerFunctionContext; args: any[] };
-}): Promise<unknown>;
-export function dispatch(request: {
-  op: MethodKind.RENDER_TREE;
-  args: { path: string };
-}): Promise<RenderTreeResult>;
-export default function dispatch(request: { op: MethodKind; args: any }) {
-  switch (request.op) {
-    case MethodKind.INVOKE_FUNCTION:
-      return invokeFunction(request.args.functionName, request.args.ctx, request.args.args);
-    case MethodKind.RENDER_TREE:
-      return renderAppOnServer(request.args.path);
-  }
-}
+worker({
+  invokeFunction,
+  renderAppOnServer,
+});
 
-function invokeFunction(functionName: string, ctx: ServerFunctionContext, args: any[]) {
+// export function dispatch(request: {
+//   op: MethodKind.INVOKE_FUNCTION;
+//   args: { functionName: string; ctx: ServerFunctionContext; args: any[] };
+// }): Promise<unknown>;
+// export function dispatch(request: {
+//   op: MethodKind.RENDER_TREE;
+//   args: { path: string };
+// }): Promise<RenderTreeResult>;
+// export default function dispatch(request: { op: MethodKind; args: any }) {
+//   switch (request.op) {
+//     case MethodKind.INVOKE_FUNCTION:
+//       return invokeFunction(request.args.functionName, request.args.ctx, request.args.args);
+//     case MethodKind.RENDER_TREE:
+//       return renderAppOnServer(request.args.path);
+//   }
+// }
+
+export async function invokeFunction(
+  functionName: string,
+  ctx: ServerFunctionContext,
+  args: any[]
+) {
   const functionImpl = Functions[functionName] as ServerFunction | undefined;
 
   if (!functionImpl) {
@@ -69,7 +79,10 @@ function invokeFunction(functionName: string, ctx: ServerFunctionContext, args: 
   return functionImpl(ctx, ...args);
 }
 
-async function renderAppOnServer(path: string, deadline: number = 500): Promise<RenderTreeResult> {
+export async function renderAppOnServer(
+  path: string,
+  deadline: number = 500
+): Promise<RenderTreeResult> {
   const chunkDependencies = __nostalgie_chunks__;
   const chunkCtx: ChunkManager = {
     chunks: [],

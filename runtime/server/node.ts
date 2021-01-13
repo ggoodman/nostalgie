@@ -5,12 +5,11 @@ import HapiPino from 'hapi-pino';
 import Joi from 'joi';
 import type { ServerFunctionContext } from 'nostalgie';
 import type { BootstrapOptions } from 'nostalgie/internals';
+import { cpus } from 'os';
 import * as Path from 'path';
-import Piscina from 'piscina';
-import { MethodKind } from './constants';
+import { pool } from 'workerpool';
 import { wireAbortController } from './lifecycle';
 import { createDefaultLogger, Logger } from './logging';
-import type { RenderTreeResult } from './ssr';
 
 export async function startServer(
   logger: Logger,
@@ -54,29 +53,20 @@ export async function startServer(
     },
   ]);
 
-  const piscina = new Piscina({
-    concurrentTasksPerWorker: 8,
-    filename: Path.resolve(options.buildDir, './ssr.js'),
-    idleTimeout: 30000,
+  const workerPool = pool(Path.resolve(options.buildDir, './ssr.js'), {
+    workerType: 'auto',
+    minWorkers: cpus().length,
   });
 
-  function invokeWorker(
-    op: MethodKind.INVOKE_FUNCTION,
-    args: { functionName: string; ctx: ServerFunctionContext; args: any[] },
-    options?: { signal?: AbortSignal }
-  ): Promise<unknown>;
-  function invokeWorker(
-    op: MethodKind.RENDER_TREE,
-    args: { path: string },
-    options?: { signal?: AbortSignal }
-  ): Promise<RenderTreeResult>;
-  function invokeWorker(op: MethodKind, args: unknown, options: { signal?: AbortSignal } = {}) {
-    return piscina.runTask({ op, args }, options.signal);
-  }
+  server.ext('onPreStop', () => {
+    workerPool.terminate();
+  });
 
   server.method(
-    'renderOnServer',
-    (pathname: string) => invokeWorker(MethodKind.RENDER_TREE, { path: pathname }),
+    'renderAppOnServer',
+    (pathname: string) => {
+      return workerPool.exec('renderAppOnServer', [pathname]);
+    },
     {
       cache: {
         expiresIn: 1000,
@@ -86,25 +76,16 @@ export async function startServer(
       },
     }
   );
-  const renderOnServer = server.methods.renderOnServer as (
-    pathname: string
-  ) => Promise<RenderTreeResult>;
+  const renderAppOnServer = server.methods
+    .renderAppOnServer as typeof import('./ssr').renderAppOnServer;
 
   server.method(
     'invokeFunction',
     (functionName: string, ctx: ServerFunctionContext, args: any[]) => {
-      return invokeWorker(
-        MethodKind.INVOKE_FUNCTION,
-        { functionName, ctx, args },
-        { signal: ctx.signal }
-      );
+      return workerPool.exec('renderAppOnServer', [functionName, ctx, args]);
     }
   );
-  const invokeFunction = server.methods.invokeFunction as (
-    functionName: string,
-    ctx: ServerFunctionContext,
-    args: any[]
-  ) => Promise<unknown>;
+  const invokeFunction = server.methods.invokeFunction as typeof import('./ssr').invokeFunction;
 
   server.route({
     method: 'POST',
@@ -160,7 +141,7 @@ export async function startServer(
     method: 'GET',
     path: '/{any*}',
     handler: async (request, h) => {
-      const { headTags, markup, preloadScripts, reactQueryState } = await renderOnServer(
+      const { headTags, markup, preloadScripts, reactQueryState } = await renderAppOnServer(
         request.path
       );
       const publicUrl = encodeURI('');
