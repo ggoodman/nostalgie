@@ -1,40 +1,43 @@
 import type { Plugin } from 'esbuild';
 import Module from 'module';
 import * as Path from 'path';
+import type { NostalgieSettingsReader } from 'src/settings';
 
 const createRequire = Module.createRequire || Module.createRequireFromPath;
 
-export function reactShimPlugin(): Plugin {
+export function reactShimPlugin(settings: NostalgieSettingsReader): Plugin {
   return {
     name: 'react-shim',
     setup(build) {
       // This will be relative to the dist/index.js
       const require = createRequire(__filename);
-      const lazyPath = require.resolve('../runtime/browser/lazy.tsx');
-      // const reactPath = require.resolve('react');
+      const lazyPath = require.resolve('../runtime/browser/lazy.ts');
+      // const applicationRequire = createRequire(settings.get('applicationEntryPoint'));
+      const reactPath = require.resolve('react');
+      const reactShimPath = Path.resolve(reactPath, '../react-nostalgie.js');
 
-      build.onResolve({ filter: /^react$/, namespace: 'file' }, ({ resolveDir, importer }) => {
-        if (importer.includes('/node_modules/') || importer.startsWith(Path.dirname(lazyPath))) {
+      build.onResolve({ filter: /^react$/, namespace: 'file' }, ({ importer }) => {
+        if (importer === lazyPath || importer.match(/\/node_modules\//)) {
           return;
         }
 
         return {
-          path: resolveDir,
+          path: reactShimPath,
           namespace: 'react-shim',
         };
       });
 
       build.onLoad({ filter: /.*/, namespace: 'react-shim' }, async ({ path }) => {
+        console.log('reactShimPlugin.onLoad(%s)', path);
         return {
           contents: `
 const React = require('react');
-module.exports = {
-  ...React,
-  Suspense: process.env.NOSTALGIE_BUILD_TARGET === 'browser' ? React.Suspense : (props) => props.children,
-  lazy: require(${JSON.stringify(lazyPath)}).lazy,
-};
-          `,
-          resolveDir: path,
+module.exports = Object.assign(React, {
+  Suspense: process.env.NOSTALGIE_BUILD_TARGET === 'browser' ? React.Suspense : (props) => React.Children.only(props.children),
+  lazy: require(${JSON.stringify(lazyPath)}).createLazy(React),
+});
+                `,
+          resolveDir: Path.dirname(reactPath),
         };
       });
     },

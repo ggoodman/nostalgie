@@ -113,76 +113,78 @@ export async function renderAppOnServer(
     </StaticRouter>
   );
 
-  // We're going to give a maximum amount of time for this render.
-  const deadlineAt = Date.now() + deadline;
-  // We've given ourselves a deadline so let's get a Promise that will resolve
-  // when the deadline is reached to race against data-loading promises (if any).
-  const deadlinePromise = new Promise((r) => setTimeout(r, deadline));
+  try {
+    // We're going to give a maximum amount of time for this render.
+    const deadlineAt = Date.now() + deadline;
+    // We've given ourselves a deadline so let's get a Promise that will resolve
+    // when the deadline is reached to race against data-loading promises (if any).
+    const deadlinePromise = new Promise((r) => setTimeout(r, deadline));
 
-  // A first SSR async pass through the tree for critical stuff like dynamic imports
-  await ssrPrepass(model);
+    // A first SSR async pass through the tree for critical stuff like dynamic imports
+    await ssrPrepass(model);
 
-  // We'll give ourselves a budget for the number of async passes we're willing to undertake
-  let remainingIterations = MAX_ASYNC_PREPASS_ITERATIONS;
+    // We'll give ourselves a budget for the number of async passes we're willing to undertake
+    let remainingIterations = MAX_ASYNC_PREPASS_ITERATIONS;
 
-  let html: string | undefined = undefined;
+    let html: string | undefined = undefined;
 
-  // Loop while we haven't exceeded our deadline or iteration budget and while we have pending queries
-  for (
-    ;
-    // Condition
-    Date.now() <= deadlineAt && queryExecutor.promises.size && remainingIterations;
-    // Loop update (after loop block)
-    remainingIterations--
-  ) {
-    try {
-      // We're always going to race against our deadline promise so that we can interrupt potentially
-      // earlier than the first query will settle.
-      await Promise.race([deadlinePromise, ...queryExecutor.promises]);
+    // Loop while we haven't exceeded our deadline or iteration budget and while we have pending queries
+    for (
+      ;
+      // Condition
+      Date.now() <= deadlineAt && queryExecutor.promises.size && remainingIterations;
+      // Loop update (after loop block)
+      remainingIterations--
+    ) {
+      try {
+        // We're always going to race against our deadline promise so that we can interrupt potentially
+        // earlier than the first query will settle.
+        await Promise.race([deadlinePromise, ...queryExecutor.promises]);
 
-      // Re-render the page, triggering any new queries unlocked by the new state.
-      html = renderToString(model);
-    } catch {
-      // Break out and do the final rendering
-      break;
-    }
-  }
-
-  // Any outstanding queries should be cancelled at this point since our client's lifetime
-  // is limited to this request anyway.
-  const queryClientData = dehydrate(queryClient);
-  const renderedMarkup = html ?? renderToString(model);
-
-  // They didn't make it in time for the deadline so we'll cancel them
-  queryClient.cancelQueries();
-
-  // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
-  customSheet.reset();
-
-  const shimmedMarkup = shim(renderedMarkup, tw);
-  const headTags = [];
-
-  const { helmet } = helmetCtx as FilledContext;
-
-  for (const { chunk } of chunkCtx.chunks) {
-    const chunkDeps = chunkDependencies[chunk];
-
-    if (chunkDeps) {
-      for (const chunkDep of chunkDeps) {
-        headTags.push(`<link rel="modulepreload" href="${chunkDep}">`);
+        // Re-render the page, triggering any new queries unlocked by the new state.
+        html = renderToString(model);
+        await ssrPrepass(model);
+      } catch {
+        // Break out and do the final rendering
+        break;
       }
     }
-  }
 
-  const publicUrl = encodeURI('');
-  const htmlAttrs = helmet.htmlAttributes.toString();
-  const bodyAttrs = helmet.bodyAttributes.toString();
+    // Any outstanding queries should be cancelled at this point since our client's lifetime
+    // is limited to this request anyway.
+    const queryClientData = dehydrate(queryClient);
+    const renderedMarkup = html ?? renderToString(model);
 
-  const bootstrapOptions: BootstrapOptions = {
-    lazyComponents: chunkCtx.chunks,
-    reactQueryState: queryClientData,
-  };
-  const wrapper = `
+    // They didn't make it in time for the deadline so we'll cancel them
+    queryClient.cancelQueries();
+
+    // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
+    customSheet.reset();
+
+    const shimmedMarkup = shim(renderedMarkup, tw);
+    const headTags = [];
+
+    const { helmet } = helmetCtx as FilledContext;
+
+    for (const { chunk } of chunkCtx.chunks) {
+      const chunkDeps = chunkDependencies[chunk];
+
+      if (chunkDeps) {
+        for (const chunkDep of chunkDeps) {
+          headTags.push(`<link rel="modulepreload" href="${chunkDep}">`);
+        }
+      }
+    }
+
+    const publicUrl = encodeURI('');
+    const htmlAttrs = helmet.htmlAttributes.toString();
+    const bodyAttrs = helmet.bodyAttributes.toString();
+
+    const bootstrapOptions: BootstrapOptions = {
+      lazyComponents: chunkCtx.chunks,
+      reactQueryState: queryClientData,
+    };
+    const wrapper = `
   <!doctype html>
   <html ${htmlAttrs}>
     <head>
@@ -202,7 +204,7 @@ export async function renderAppOnServer(
     <body ${bodyAttrs}>
       <noscript>You need to enable JavaScript to run this app.</noscript>
       <div id="root">${shimmedMarkup}</div>
-      <script type="module">
+      <script async type="module">
         import { start } from "${publicUrl}/static/build/bootstrap.js";
   
         start(${JSON.stringify(bootstrapOptions)});
@@ -211,7 +213,12 @@ export async function renderAppOnServer(
   </html>
         `.trim();
 
-  return {
-    html: wrapper,
-  };
+    return {
+      html: wrapper,
+    };
+  } catch (e) {
+    return {
+      html: e.stack,
+    };
+  }
 }

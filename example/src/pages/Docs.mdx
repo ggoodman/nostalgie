@@ -1,9 +1,18 @@
----
-title: Yoink
----
+import WrapTest from './WrapTest';
 
 # Getting started
 
 ```sh
 npx nostalgie scaffold ./example-app
 ```
+
+
+<WrapTest>
+
+```ts
+export function foop(foo: Bar): Baz {
+  console.log('yoink');
+}
+```
+
+</WrapTest>

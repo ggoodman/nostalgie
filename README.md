@@ -74,18 +74,18 @@ const posts = {
     id: 1,
     title: 'Introducing Nostalgie',
     body: '...',
-    author: 'ggoodman'
+    author: 'ggoodman',
   },
   {
     id: 2,
     title: 'Introducing MDX support',
     body: '...',
     author: 'cooldood42',
-  }
-}
+  },
+};
 
 export function getBlogPosts(ctx: ServerFunctionContext, author?: string) {
-  return author ? posts.filter(post => post.author = author) : posts;
+  return author ? posts.filter(post => post.author === author) : posts;
 }
 ```
 

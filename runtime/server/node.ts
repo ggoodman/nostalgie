@@ -58,6 +58,9 @@ export async function startServer(
 
   const workerPool = pool(Path.resolve(options.buildDir, './ssr.js'), {
     workerType: 'auto',
+    forkOpts: {
+      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+    },
     minWorkers: cpus().length,
   });
 
@@ -115,6 +118,22 @@ export async function startServer(
       const functionResults = await invokeFunction(functionName, ctx, args);
 
       return h.response(JSON.stringify(functionResults)).type('application/json');
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/favicon.ico',
+    options: {
+      cache: {
+        expiresIn: 30 * 1000,
+        privacy: 'public',
+      },
+    },
+    handler: {
+      file: {
+        path: Path.join(buildDir, 'static', 'favicon.ico'),
+      },
     },
   });
 

@@ -1,5 +1,4 @@
 import type * as React from 'react';
-import type { MarkdownComponent } from './markdown';
 
 declare global {
   module '*.css' {
@@ -16,13 +15,12 @@ declare global {
   }
 
   module '*.md' {
-    const Component: MarkdownComponent;
-    export const text: string;
+    const Component: React.ComponentType<import('nostalgie').MDXComponentProps>;
     export default Component;
   }
 
   module '*.mdx' {
-    const Component: React.ComponentType<Partial<import('@mdx-js/react').MDXProviderProps>>;
+    const Component: React.ComponentType<import('nostalgie').MDXComponentProps>;
     export default Component;
   }
 

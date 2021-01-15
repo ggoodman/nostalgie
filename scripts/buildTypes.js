@@ -9,7 +9,10 @@ const execFileAsync = Util.promisify(ChildProcess.execFile);
   const fileTypes = await Fs.readFile('./runtime/browser/fileTypes.d.ts', 'utf8');
   await execFileAsync('./node_modules/.bin/tsc', ['--build', 'tsconfig.types.json']);
 
-  await Fs.appendFile('./dist/index.d.ts', `\n${fileTypes}\n`);
+  await Fs.appendFile(
+    './dist/index.d.ts',
+    `\n${fileTypes.replace(/import\('nostalgie'\)\./g, '')}\n`
+  );
 })().then(
   () => {
     console.error('✅ Successfully generated type definitions');

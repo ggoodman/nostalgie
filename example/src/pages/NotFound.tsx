@@ -1,7 +1,7 @@
 import { Helmet } from 'nostalgie';
 import * as React from 'react';
 
-export default function DocsPage() {
+export default function NotFoundPage() {
   return (
     <>
       <Helmet>

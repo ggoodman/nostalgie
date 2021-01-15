@@ -143,7 +143,7 @@ async function buildClient(
       resolveNostalgiePlugin(),
       mdxPlugin(settings.get('applicationEntryPoint')),
       svgPlugin(),
-      reactShimPlugin(),
+      reactShimPlugin(settings),
       decorateDeferredImportsBrowserPlugin({
         rootDir: settings.get('rootDir'),
       }),
@@ -157,6 +157,7 @@ async function buildClient(
     ],
     publicPath: '/static/build',
     resolveExtensions,
+    mainFields: ['module', 'browser', 'main'],
     sourcemap: true,
     splitting: true,
     stdin: {
@@ -284,7 +285,7 @@ async function buildNodeServer(
         resolveNostalgiePlugin(),
         mdxPlugin(),
         svgPlugin(),
-        reactShimPlugin(),
+        reactShimPlugin(settings),
         decorateDeferredImportsServerPlugin({
           relativePath: settings.get('applicationEntryPoint'),
           buildDir,
