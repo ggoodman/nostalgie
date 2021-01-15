@@ -24,10 +24,7 @@ export class ClientBuildMetadata {
 
     for (const originalChunkPath in metadata.outputs) {
       const chunkOutputMeta = metadata.outputs[originalChunkPath];
-      const chunkPath = Path.relative(
-        buildDir,
-        fixChunkPath(Path.join(rootDir, originalChunkPath))
-      );
+      const chunkPath = '/' + Path.relative(buildDir, Path.join(rootDir, originalChunkPath));
 
       for (const originalInputPath in chunkOutputMeta.inputs) {
         const inputPath = Path.resolve(rootDir, originalInputPath);
@@ -54,10 +51,8 @@ export class ClientBuildMetadata {
 
       // Collect the normalized dependencies of this chunk
       for (const importedChunk of chunkOutputMeta.imports) {
-        const importedChunkPath = Path.relative(
-          buildDir,
-          fixChunkPath(Path.join(rootDir, importedChunk.path))
-        );
+        const importedChunkPath =
+          '/' + Path.relative(buildDir, Path.join(rootDir, importedChunk.path));
 
         let chunkDependencies = this._chunkDependencies.get(chunkPath);
         if (!chunkDependencies) {

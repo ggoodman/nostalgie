@@ -139,8 +139,6 @@ export async function renderAppOnServer(
     const queryClientData = dehydrate(queryClient);
     const renderedMarkup = html ?? (renderCount++, renderToString(model));
 
-    console.log('RENDER COUNT', renderCount, path);
-
     // They didn't make it in time for the deadline so we'll cancel them
     queryClient.cancelQueries();
 

@@ -42,7 +42,6 @@ export async function getInvoice(ctx: ServerFunctionContext, invoiceId: number) 
   const invoice = Object.values(invoices).find((invoice) => invoice.number == invoiceId);
 
   if (!invoice) {
-    console.log(invoiceId, typeof invoiceId);
     throw new Error('Invoice not found');
   }
 

@@ -51,7 +51,7 @@ export async function start(options: BootstrapOptions) {
   });
 
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {
-    return import(`/${chunk}`).then((m) => {
+    return import(chunk).then((m) => {
       register(chunkCtx, chunk, lazyImport, m);
     });
   });

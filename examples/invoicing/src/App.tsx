@@ -12,11 +12,13 @@ export default function App() {
         </NavLink>
       </nav>
       <div className="flex flex-row flex-1">
-        <Switch>
-          <Route path="/invoices">
-            <Invoices />
-          </Route>
-        </Switch>
+        <React.Suspense fallback={'Loading...'}>
+          <Switch>
+            <Route path="/invoices">
+              <Invoices />
+            </Route>
+          </Switch>
+        </React.Suspense>
       </div>
     </div>
   );
