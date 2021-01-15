@@ -1,4 +1,4 @@
-import { getHighlighter, loadTheme } from '@antfu/shiki';
+import { BUNDLED_THEMES, getHighlighter, loadTheme } from '@antfu/shiki';
 //@ts-ignore
 import mdx from '@mdx-js/mdx';
 import type { Plugin } from 'esbuild';
@@ -7,7 +7,6 @@ import { promises as Fs } from 'fs';
 import Module from 'module';
 import * as Path from 'path';
 import remarkGfm from 'remark-gfm';
-import { themes } from 'shiki-themes/dist/theme';
 import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
 
@@ -65,10 +64,10 @@ interface CodeNode extends Node {
 }
 
 const remarkCodeBlocksShiki: import('unified').Plugin = () => {
-  return async function transformer(tree, file) {
+  return async function transformer(tree) {
     debugger;
     const oneDark = await loadTheme(Path.resolve(__dirname, '../src/OneDark.json'));
-    const highlighter = await getHighlighter({ themes: [...themes, oneDark] });
+    const highlighter = await getHighlighter({ themes: [...BUNDLED_THEMES, oneDark] });
     const themeOptionRx = /^theme:(.+)$/;
 
     visit<CodeNode>(tree, 'code', (node) => {
