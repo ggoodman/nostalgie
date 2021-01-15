@@ -71,7 +71,7 @@
     "@svgr/plugin-svgo": "^5.5.0",
     "@twind/typography": "0.0.1",
     "chokidar": "^3.5.0",
-    "esbuild": "^0.8.31",
+    "esbuild": "^0.8.32",
     "escape-goat": "^3.0.0",
     "escape-string-regexp": "^4.0.0",
     "hapi-pino": "^8.3.0",

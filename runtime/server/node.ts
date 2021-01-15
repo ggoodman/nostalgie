@@ -64,8 +64,12 @@ export async function startServer(
     minWorkers: cpus().length,
   });
 
-  server.ext('onPreStop', () => {
-    workerPool.terminate();
+  server.ext('onPreStop', async () => {
+    try {
+      await workerPool.terminate();
+    } catch {
+      // Worker pool has some termination race conditions... swallow em
+    }
   });
 
   server.method(
@@ -88,7 +92,7 @@ export async function startServer(
   server.method(
     'invokeFunction',
     (functionName: string, ctx: ServerFunctionContext, args: any[]) => {
-      return workerPool.exec('renderAppOnServer', [functionName, ctx, args]);
+      return workerPool.exec('invokeFunction', [functionName, ctx, args]);
     }
   );
   const invokeFunction = server.methods.invokeFunction as typeof import('./ssr').invokeFunction;

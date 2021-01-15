@@ -12,7 +12,6 @@ export function reactShimPlugin(settings: NostalgieSettingsReader): Plugin {
       // This will be relative to the dist/index.js
       const require = createRequire(__filename);
       const lazyPath = require.resolve('../runtime/browser/lazy.ts');
-      // const applicationRequire = createRequire(settings.get('applicationEntryPoint'));
       const reactPath = require.resolve('react');
       const reactShimPath = Path.resolve(reactPath, '../react-nostalgie.js');
 
@@ -28,7 +27,6 @@ export function reactShimPlugin(settings: NostalgieSettingsReader): Plugin {
       });
 
       build.onLoad({ filter: /.*/, namespace: 'react-shim' }, async ({ path }) => {
-        console.log('reactShimPlugin.onLoad(%s)', path);
         return {
           contents: `
 const React = require('react');

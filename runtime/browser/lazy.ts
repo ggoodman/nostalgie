@@ -32,6 +32,7 @@ const resolvedPromise = Promise.resolve();
 export interface LazyFactoryMeta {
   chunk?: string;
   lazyImport?: string;
+  sync?: true;
 }
 
 interface LazyFactory<T extends React.ComponentType<any>> extends LazyFactoryMeta {
@@ -59,6 +60,23 @@ export function createLazy(realReact: typeof React) {
 
       let lazyComponentState = chunkManager.lazyComponentState.get(lazyImport);
 
+      if (process.env.NOSTALGIE_BUILD_TARGET === 'server') {
+        // Wrap in a condition that will get eliminated by esbuild in the client
+        if (factory.sync && !lazyComponentState) {
+          // We're rendering server-side so we can expect the factory to return
+          // the component *immediately* instead of a `Promise`, like in the client.
+          const mod = factory();
+
+          if (typeof mod.then === 'function') {
+            throw new Error(
+              'Invariant violation: The lazy component server factory produed a Thenable'
+            );
+          }
+
+          lazyComponentState = register(chunkManager, factory.chunk, lazyImport, mod);
+        }
+      }
+
       if (!lazyComponentState) {
         const loadingPromise = resolvedPromise.then(factory).then(
           (mod) => {
@@ -84,6 +102,9 @@ export function createLazy(realReact: typeof React) {
 
       switch (lazyComponentState.state) {
         case 'loading':
+          if (process.env.NOSTALGIE_BUILD_TARGET === 'server') {
+            return React.createElement(React.Fragment);
+          }
           throw lazyComponentState.loadingPromise;
         case 'error':
           throw lazyComponentState.error;
@@ -159,6 +180,10 @@ export function register(
   mod: any
 ) {
   const component = exportedComponent(mod);
+  const lazyComponentState: LazyComponentState = {
+    state: 'loaded',
+    component,
+  };
 
   if (process.env.NOSTALGIE_BUILD_TARGET === 'server') {
     if (chunk) {
@@ -166,10 +191,7 @@ export function register(
     }
   }
 
-  chunkManager.lazyComponentState.set(lazyImport, {
-    state: 'loaded',
-    component,
-  });
+  chunkManager.lazyComponentState.set(lazyImport, lazyComponentState);
 
-  return component;
+  return lazyComponentState;
 }

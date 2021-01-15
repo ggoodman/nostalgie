@@ -84,9 +84,10 @@ export function decorateDeferredImportsServerPlugin(options: {
             const lazyFactoryMeta: LazyFactoryMeta = {
               chunk,
               lazyImport: normalizedSpec,
+              sync: true,
             };
 
-            return `Object.assign(() => import(${JSON.stringify(spec)}), ${JSON.stringify(
+            return `Object.assign(() => require(${JSON.stringify(spec)}), ${JSON.stringify(
               lazyFactoryMeta
             )})`;
           }

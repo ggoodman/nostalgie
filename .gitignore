@@ -7,3 +7,4 @@ lerna-debug.log
 stats.html
 tsconfig.tsbuildinfo
 example/build
+examples/*/build

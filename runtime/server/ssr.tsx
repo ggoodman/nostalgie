@@ -17,7 +17,6 @@ import {
 import * as React from 'react';
 import { renderToString } from 'react-dom/server';
 import { dehydrate, Hydrate } from 'react-query/hydration';
-import ssrPrepass from 'react-ssr-prepass';
 import { create, silent } from 'twind';
 import { getStyleTag, shim, virtualSheet } from 'twind/server';
 import { worker } from 'workerpool';
@@ -43,23 +42,6 @@ worker({
   invokeFunction,
   renderAppOnServer,
 });
-
-// export function dispatch(request: {
-//   op: MethodKind.INVOKE_FUNCTION;
-//   args: { functionName: string; ctx: ServerFunctionContext; args: any[] };
-// }): Promise<unknown>;
-// export function dispatch(request: {
-//   op: MethodKind.RENDER_TREE;
-//   args: { path: string };
-// }): Promise<RenderTreeResult>;
-// export default function dispatch(request: { op: MethodKind; args: any }) {
-//   switch (request.op) {
-//     case MethodKind.INVOKE_FUNCTION:
-//       return invokeFunction(request.args.functionName, request.args.ctx, request.args.args);
-//     case MethodKind.RENDER_TREE:
-//       return renderAppOnServer(request.args.path);
-//   }
-// }
 
 export async function invokeFunction(
   functionName: string,
@@ -121,12 +103,13 @@ export async function renderAppOnServer(
     const deadlinePromise = new Promise((r) => setTimeout(r, deadline));
 
     // A first SSR async pass through the tree for critical stuff like dynamic imports
-    await ssrPrepass(model);
+    // await ssrPrepass(model);
 
     // We'll give ourselves a budget for the number of async passes we're willing to undertake
     let remainingIterations = MAX_ASYNC_PREPASS_ITERATIONS;
 
-    let html: string | undefined = undefined;
+    let html: string | undefined = renderToString(model);
+    let renderCount = 1;
 
     // Loop while we haven't exceeded our deadline or iteration budget and while we have pending queries
     for (
@@ -143,7 +126,8 @@ export async function renderAppOnServer(
 
         // Re-render the page, triggering any new queries unlocked by the new state.
         html = renderToString(model);
-        await ssrPrepass(model);
+        renderCount++;
+        // await ssrPrepass(model);
       } catch {
         // Break out and do the final rendering
         break;
@@ -153,7 +137,9 @@ export async function renderAppOnServer(
     // Any outstanding queries should be cancelled at this point since our client's lifetime
     // is limited to this request anyway.
     const queryClientData = dehydrate(queryClient);
-    const renderedMarkup = html ?? renderToString(model);
+    const renderedMarkup = html ?? (renderCount++, renderToString(model));
+
+    console.log('RENDER COUNT', renderCount, path);
 
     // They didn't make it in time for the deadline so we'll cancel them
     queryClient.cancelQueries();

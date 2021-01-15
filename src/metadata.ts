@@ -15,7 +15,7 @@ export class ClientBuildMetadata {
 
     // Temporary work-around for https://github.com/evanw/esbuild#662
     const chunkFixRx = new RegExp(
-      `^(${escapeStringRegexp(staticDir)}\\/build)(\\/[^\\/]+)?(\\/chunk\\.\\w+\\.(?:js|mjs|cjs))$`,
+      `^(${escapeStringRegexp(staticDir)}\\/build)(\\/[^/]+)*(\\/chunk\\.\\w+\\.(?:js|mjs|cjs))$`,
       'g'
     );
     const fixChunkPath = (chunkName: string) => {
