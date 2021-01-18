@@ -4,12 +4,12 @@ import { AbortController, AbortSignal } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import Joi from 'joi';
 import Module from 'module';
-import type { ServerFunctionContext } from 'nostalgie';
 import { cpus } from 'os';
 import * as Path from 'path';
 import { pool } from 'workerpool';
-import { wireAbortController } from './lifecycle';
-import { createDefaultLogger, Logger } from './logging';
+import { wireAbortController } from '../../../lifecycle';
+import { createDefaultLogger, Logger } from '../../../logging';
+import type { ServerFunctionContext } from '../../functions/types';
 
 const createRequire = Module.createRequire || Module.createRequireFromPath;
 const require = createRequire(__filename);
@@ -87,7 +87,7 @@ export async function startServer(
     }
   );
   const renderAppOnServer = server.methods
-    .renderAppOnServer as typeof import('./ssr').renderAppOnServer;
+    .renderAppOnServer as import('../../server').ServerRenderer['renderAppOnServer'];
 
   server.method(
     'invokeFunction',
@@ -95,7 +95,8 @@ export async function startServer(
       return workerPool.exec('invokeFunction', [functionName, ctx, args]);
     }
   );
-  const invokeFunction = server.methods.invokeFunction as typeof import('./ssr').invokeFunction;
+  const invokeFunction = server.methods
+    .invokeFunction as import('../../server').ServerRenderer['invokeFunction'];
 
   server.route({
     method: 'POST',

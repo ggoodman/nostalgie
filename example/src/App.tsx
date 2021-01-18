@@ -1,4 +1,5 @@
-import { Helmet, NavLink, Route, Switch } from 'nostalgie';
+import { Helmet } from 'nostalgie/helmet';
+import { NavLink, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import PlunkerImg from './assets/Nostalgie.svg';
 import Favicon from './favicon.ico';

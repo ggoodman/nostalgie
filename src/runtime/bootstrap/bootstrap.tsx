@@ -6,17 +6,11 @@ import * as Helmet from 'react-helmet-async';
 import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
-import Twind from 'twind';
+import * as Twind from 'twind';
 import 'twind/shim';
-// @ts-ignore
-// We need to ignore this because the import specifier
-// will be remapped at build time.
-import App from '__nostalgie_app__';
 import { LazyContext } from '../lazy/context';
 import { register } from '../lazy/register';
 import type { ChunkManager } from '../lazy/types';
-
-declare const App: React.ComponentType;
 
 interface LazyComponent {
   chunk: string;
@@ -30,12 +24,10 @@ export interface BootstrapOptions {
 
 const DEFAULT_BROWSER_STALE_TIME = 16;
 
-export async function start(options: BootstrapOptions) {
+export async function start(App: React.ComponentType, options: BootstrapOptions) {
   const queryClient = new ReactQuery.QueryClient({
     defaultOptions: {
       queries: {
-        // Set an initial really long stale timeout so that SSR hydration
-        // doesn't complain about mismatches.
         staleTime: DEFAULT_BROWSER_STALE_TIME,
       },
     },

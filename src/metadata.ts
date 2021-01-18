@@ -1,6 +1,6 @@
 import type { Metadata } from 'esbuild';
 import * as Path from 'path';
-import type { NostalgieSettingsReader } from './settings';
+import type { NostalgieSettings } from './settings';
 import type { ChunkDependencies } from './types';
 
 export class ClientBuildMetadata {
@@ -8,9 +8,9 @@ export class ClientBuildMetadata {
   private readonly _chunkInputs = new Map<string, Set<string>>();
   private readonly _inputsToChunks = new Map<string, Set<string>>();
 
-  constructor(settings: NostalgieSettingsReader, metadata: Metadata) {
-    const rootDir = settings.get('rootDir');
-    const buildDir = settings.get('buildDir');
+  constructor(settings: NostalgieSettings, metadata: Metadata) {
+    const rootDir = settings.rootDir;
+    const buildDir = settings.buildDir;
 
     for (const originalChunkPath in metadata.outputs) {
       const chunkOutputMeta = metadata.outputs[originalChunkPath];

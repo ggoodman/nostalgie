@@ -12,7 +12,7 @@
   "dependencies": {
     "github-markdown-css": "^4.0.0",
     "got": "^11.8.1",
-    "nostalgie": "file:../",
+    "nostalgie": "file:../dist",
     "quick-lru": "^5.1.1",
     "react": "^16.14.0"
   }

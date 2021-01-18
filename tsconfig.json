@@ -8,5 +8,5 @@
       // "nostalgie/internals": ["./runtime/browser/internals.ts"]
     }
   },
-  "include": ["./runtime", "./src"],
+  "include": ["./src"],
 }

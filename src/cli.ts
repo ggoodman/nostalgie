@@ -2,9 +2,9 @@ import { watch } from 'chokidar';
 import { startService } from 'esbuild';
 import * as Path from 'path';
 import Yargs from 'yargs';
-import { wireAbortController, withCleanup } from '../runtime/server/lifecycle';
-import { createDefaultLogger } from '../runtime/server/logging';
 import { build } from './build';
+import { wireAbortController, withCleanup } from './lifecycle';
+import { createDefaultLogger } from './logging';
 import { readNormalizedSettings } from './settings';
 
 Yargs.help()
@@ -39,7 +39,7 @@ Yargs.help()
       await withCleanup(async (defer) => {
         // ESBuild works based on CWD :|
         const cwd = process.cwd();
-        process.chdir(settings.get('rootDir'));
+        process.chdir(settings.rootDir);
         const service = await startService();
         process.chdir(cwd);
         defer(() => service.stop());
@@ -86,16 +86,16 @@ Yargs.help()
       await withCleanup(async (defer) => {
         // ESBuild works based on CWD :|
         const cwd = process.cwd();
-        process.chdir(settings.get('rootDir'));
+        process.chdir(settings.rootDir);
         const service = await startService();
         process.chdir(cwd);
         defer(() => service.stop());
 
         const watcher = watch('.', {
-          cwd: settings.get('rootDir'),
+          cwd: settings.rootDir,
           // atomic: true,
           // depth: 16,
-          ignored: Path.resolve(settings.get('rootDir'), './build'),
+          ignored: Path.resolve(settings.rootDir, './build'),
           // ignored: /\/(build|node_modules)\//,
           ignoreInitial: true,
           interval: 16,
@@ -107,7 +107,7 @@ Yargs.help()
         const { startServer } = await loadHapiServer();
         const restartServer = () =>
           startServer(logger, {
-            buildDir: settings.get('buildDir'),
+            buildDir: settings.buildDir,
             host: argv.host,
             port: argv.port,
             signal,

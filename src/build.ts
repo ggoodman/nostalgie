@@ -12,7 +12,7 @@ import { resolvePlugin } from './esbuildPlugins/resolvePlugin';
 import { serverFunctionProxyPlugin } from './esbuildPlugins/serverFunctionProxyPlugin';
 import { svgPlugin } from './esbuildPlugins/svgPlugin';
 import { ClientBuildMetadata } from './metadata';
-import type { NostalgieSettingsReader } from './settings';
+import type { NostalgieSettings } from './settings';
 
 const createRequire = Module.createRequire || Module.createRequireFromPath;
 
@@ -28,7 +28,7 @@ const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
 
 export async function build(options: {
   logger: Logger;
-  settings: NostalgieSettingsReader;
+  settings: NostalgieSettings;
   service: Service;
 }) {
   const { logger, settings, service } = options;
@@ -38,7 +38,7 @@ export async function build(options: {
       const functionNames = await buildServerFunctions(service, settings);
 
       logger.info(
-        { pathName: Path.resolve(settings.get('rootDir'), './build/functions.js') },
+        { pathName: Path.resolve(settings.rootDir, './build/functions.js') },
         'server functions build'
       );
 
@@ -48,7 +48,7 @@ export async function build(options: {
       const { functionNames } = await functionNamesPromise;
       const clientBuildMetadata = await buildClient(service, settings, functionNames);
 
-      logger.info({ pathName: settings.get('staticDir') }, 'client assets written');
+      logger.info({ pathName: settings.staticDir }, 'client assets written');
 
       return new ClientBuildMetadata(settings, clientBuildMetadata);
     })();
@@ -60,15 +60,15 @@ export async function build(options: {
       await buildNodeServer(service, settings, logger, clientBuildMetadata);
 
       logger.info(
-        { pathName: Path.relative(settings.get('rootDir'), './build/index.js') },
+        { pathName: Path.relative(settings.rootDir, './build/index.js') },
         'node server written'
       );
     })();
 
     const packageJsonPromise = (async () => {
-      await Fs.mkdir(settings.get('buildDir'), { recursive: true });
+      await Fs.mkdir(settings.buildDir, { recursive: true });
       await Fs.writeFile(
-        Path.join(settings.get('buildDir'), 'package.json'),
+        Path.join(settings.buildDir, 'package.json'),
         JSON.stringify(
           {
             name: 'nostalgie-app',
@@ -102,7 +102,7 @@ export async function build(options: {
 
   return {
     async loadHapiServer() {
-      const require = createRequire(Path.join(settings.get('rootDir'), 'index.js'));
+      const require = createRequire(Path.join(settings.rootDir, 'index.js'));
 
       // TODO: Fix this type when we're back under control (typeof import('../runtime/server/node'))
       return require('./build/index') as any;
@@ -113,19 +113,19 @@ export async function build(options: {
 
 async function buildClient(
   service: Service,
-  settings: NostalgieSettingsReader,
+  settings: NostalgieSettings,
   functionNames: string[]
 ): Promise<Metadata> {
-  const rootDir = settings.get('rootDir');
-  const staticDir = settings.get('staticDir');
+  const rootDir = settings.rootDir;
+  const staticDir = settings.staticDir;
   const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
-  const serverFunctionsPath = Path.resolve(rootDir, settings.get('functionsEntryPoint'));
+  const serverFunctionsPath = Path.resolve(rootDir, settings.functionsEntryPoint);
   const nostalgieBootstrapPath = Path.resolve(__dirname, '../runtime/browser/bootstrap.tsx');
 
   await service.build({
     bundle: true,
     define: {
-      'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
+      'process.env.NODE_ENV': JSON.stringify(settings.buildEnvironment),
       'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('browser'),
       'process.env.NOSTALGIE_RPC_PATH': JSON.stringify('/_nostalgie/rpc'),
       'process.env.NOSTALGIE_PUBLIC_URL': '""',
@@ -136,24 +136,21 @@ async function buildClient(
     incremental: true,
     loader: loaders,
     metafile: clientMetaPath,
-    minify: settings.get('buildEnvironment') === 'production',
-    outbase: Path.dirname(settings.get('applicationEntryPoint')),
+    minify: settings.buildEnvironment === 'production',
+    outbase: Path.dirname(settings.applicationEntryPoint),
     outdir: Path.resolve(staticDir, './build'),
     platform: 'browser',
     plugins: [
       resolveNostalgiePlugin(),
-      mdxPlugin(settings.get('applicationEntryPoint')),
+      mdxPlugin(settings.applicationEntryPoint),
       svgPlugin(),
       reactShimPlugin(),
       decorateDeferredImportsBrowserPlugin({
-        rootDir: settings.get('rootDir'),
+        rootDir: settings.rootDir,
       }),
-      resolvePlugin(
-        settings.get('rootDir'),
-        '__nostalgie_app__',
-        settings.get('applicationEntryPoint'),
-        ['default']
-      ),
+      resolvePlugin(settings.rootDir, '__nostalgie_app__', settings.applicationEntryPoint, [
+        'default',
+      ]),
       serverFunctionProxyPlugin(resolveExtensions, serverFunctionsPath, functionNames),
     ],
     publicPath: '/static/build',
@@ -164,8 +161,8 @@ async function buildClient(
     stdin: {
       contents: await Fs.readFile(nostalgieBootstrapPath, 'utf8'),
       loader: 'tsx',
-      resolveDir: Path.dirname(settings.get('applicationEntryPoint')),
-      sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../bootstrap.tsx'),
+      resolveDir: Path.dirname(settings.applicationEntryPoint),
+      sourcefile: Path.resolve(settings.applicationEntryPoint, '../bootstrap.tsx'),
     },
     treeShaking: true,
   });
@@ -180,26 +177,26 @@ async function buildClient(
   return metaFileData;
 }
 
-async function buildServerFunctions(service: Service, settings: NostalgieSettingsReader) {
-  const rootDir = settings.get('rootDir');
+async function buildServerFunctions(service: Service, settings: NostalgieSettings) {
+  const rootDir = settings.rootDir;
   const functionsMetaPath = Path.resolve(rootDir, 'build/functions/meta.json');
   const functionsBuildPath = 'build/functions/functions.js';
 
   const buildResult = await service.build({
     bundle: false,
     define: {
-      'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
+      'process.env.NODE_ENV': JSON.stringify(settings.buildEnvironment),
       'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
     },
     logLevel: 'error',
-    entryPoints: [`./${Path.relative(rootDir, settings.get('functionsEntryPoint'))}`],
+    entryPoints: [`./${Path.relative(rootDir, settings.functionsEntryPoint)}`],
     external: [],
     format: 'esm',
     incremental: true,
     loader: loaders,
     metafile: functionsMetaPath,
-    minify: settings.get('buildEnvironment') === 'production',
-    outbase: Path.resolve(settings.get('functionsEntryPoint'), '../nostalgie'),
+    minify: settings.buildEnvironment === 'production',
+    outbase: Path.resolve(settings.functionsEntryPoint, '../nostalgie'),
     outfile: Path.resolve(rootDir, functionsBuildPath),
     platform: 'node',
     plugins: [],
@@ -256,11 +253,11 @@ async function buildServerFunctions(service: Service, settings: NostalgieSetting
 
 async function buildNodeServer(
   service: Service,
-  settings: NostalgieSettingsReader,
+  settings: NostalgieSettings,
   logger: Logger,
   clientBuildMetadata: ClientBuildMetadata
 ) {
-  const buildDir = settings.get('buildDir');
+  const buildDir = settings.buildDir;
   const nostalgieHapiServerPath = Path.resolve(__dirname, '../runtime/server/node.ts');
   // const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');
   const nostalgieSsrWorkerPath = Path.resolve(__dirname, '../runtime/server/ssr.tsx');
@@ -270,16 +267,16 @@ async function buildNodeServer(
     service.build({
       bundle: true,
       define: {
-        'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
+        'process.env.NODE_ENV': JSON.stringify(settings.buildEnvironment),
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
         __nostalgie_chunks__: JSON.stringify(clientBuildMetadata.getChunkDependenciesObject()),
       },
       format: 'cjs',
       loader: loaders,
       logLevel: 'error',
-      minify: settings.get('buildEnvironment') === 'production',
-      outbase: Path.dirname(settings.get('applicationEntryPoint')),
-      outfile: Path.resolve(settings.get('buildDir'), 'ssr.js'),
+      minify: settings.buildEnvironment === 'production',
+      outbase: Path.dirname(settings.applicationEntryPoint),
+      outfile: Path.resolve(settings.buildDir, 'ssr.js'),
       publicPath: '/static/build',
       platform: 'node',
       plugins: [
@@ -288,25 +285,19 @@ async function buildNodeServer(
         svgPlugin(),
         reactShimPlugin(),
         decorateDeferredImportsServerPlugin({
-          relativePath: settings.get('applicationEntryPoint'),
+          relativePath: settings.applicationEntryPoint,
           buildDir,
           clientBuildMetadata,
           logger,
           resolveExtensions,
-          rootDir: settings.get('rootDir'),
+          rootDir: settings.rootDir,
         }),
-        resolvePlugin(
-          settings.get('rootDir'),
-          '__nostalgie_app__',
-          settings.get('applicationEntryPoint'),
-          ['default']
-        ),
-        resolvePlugin(
-          settings.get('rootDir'),
-          '__nostalgie_functions__',
-          settings.get('functionsEntryPoint'),
-          ['*']
-        ),
+        resolvePlugin(settings.rootDir, '__nostalgie_app__', settings.applicationEntryPoint, [
+          'default',
+        ]),
+        resolvePlugin(settings.rootDir, '__nostalgie_functions__', settings.functionsEntryPoint, [
+          '*',
+        ]),
       ],
       resolveExtensions,
       sourcemap: true,
@@ -314,7 +305,7 @@ async function buildNodeServer(
         contents: await Fs.readFile(nostalgieSsrWorkerPath, 'utf8'),
         loader: 'tsx',
         resolveDir: Path.dirname(nostalgieSsrWorkerPath),
-        sourcefile: Path.resolve(settings.get('applicationEntryPoint'), '../ssr.tsx'),
+        sourcefile: Path.resolve(settings.applicationEntryPoint, '../ssr.tsx'),
       },
       target: ['node12'],
       treeShaking: true,
@@ -325,14 +316,14 @@ async function buildNodeServer(
     service.build({
       bundle: true,
       define: {
-        'process.env.NODE_ENV': JSON.stringify(settings.get('buildEnvironment')),
+        'process.env.NODE_ENV': JSON.stringify(settings.buildEnvironment),
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
       },
       entryPoints: [nostalgieHapiServerPath],
       format: 'cjs',
       logLevel: 'error',
-      minify: settings.get('buildEnvironment') === 'production',
-      outfile: Path.resolve(settings.get('buildDir'), './index.js'),
+      minify: settings.buildEnvironment === 'production',
+      outfile: Path.resolve(settings.buildDir, './index.js'),
       publicPath: '/static/build',
       platform: 'node',
       plugins: [],
@@ -345,13 +336,13 @@ async function buildNodeServer(
 
     // Write the node runtime docker file
     Fs.writeFile(
-      Path.resolve(settings.get('buildDir'), './Dockerfile'),
+      Path.resolve(settings.buildDir, './Dockerfile'),
       `
 FROM node:14-alpine
 USER node
 WORKDIR /srv
 ADD . /srv/
-ENV PORT=8080 NODE_ENV=${settings.get('buildEnvironment')}
+ENV PORT=8080 NODE_ENV=${settings.buildEnvironment}
 CMD [ "node",  "/srv/index.js" ]
   `.trim() + '\n'
     ),

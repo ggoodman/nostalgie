@@ -1,29 +1,14 @@
 {
   "name": "nostalgie",
   "version": "0.63.1",
+  "private": true,
   "description": "Opinionated template repository for creating a TypeScript library",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "bin": {
-    "nostalgie": "bin/nostalgie"
-  },
-  "files": [
-    "dist/**/!(tsconfig.tsbuildinfo)",
-    "runtime/**/*"
-  ],
-  "exports": {
-    "./functions": "./dist/runtime/functions.js",
-    "./helmet": "./dist/runtime/helmet.js",
-    "./lazy": "./dist/runtime/lazy.js",
-    "./routing": "./dist/runtime/routing.js",
-    "./server": "./dist/runtime/server.js"
-  },
+  "main": "index.js",
   "scripts": {
     "clean": "rm -rf ./dist",
     "build:cli": "node ./scripts/buildCli.js",
     "build:mdxworker": "node ./scripts/buildMdxCompilerWorker.js",
-    "build:stub": "node ./scripts/buildStub.js",
-    "build:types": "node ./scripts/buildTypes.js",
+    "build:types": "node ./scripts/buildRuntime.js",
     "build": "npm-run-all --silent clean --parallel build:*",
     "prepack": "npm run build"
   },
@@ -55,13 +40,21 @@
     "type": "git",
     "url": "git+https://github.com/ggoodman/typescript-library-template.git"
   },
-  "keywords": [],
+  "keywords": [
+    "react",
+    "ssr",
+    "react-router",
+    "mdx",
+    "jamstack",
+    "react-query",
+    "framework"
+  ],
   "author": "Geoffrey Goodman",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ggoodman/typescript-library-template/issues"
+    "url": "https://github.com/ggoodman/nostalgie/issues"
   },
-  "homepage": "https://github.com/ggoodman/typescript-library-template#readme",
+  "homepage": "https://github.com/ggoodman/nostalgie#readme",
   "engines": {
     "node": ">=10.16.0"
   },
@@ -85,7 +78,7 @@
     "@svgr/plugin-svgo": "^5.5.0",
     "@twind/typography": "0.0.1",
     "chokidar": "^3.5.0",
-    "esbuild": "^0.8.32",
+    "esbuild": "^0.8.33",
     "escape-goat": "^3.0.0",
     "escape-string-regexp": "^4.0.0",
     "hapi-pino": "^8.3.0",
