@@ -80,6 +80,12 @@ export class ServerRenderer {
             React.createElement(
               Helmet.HelmetProvider,
               { context: helmetCtx },
+              React.createElement(Helmet.Helmet, {
+                htmlAttributes: {
+                  lang: 'en',
+                },
+                defaultTitle: 'Nostalgie app',
+              }),
               React.createElement(this.app)
             )
           )
@@ -191,7 +197,6 @@ export class ServerRenderer {
         ${helmet.style.toString()}
       </head>
       <body ${bodyAttrs}>
-        <noscript>You need to enable JavaScript to run this app.</noscript>
         <div id="root">${shimmedMarkup}</div>
         <script async type="module">
           import { start } from "${publicUrl}static/build/bootstrap.js";
