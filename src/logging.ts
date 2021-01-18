@@ -7,6 +7,7 @@ export function createDefaultLogger() {
     serializers: Pino.stdSerializers,
     name: '@nostalgie/server',
     prettyPrint: process.env.NODE_ENV !== 'production',
+    redact: ['req.headers'],
     timestamp: Pino.stdTimeFunctions.isoTime,
   });
 }

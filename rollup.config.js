@@ -2,6 +2,7 @@ import RollupPluginCommonJs from '@rollup/plugin-commonjs';
 import RollupPluginNodeResolve from '@rollup/plugin-node-resolve';
 import RollupPluginTs from '@wessberg/rollup-plugin-ts';
 import { promises as Fs } from 'fs';
+import { builtinModules } from 'module';
 import * as Path from 'path';
 import * as PackageJson from './package.json';
 
@@ -10,16 +11,27 @@ const BARE_MODULE_SPEC_RX = /^((@[^/]+\/[^/@]+|[^./@][^/@]*))(.*)?$/;
 /** @type {import('@wessberg/rollup-plugin-ts').DeclarationStats} */
 let declarationStats = {};
 
-const runtimeModuleNames = ['bootstrap', 'functions', 'helmet', 'lazy', 'routing', 'server'];
+const runtimeModuleNames = [
+  'bootstrap',
+  'functions',
+  'helmet',
+  'lazy',
+  'routing',
+  'runtimes/node',
+  'server',
+];
 
 /** @type {Extract<import('rollup').InputOption, {}>} */
 const runtimeInput = {};
+const exportMap = {};
 
 for (const runtimeModuleName of runtimeModuleNames) {
   runtimeInput[`${runtimeModuleName}/index`] = Path.resolve(
     __dirname,
     `./src/runtime/${runtimeModuleName}/index.ts`
   );
+
+  exportMap[`./${runtimeModuleName}`] = `./${runtimeModuleName}/index.js`;
 }
 
 const typesPath = Path.resolve(__dirname, './src/runtime/types.d.ts');
@@ -32,7 +44,7 @@ const licensePath = Path.resolve(__dirname, 'LICENSE');
 const config = [
   // CLI
   {
-    input: Path.resolve(__dirname, './src/cli.ts'),
+    input: Path.resolve(__dirname, './src/cli/index.ts'),
     output: {
       file: Path.resolve(__dirname, './dist/cli.js'),
       format: 'commonjs',
@@ -54,6 +66,7 @@ const config = [
     output: {
       file: Path.resolve(__dirname, './dist/mdxCompilerWorker.js'),
       format: 'commonjs',
+      exports: 'default',
     },
     external: (spec) => !spec.startsWith('.') && !spec.startsWith('/'),
     plugins: [
@@ -129,17 +142,14 @@ const config = [
                 continue;
               }
 
-              // The dependency will be injected at runtime
-              if (moduleName.startsWith('__nostalgie_')) {
-                continue;
-              }
-
               const moduleSpecifier =
                 PackageJson.dependencies[moduleName] || PackageJson.devDependencies[moduleName];
 
-              if (!moduleSpecifier) {
+              if (!moduleSpecifier && !builtinModules.includes(moduleName)) {
                 throw new Error(
-                  `The runtime bundle depends on ${moduleName} but the version string could not be found in the root package.json`
+                  `The runtime bundle depends on ${JSON.stringify(
+                    moduleName
+                  )} but the version string could not be found in the root package.json`
                 );
               }
 
@@ -172,14 +182,7 @@ const config = [
                   name: PackageJson.name,
                   version: PackageJson.version,
                   description: PackageJson.description,
-                  exports: {
-                    './bootstrap': './bootstrap/index.js',
-                    './functions': './functions/index.js',
-                    './helmet': './helmet/index.js',
-                    './lazy': './lazy/index.js',
-                    './routing': './routing/index.js',
-                    './server': './server/index.js',
-                  },
+                  exports: exportMap,
                   bin: {
                     nostalgie: './bin/nostalgie',
                   },

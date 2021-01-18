@@ -1,6 +1,6 @@
 import type { Metadata } from 'esbuild';
 import * as Path from 'path';
-import type { NostalgieSettings } from './settings';
+import type { NostalgieSettings } from '../settings';
 import type { ChunkDependencies } from './types';
 
 export class ClientBuildMetadata {
@@ -14,7 +14,7 @@ export class ClientBuildMetadata {
 
     for (const originalChunkPath in metadata.outputs) {
       const chunkOutputMeta = metadata.outputs[originalChunkPath];
-      const chunkPath = '/' + Path.relative(buildDir, Path.join(rootDir, originalChunkPath));
+      const chunkPath = Path.relative(buildDir, Path.join(rootDir, originalChunkPath));
 
       for (const originalInputPath in chunkOutputMeta.inputs) {
         const inputPath = Path.resolve(rootDir, originalInputPath);

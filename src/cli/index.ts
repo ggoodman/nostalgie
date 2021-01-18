@@ -1,11 +1,14 @@
+//@ts-ignore
+// const logPromise = import('why-is-node-running');
+
 import { watch } from 'chokidar';
 import { startService } from 'esbuild';
 import * as Path from 'path';
 import Yargs from 'yargs';
-import { build } from './build';
-import { wireAbortController, withCleanup } from './lifecycle';
-import { createDefaultLogger } from './logging';
-import { readNormalizedSettings } from './settings';
+import { build } from '../build';
+import { wireAbortController, withCleanup } from '../lifecycle';
+import { createDefaultLogger } from '../logging';
+import { readNormalizedSettings } from '../settings';
 
 Yargs.help()
   .demandCommand()
@@ -29,7 +32,7 @@ Yargs.help()
       } as const),
     async (argv) => {
       const logger = createDefaultLogger();
-      const signal = wireAbortController(logger);
+      const { abort, signal } = wireAbortController(logger);
       const cwd = process.cwd();
       const settings = readNormalizedSettings({
         rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
@@ -44,8 +47,9 @@ Yargs.help()
         process.chdir(cwd);
         defer(() => service.stop());
         signal.onabort = () => service.stop();
+        defer(() => abort());
 
-        await build({ logger, service, settings });
+        await build({ logger, service, settings, signal });
       });
     }
   )
@@ -76,7 +80,7 @@ Yargs.help()
     } as const,
     async (argv) => {
       const logger = createDefaultLogger();
-      const signal = wireAbortController(logger);
+      const { signal } = wireAbortController(logger);
       const cwd = process.cwd();
       const settings = readNormalizedSettings({
         rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
@@ -103,13 +107,14 @@ Yargs.help()
         });
         defer(() => watcher.close());
 
-        const { loadHapiServer, rebuild } = await build({ logger, service, settings });
+        const { loadHapiServer, rebuild } = await build({ logger, service, settings, signal });
         const { startServer } = await loadHapiServer();
         const restartServer = () =>
-          startServer(logger, {
+          startServer({
             buildDir: settings.buildDir,
             host: argv.host,
             port: argv.port,
+            logger,
             signal,
           });
 
@@ -140,8 +145,12 @@ Yargs.help()
           }
         });
 
-        await serverStartPromise;
-
+        try {
+          await serverStartPromise;
+        } catch (err) {
+          logger.error(err, 'Error while starting server');
+          process.exit(1);
+        }
         await new Promise((resolve) => {
           signal.onabort = resolve;
         });

@@ -19,12 +19,13 @@ interface LazyComponent {
 
 export interface BootstrapOptions {
   lazyComponents: LazyComponent[];
+  publicUrl: string;
   reactQueryState: ReactQueryHydration.DehydratedState;
 }
 
 const DEFAULT_BROWSER_STALE_TIME = 16;
 
-export async function start(App: React.ComponentType, options: BootstrapOptions) {
+export async function hydrateNostalgie(App: React.ComponentType, options: BootstrapOptions) {
   const queryClient = new ReactQuery.QueryClient({
     defaultOptions: {
       queries: {
@@ -46,7 +47,7 @@ export async function start(App: React.ComponentType, options: BootstrapOptions)
   });
 
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {
-    return import(chunk).then((m) => {
+    return import(`${options.publicUrl}${chunk}`).then((m) => {
       register(chunkCtx, chunk, lazyImport, m);
     });
   });

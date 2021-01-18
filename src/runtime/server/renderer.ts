@@ -8,7 +8,7 @@ import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
 import * as Twind from 'twind';
 import * as TwindServer from 'twind/server';
-import type { ChunkDependencies } from '../../types';
+import type { ChunkDependencies } from '../../build/types';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
 import { ServerQueryContextProvider, ServerQueryExecutorImpl } from '../functions/server';
 import type { ServerFunction, ServerFunctionContext } from '../functions/types';
@@ -18,6 +18,47 @@ import type { ChunkManager } from '../lazy/types';
 interface ServerRendererSettings {
   defaultDeadline: number;
   maxIterations: number;
+}
+
+function renderToStringAndCaptureStyles(model: React.ReactElement) {
+  // Set up twind for parsing the result and generating markup
+  const sheet = TwindServer.virtualSheet();
+  const { tw } = Twind.create({
+    sheet,
+    mode: Twind.silent,
+    prefix: true,
+    plugins: {
+      ...TwindTypography(),
+    },
+  });
+
+  //@ts-expect-error
+  const { createElement, reset } = React.setCreateElement(function nostalgieCreateElement(
+    ...args: Parameters<typeof React.createElement>
+  ) {
+    const props = args[1];
+
+    const classNames = (props as any)?.className;
+
+    if (typeof classNames === 'string') {
+      const mappedClassNames = tw`${classNames}`;
+      (args[1]! as any).className = mappedClassNames;
+      (args[1]! as any).suppressHydrationWarning = true;
+    }
+
+    return createElement.apply(null, args);
+  });
+
+  try {
+    const html = renderToString(model);
+
+    return {
+      html,
+      sheet,
+    };
+  } finally {
+    reset();
+  }
 }
 
 export interface ServerRendererOptions extends Partial<ServerRendererSettings> {}
@@ -53,7 +94,10 @@ export class ServerRenderer {
     return functionImpl(ctx, ...args);
   }
 
-  async renderAppOnServer(path: string): Promise<{ html: string }> {
+  async renderAppOnServer(
+    path: string
+  ): Promise<{ html: string; renderCount: number; latency: number }> {
+    const start = Date.now();
     const helmetCtx: Helmet.ProviderProps = {};
     const chunkCtx: ChunkManager = {
       chunks: [],
@@ -84,6 +128,9 @@ export class ServerRenderer {
       )
     );
 
+    // We'll give ourselves a budget for the number of render passes we're willing to undertake
+    let renderCount = 1;
+
     try {
       // We're going to give a maximum amount of time for this render.
       const deadlineAt = Date.now() + this.settings.defaultDeadline;
@@ -97,8 +144,7 @@ export class ServerRenderer {
       // We'll give ourselves a budget for the number of async passes we're willing to undertake
       let remainingIterations = this.settings.maxIterations;
 
-      let html: string | undefined = renderToString(model);
-      let renderCount = 1;
+      let renderResult = renderToStringAndCaptureStyles(model);
 
       // Loop while we haven't exceeded our deadline or iteration budget and while we have pending queries
       for (
@@ -114,7 +160,7 @@ export class ServerRenderer {
           await Promise.race([deadlinePromise, ...queryExecutor.promises]);
 
           // Re-render the page, triggering any new queries unlocked by the new state.
-          html = renderToString(model);
+          renderResult = renderToStringAndCaptureStyles(model);
           renderCount++;
           // await ssrPrepass(model);
         } catch {
@@ -126,25 +172,11 @@ export class ServerRenderer {
       // Any outstanding queries should be cancelled at this point since our client's lifetime
       // is limited to this request anyway.
       const queryClientData = ReactQueryHydration.dehydrate(queryClient);
-      const renderedMarkup = html ?? (renderCount++, renderToString(model));
 
       // They didn't make it in time for the deadline so we'll cancel them
       queryClient.cancelQueries();
 
-      // Set up twind for parsing the result and generating markup
-      const customSheet = TwindServer.virtualSheet();
-      const { tw } = Twind.create({
-        sheet: customSheet,
-        mode: Twind.silent,
-        prefix: true,
-        plugins: {
-          ...TwindTypography(),
-        },
-      });
-      // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
-      customSheet.reset();
-
-      const shimmedMarkup = TwindServer.shim(renderedMarkup, tw);
+      // const shimmedMarkup = TwindServer.shim(renderedMarkup, tw);
       const headTags = [];
 
       const { helmet } = helmetCtx as Helmet.FilledContext;
@@ -159,12 +191,13 @@ export class ServerRenderer {
         }
       }
 
-      const publicUrl = encodeURI('');
+      const publicUrl = encodeURI('/');
       const htmlAttrs = helmet.htmlAttributes.toString();
       const bodyAttrs = helmet.bodyAttributes.toString();
 
       const bootstrapOptions: BootstrapOptions = {
         lazyComponents: chunkCtx.chunks,
+        publicUrl,
         reactQueryState: queryClientData,
       };
       const wrapper = `
@@ -173,22 +206,22 @@ export class ServerRenderer {
       <head>
         ${helmet.title.toString()}
         ${helmet.meta.toString()}
-        <link rel="modulepreload" href="${publicUrl}/static/build/bootstrap.js" />
+        <link rel="modulepreload" href="${publicUrl}static/build/bootstrap.js" />
         ${chunkCtx.chunks.map(
-          ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}/${encodeURI(chunk)}" />`
+          ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}${encodeURI(chunk)}" />`
         )}
         ${helmet.link.toString()}
         ${headTags.join('\n')}
         ${helmet.noscript.toString()}
         ${helmet.script.toString()}
-        ${TwindServer.getStyleTag(customSheet)}
+        ${TwindServer.getStyleTag(renderResult.sheet)}
         ${helmet.style.toString()}
       </head>
       <body ${bodyAttrs}>
         <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root">${shimmedMarkup}</div>
+        <div id="root">${renderResult.html}</div>
         <script async type="module">
-          import { start } from "${publicUrl}/static/build/bootstrap.js";
+          import { start } from "${publicUrl}static/build/bootstrap.js";
     
           start(${JSON.stringify(bootstrapOptions)});
         </script>
@@ -198,10 +231,14 @@ export class ServerRenderer {
 
       return {
         html: wrapper,
+        renderCount: renderCount,
+        latency: Date.now() - start,
       };
     } catch (e) {
       return {
         html: e.stack,
+        renderCount: renderCount,
+        latency: Date.now() - start,
       };
     }
   }

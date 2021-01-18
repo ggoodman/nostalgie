@@ -99,6 +99,7 @@
     "twind": "^0.11.1",
     "unist-util-visit": "^2.0.3",
     "vfile": "^4.2.1",
+    "why-is-node-running": "^2.2.0",
     "workerpool": "^6.0.3",
     "yargs": "^16.2.0"
   }

@@ -33,7 +33,10 @@ export function wireAbortController(logger: Logger, options: { signal?: AbortSig
     .on('uncaughtException', onUncaughtException)
     .on('unhandledRejection', onUnhandledRejection);
 
-  return abortController.signal;
+  return {
+    abort: abortController.abort.bind(abortController),
+    signal: abortController.signal,
+  };
 }
 
 type DeferredCleanupFunction = (...args: any[]) => any;

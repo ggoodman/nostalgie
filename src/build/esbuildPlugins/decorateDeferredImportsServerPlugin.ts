@@ -2,9 +2,9 @@ import type { Plugin } from 'esbuild';
 import { promises as Fs } from 'fs';
 import * as Path from 'path';
 import type { Logger } from 'pino';
+import type { LazyFactoryMeta } from '../../runtime/lazy/types';
 import { loaderForPath } from '../loaderForPath';
 import type { ClientBuildMetadata } from '../metadata';
-import type { LazyFactoryMeta } from '../runtime/lazy/types';
 
 export function decorateDeferredImportsServerPlugin(options: {
   buildDir: string;

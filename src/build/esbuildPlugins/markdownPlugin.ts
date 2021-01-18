@@ -1,8 +1,6 @@
 import type { Plugin } from 'esbuild';
 import { promises as Fs } from 'fs';
-import Module from 'module';
-
-const createRequire = Module.createRequire || Module.createRequireFromPath;
+import { createRequire } from '../../createRequire';
 
 export function markdownPlugin(entryPoint: string): Plugin {
   return {
