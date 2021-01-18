@@ -31,11 +31,6 @@ export async function buildNodeServer(
     settings.functionsEntryPoint
   )}`;
 
-  // const serverOptions:StartServerOptions = {
-  //   buildDir: '.',
-
-  // }
-
   const buildPromises: Array<Promise<unknown>> = [
     // Build the SSR library
     service.build({

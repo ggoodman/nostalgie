@@ -20,47 +20,6 @@ interface ServerRendererSettings {
   maxIterations: number;
 }
 
-function renderToStringAndCaptureStyles(model: React.ReactElement) {
-  // Set up twind for parsing the result and generating markup
-  const sheet = TwindServer.virtualSheet();
-  const { tw } = Twind.create({
-    sheet,
-    mode: Twind.silent,
-    prefix: true,
-    plugins: {
-      ...TwindTypography(),
-    },
-  });
-
-  //@ts-expect-error
-  const { createElement, reset } = React.setCreateElement(function nostalgieCreateElement(
-    ...args: Parameters<typeof React.createElement>
-  ) {
-    const props = args[1];
-
-    const classNames = (props as any)?.className;
-
-    if (typeof classNames === 'string') {
-      const mappedClassNames = tw`${classNames}`;
-      (args[1]! as any).className = mappedClassNames;
-      (args[1]! as any).suppressHydrationWarning = true;
-    }
-
-    return createElement.apply(null, args);
-  });
-
-  try {
-    const html = renderToString(model);
-
-    return {
-      html,
-      sheet,
-    };
-  } finally {
-    reset();
-  }
-}
-
 export interface ServerRendererOptions extends Partial<ServerRendererSettings> {}
 
 export class ServerRenderer {
@@ -144,7 +103,7 @@ export class ServerRenderer {
       // We'll give ourselves a budget for the number of async passes we're willing to undertake
       let remainingIterations = this.settings.maxIterations;
 
-      let renderResult = renderToStringAndCaptureStyles(model);
+      let html: string | undefined = renderToString(model);
 
       // Loop while we haven't exceeded our deadline or iteration budget and while we have pending queries
       for (
@@ -160,7 +119,7 @@ export class ServerRenderer {
           await Promise.race([deadlinePromise, ...queryExecutor.promises]);
 
           // Re-render the page, triggering any new queries unlocked by the new state.
-          renderResult = renderToStringAndCaptureStyles(model);
+          html = renderToString(model);
           renderCount++;
           // await ssrPrepass(model);
         } catch {
@@ -172,11 +131,25 @@ export class ServerRenderer {
       // Any outstanding queries should be cancelled at this point since our client's lifetime
       // is limited to this request anyway.
       const queryClientData = ReactQueryHydration.dehydrate(queryClient);
+      const renderedMarkup = html ?? (renderCount++, renderToString(model));
 
       // They didn't make it in time for the deadline so we'll cancel them
       queryClient.cancelQueries();
 
-      // const shimmedMarkup = TwindServer.shim(renderedMarkup, tw);
+      // Set up twind for parsing the result and generating markup
+      const customSheet = TwindServer.virtualSheet();
+      const { tw } = Twind.create({
+        sheet: customSheet,
+        mode: Twind.silent,
+        prefix: true,
+        plugins: {
+          ...TwindTypography(),
+        },
+      });
+      // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
+      customSheet.reset();
+
+      const shimmedMarkup = TwindServer.shim(renderedMarkup, tw);
       const headTags = [];
 
       const { helmet } = helmetCtx as Helmet.FilledContext;
@@ -214,12 +187,12 @@ export class ServerRenderer {
         ${headTags.join('\n')}
         ${helmet.noscript.toString()}
         ${helmet.script.toString()}
-        ${TwindServer.getStyleTag(renderResult.sheet)}
+        ${TwindServer.getStyleTag(customSheet)}
         ${helmet.style.toString()}
       </head>
       <body ${bodyAttrs}>
         <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root">${renderResult.html}</div>
+        <div id="root">${shimmedMarkup}</div>
         <script async type="module">
           import { start } from "${publicUrl}static/build/bootstrap.js";
     

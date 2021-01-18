@@ -31,37 +31,10 @@ export function reactShimPlugin(settings: NostalgieSettings): Plugin {
         return {
           contents: `
 const React = require('react');
-
-let createElement = React.createElement;
-
-const shims = {
-  Suspense: {
-    enumerable: true,
-    value: process.env.NOSTALGIE_BUILD_TARGET === 'browser' ? React.Suspense : (props) => React.Children.only(props.children),
-  },
-  lazy: {
-    enumerable: true,
-    value: require(${JSON.stringify(lazyPath)}).createLazy(React),
-  },
-  createElement: {
-    enumerable: true,
-    get() { return createElement; },
-  },
-  setCreateElement:{
-    value: function setCreateElement(customCreateElement) {
-      createElement = customCreateElement;
-
-      return {
-        createElement: React.createElement,
-        reset() {
-          createElement = React.createElement;
-        },
-      };
-    },
-  },
-};
-
-module.exports = Object.create(React, shims);
+module.exports = Object.assign(React, {
+  Suspense: process.env.NOSTALGIE_BUILD_TARGET === 'browser' ? React.Suspense : (props) => React.Children.only(props.children),
+  lazy: require(${JSON.stringify(lazyPath)}).createLazy(React),
+});
                 `,
           resolveDir: Path.dirname(reactPath),
         };
