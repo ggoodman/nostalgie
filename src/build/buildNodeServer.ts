@@ -109,14 +109,9 @@ const { startServer } = require(${JSON.stringify(nostalgieHapiServerPath)});
 
 exports.startServer = startServer;
 
-console.log('server bootstrap', require.main === module);
 if (require.main === module) {
-  const logger = createDefaultLogger();
-  const signal = wireAbortController(logger);
-
-  startServer(logger, {
+  startServer({
     buildDir: __dirname,
-    signal,
   }).catch((err) => {
     logger.fatal({ err }, 'exception thrown while starting server');
   });
