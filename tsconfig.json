@@ -1,13 +1,12 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "jsx": "react",
     "rootDir": ".",
     "paths": {
-      "nostalgie": ["./runtime/browser/index.ts"],
-      "nostalgie/internals": ["./runtime/browser/internals.ts"]
+      // "nostalgie": ["./runtime/browser/index.ts"],
+      // "nostalgie/internals": ["./runtime/browser/internals.ts"]
     }
   },
-  "include": ["./runtime", "./src"]
+  "include": ["./runtime", "./src"],
 }

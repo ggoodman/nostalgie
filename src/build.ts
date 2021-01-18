@@ -104,7 +104,8 @@ export async function build(options: {
     async loadHapiServer() {
       const require = createRequire(Path.join(settings.get('rootDir'), 'index.js'));
 
-      return require('./build/index') as typeof import('../runtime/server/node');
+      // TODO: Fix this type when we're back under control (typeof import('../runtime/server/node'))
+      return require('./build/index') as any;
     },
     rebuild,
   };
@@ -143,7 +144,7 @@ async function buildClient(
       resolveNostalgiePlugin(),
       mdxPlugin(settings.get('applicationEntryPoint')),
       svgPlugin(),
-      reactShimPlugin(settings),
+      reactShimPlugin(),
       decorateDeferredImportsBrowserPlugin({
         rootDir: settings.get('rootDir'),
       }),
@@ -285,7 +286,7 @@ async function buildNodeServer(
         resolveNostalgiePlugin(),
         mdxPlugin(),
         svgPlugin(),
-        reactShimPlugin(settings),
+        reactShimPlugin(),
         decorateDeferredImportsServerPlugin({
           relativePath: settings.get('applicationEntryPoint'),
           buildDir,

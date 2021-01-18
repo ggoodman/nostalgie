@@ -1,11 +1,10 @@
 import type { Plugin } from 'esbuild';
 import Module from 'module';
 import * as Path from 'path';
-import type { NostalgieSettingsReader } from 'src/settings';
 
 const createRequire = Module.createRequire || Module.createRequireFromPath;
 
-export function reactShimPlugin(settings: NostalgieSettingsReader): Plugin {
+export function reactShimPlugin(): Plugin {
   return {
     name: 'react-shim',
     setup(build) {
@@ -26,7 +25,7 @@ export function reactShimPlugin(settings: NostalgieSettingsReader): Plugin {
         };
       });
 
-      build.onLoad({ filter: /.*/, namespace: 'react-shim' }, async ({ path }) => {
+      build.onLoad({ filter: /.*/, namespace: 'react-shim' }, async () => {
         return {
           contents: `
 const React = require('react');

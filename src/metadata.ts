@@ -1,7 +1,7 @@
 import type { Metadata } from 'esbuild';
-import escapeStringRegexp from 'escape-string-regexp';
 import * as Path from 'path';
 import type { NostalgieSettingsReader } from './settings';
+import type { ChunkDependencies } from './types';
 
 export class ClientBuildMetadata {
   private readonly _chunkDependencies = new Map<string, Set<string>>();
@@ -11,16 +11,6 @@ export class ClientBuildMetadata {
   constructor(settings: NostalgieSettingsReader, metadata: Metadata) {
     const rootDir = settings.get('rootDir');
     const buildDir = settings.get('buildDir');
-    const staticDir = settings.get('staticDir');
-
-    // Temporary work-around for https://github.com/evanw/esbuild#662
-    const chunkFixRx = new RegExp(
-      `^(${escapeStringRegexp(staticDir)}\\/build)(\\/[^/]+)*(\\/chunk\\.\\w+\\.(?:js|mjs|cjs))$`,
-      'g'
-    );
-    const fixChunkPath = (chunkName: string) => {
-      return chunkName.replace(chunkFixRx, '$1$3');
-    };
 
     for (const originalChunkPath in metadata.outputs) {
       const chunkOutputMeta = metadata.outputs[originalChunkPath];
@@ -95,8 +85,8 @@ export class ClientBuildMetadata {
     }
   }
 
-  getChunkDependenciesObject() {
-    const deps: { [chunkPath: string]: string[] } = {};
+  getChunkDependenciesObject(): ChunkDependencies {
+    const deps: ChunkDependencies = {};
 
     for (const [chunkPath, chunkDependencies] of this._chunkDependencies) {
       deps[chunkPath] = [...chunkDependencies];

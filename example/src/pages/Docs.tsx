@@ -1,4 +1,4 @@
-import { Helmet } from 'nostalgie';
+import { Helmet } from 'nostalgie/helment';
 import * as React from 'react';
 import { mdxDocsComponents } from 'src/lib/mdxDocsComponents';
 import { useStylesheet } from '../hooks/useStylesheet';

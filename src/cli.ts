@@ -1,40 +1,79 @@
 import { watch } from 'chokidar';
 import { startService } from 'esbuild';
 import * as Path from 'path';
-import { wireAbortController, withCleanup } from '../../runtime/server/lifecycle';
-import { createDefaultLogger } from '../../runtime/server/logging';
-import { build } from '../build';
-import type { CommandHost } from '../command';
-import { readNormalizedSettings } from '../settings';
+import Yargs from 'yargs';
+import { wireAbortController, withCleanup } from '../runtime/server/lifecycle';
+import { createDefaultLogger } from '../runtime/server/logging';
+import { build } from './build';
+import { readNormalizedSettings } from './settings';
 
-export function setup(commandHost: CommandHost) {
-  commandHost.registerNamedCommand(
-    {
-      name: 'dev',
-      description: 'Start nostalgie in development mode',
-      options: {
+Yargs.help()
+  .demandCommand()
+  .recommendCommands()
+  .strict()
+  .showHelpOnFail(false)
+  .command(
+    'build',
+    'Create a build of your nostalgie app',
+    (yargs) =>
+      yargs.options({
         env: {
           choices: ['development', 'production'],
           description: 'The environment for which you want to build your nostalgie server and app.',
-          default: 'development',
-        },
-        host: {
-          string: true,
-          description:
-            'The hostname or IP address to which you want to bind the nostalgie dev server.',
-          default: 'localhost',
-        },
-        port: {
-          number: true,
-          description: 'The port on which you want the nostalgie dev server to run.',
-          default: 8080,
+          default: 'production',
         },
         'root-dir': {
           string: true,
           description: 'The root of your nostalgie project',
         },
-      } as const,
-    },
+      } as const),
+    async (argv) => {
+      const logger = createDefaultLogger();
+      const signal = wireAbortController(logger);
+      const cwd = process.cwd();
+      const settings = readNormalizedSettings({
+        rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
+        buildEnvironment: argv.env,
+      });
+
+      await withCleanup(async (defer) => {
+        // ESBuild works based on CWD :|
+        const cwd = process.cwd();
+        process.chdir(settings.get('rootDir'));
+        const service = await startService();
+        process.chdir(cwd);
+        defer(() => service.stop());
+        signal.onabort = () => service.stop();
+
+        await build({ logger, service, settings });
+      });
+    }
+  )
+  .command(
+    'dev',
+    'Start nostalgie in development mode',
+    {
+      env: {
+        choices: ['development', 'production'],
+        description: 'The environment for which you want to build your nostalgie server and app.',
+        default: 'development',
+      },
+      host: {
+        string: true,
+        description:
+          'The hostname or IP address to which you want to bind the nostalgie dev server.',
+        default: 'localhost',
+      },
+      port: {
+        number: true,
+        description: 'The port on which you want the nostalgie dev server to run.',
+        default: 8080,
+      },
+      'root-dir': {
+        string: true,
+        description: 'The root of your nostalgie project',
+      },
+    } as const,
     async (argv) => {
       const logger = createDefaultLogger();
       const signal = wireAbortController(logger);
@@ -85,7 +124,8 @@ export function setup(commandHost: CommandHost) {
               'change detected, rebuilding and restarting'
             );
 
-            serverStartPromise = serverStartPromise.then(async (lastServer) => {
+            // TODO: Fix type for lastServer when we're back under control
+            serverStartPromise = serverStartPromise.then(async (lastServer: any) => {
               try {
                 const rebuildPromise = rebuild();
                 const stopPromise = lastServer.stop({ timeout: 5000 });
@@ -107,5 +147,4 @@ export function setup(commandHost: CommandHost) {
         });
       });
     }
-  );
-}
+  ).argv;
