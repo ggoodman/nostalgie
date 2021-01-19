@@ -3,10 +3,6 @@
   "compilerOptions": {
     "jsx": "react",
     "rootDir": ".",
-    "paths": {
-      // "nostalgie": ["./runtime/browser/index.ts"],
-      // "nostalgie/internals": ["./runtime/browser/internals.ts"]
-    }
   },
   "include": ["./src"],
 }

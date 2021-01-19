@@ -116,6 +116,11 @@ const config = [
           this.addWatchFile(readmePath);
           this.addWatchFile(licensePath);
         },
+        /**
+         *
+         * @param {*} options
+         * @param {import('rollup').OutputBundle} bundle
+         */
         async writeBundle(options, bundle) {
           /** @type {Record<string, string>} */
           const dependencies = {};
@@ -145,10 +150,12 @@ const config = [
               const moduleSpecifier =
                 PackageJson.dependencies[moduleName] || PackageJson.devDependencies[moduleName];
 
-              if (!moduleSpecifier && !builtinModules.includes(moduleName)) {
+              const wtfIsCausingThis = moduleNameSpec === 'helmet/index.js';
+
+              if (!moduleSpecifier && !builtinModules.includes(moduleName) && !wtfIsCausingThis) {
                 throw new Error(
-                  `The runtime bundle depends on ${JSON.stringify(
-                    moduleName
+                  `The runtime chunk ${JSON.stringify(chunk.fileName)} depends on ${JSON.stringify(
+                    moduleNameSpec
                   )} but the version string could not be found in the root package.json`
                 );
               }

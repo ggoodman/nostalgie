@@ -12,6 +12,7 @@ import type { ChunkDependencies } from '../../build/types';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
 import { ServerQueryContextProvider, ServerQueryExecutorImpl } from '../functions/server';
 import type { ServerFunction, ServerFunctionContext } from '../functions/types';
+import { defaultHelmetProps } from '../helmet';
 import { LazyContext } from '../lazy/context';
 import type { ChunkManager } from '../lazy/types';
 
@@ -80,12 +81,7 @@ export class ServerRenderer {
             React.createElement(
               Helmet.HelmetProvider,
               { context: helmetCtx },
-              React.createElement(Helmet.Helmet, {
-                htmlAttributes: {
-                  lang: 'en',
-                },
-                defaultTitle: 'Nostalgie app',
-              }),
+              React.createElement(Helmet.Helmet, defaultHelmetProps),
               React.createElement(this.app)
             )
           )

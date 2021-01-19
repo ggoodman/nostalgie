@@ -44,6 +44,12 @@
     "typescript": "javascript",
     "typescriptreact": "javascript"
   },
-  "typescript.tsdk": "node_modules/typescript/lib"
-
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "debug.javascript.terminalOptions": {
+    "skipFiles": [
+      "<node_internals>/**",
+      "**/node_modules/**/*.js"
+    ]
+  },
+  
 }

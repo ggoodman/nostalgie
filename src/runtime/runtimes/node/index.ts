@@ -53,11 +53,12 @@ export async function startServer(options: StartServerOptions) {
   ]);
 
   const workerPool = pool(Path.resolve(buildDir, './ssr.js'), {
-    workerType: 'auto',
-    forkOpts: {
-      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-    },
-    minWorkers: 0,
+    // workerType: 'auto',
+    // forkOpts: {
+    //   stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+    // },
+    // minWorkers: 1,
+    // maxWorkers: 1,
   });
 
   server.ext('onPreStop', async () => {
@@ -74,12 +75,12 @@ export async function startServer(options: StartServerOptions) {
       return workerPool.exec('renderAppOnServer', [pathname]);
     },
     {
-      cache: {
-        expiresIn: 1000,
-        generateTimeout: 5000,
-        staleIn: 500,
-        staleTimeout: 1,
-      },
+      // cache: {
+      //   expiresIn: 1000,
+      //   generateTimeout: 5000,
+      //   staleIn: 500,
+      //   staleTimeout: 1,
+      // },
     }
   );
   const renderAppOnServer = server.methods
@@ -135,6 +136,25 @@ export async function startServer(options: StartServerOptions) {
       file: {
         path: Path.join(buildDir, 'static', 'favicon.ico'),
       },
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/robots.txt',
+    options: {
+      cache: {
+        expiresIn: 30 * 1000,
+        privacy: 'public',
+      },
+    },
+    handler() {
+      return (
+        `
+User-agent: *
+Disallow: /
+      `.trim() + '\n'
+      );
     },
   });
 

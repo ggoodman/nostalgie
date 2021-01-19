@@ -8,6 +8,7 @@ import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
 import * as Twind from 'twind';
 import 'twind/shim';
+import { defaultHelmetProps } from '../helmet';
 import { LazyContext } from '../lazy/context';
 import { register } from '../lazy/register';
 import type { ChunkManager } from '../lazy/types';
@@ -60,6 +61,7 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
         <ReactQueryHydration.Hydrate state={options.reactQueryState}>
           <Helmet.HelmetProvider>
             <ReactRouterDOM.BrowserRouter>
+              <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
               <App />
             </ReactRouterDOM.BrowserRouter>
           </Helmet.HelmetProvider>
