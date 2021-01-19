@@ -2,7 +2,17 @@ import type { Metadata, Service } from 'esbuild';
 import * as Path from 'path';
 import type { NostalgieSettings } from '../settings';
 
-export async function buildServerFunctions(service: Service, settings: NostalgieSettings) {
+export async function buildServerFunctions(
+  service: Service,
+  settings: NostalgieSettings
+): Promise<{ functionNames: string[]; serverFunctionsEntry: string | null }> {
+  if (!settings.functionsEntryPoint) {
+    return {
+      functionNames: [],
+      serverFunctionsEntry: null,
+    };
+  }
+
   const rootDir = settings.rootDir;
   const functionsMetaPath = Path.resolve(rootDir, 'build/functions/meta.json');
   const functionsBuildPath = 'build/functions/functions.js';

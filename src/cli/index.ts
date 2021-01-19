@@ -34,7 +34,7 @@ Yargs.help()
       const logger = createDefaultLogger();
       const { abort, signal } = wireAbortController(logger);
       const cwd = process.cwd();
-      const settings = readNormalizedSettings({
+      const settings = await readNormalizedSettings({
         rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
         buildEnvironment: argv.env,
       });
@@ -82,7 +82,7 @@ Yargs.help()
       const logger = createDefaultLogger();
       const { signal } = wireAbortController(logger);
       const cwd = process.cwd();
-      const settings = readNormalizedSettings({
+      const settings = await readNormalizedSettings({
         rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
         buildEnvironment: argv.env,
       });

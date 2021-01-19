@@ -1,5 +1,5 @@
 import type { AbortSignal } from 'abort-controller';
-import type { Metadata, Service } from 'esbuild';
+import type { Metadata, Plugin, Service } from 'esbuild';
 import { promises as Fs } from 'fs';
 import * as Path from 'path';
 import { createRequire } from '../createRequire';
@@ -16,14 +16,27 @@ export async function buildClient(
   functionNames: string[],
   signal: AbortSignal
 ): Promise<Metadata> {
-  const rootDir = settings.rootDir;
   const staticDir = settings.staticDir;
   const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
-  const serverFunctionsPath = Path.resolve(rootDir, settings.functionsEntryPoint);
   const runtimeRequire = createRequire(Path.resolve(settings.buildDir, './index.js'));
   const nostalgieBootstrapPath = runtimeRequire.resolve('nostalgie/bootstrap');
   const resolveExtensions = [...settings.resolveExtensions];
   const relativeAppEntry = `./${Path.relative(settings.rootDir, settings.applicationEntryPoint)}`;
+
+  const plugins: Plugin[] = [
+    mdxPlugin({ signal }),
+    svgPlugin(),
+    reactShimPlugin(settings),
+    decorateDeferredImportsBrowserPlugin({
+      rootDir: settings.rootDir,
+    }),
+  ];
+
+  if (settings.functionsEntryPoint) {
+    plugins.push(
+      serverFunctionProxyPlugin(resolveExtensions, settings.functionsEntryPoint, functionNames)
+    );
+  }
 
   await service.build({
     bundle: true,
@@ -43,15 +56,7 @@ export async function buildClient(
     outbase: Path.dirname(settings.applicationEntryPoint),
     outdir: Path.resolve(staticDir, './build'),
     platform: 'browser',
-    plugins: [
-      mdxPlugin({ signal }),
-      svgPlugin(),
-      reactShimPlugin(settings),
-      decorateDeferredImportsBrowserPlugin({
-        rootDir: settings.rootDir,
-      }),
-      serverFunctionProxyPlugin(resolveExtensions, serverFunctionsPath, functionNames),
-    ],
+    plugins,
     publicPath: '/static/build/',
     resolveExtensions,
     mainFields: ['module', 'browser', 'main'],

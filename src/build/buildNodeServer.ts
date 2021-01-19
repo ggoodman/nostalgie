@@ -26,10 +26,12 @@ export async function buildNodeServer(
   const nostalgieServerPath = appRequire.resolve('nostalgie/server');
   const resolveExtensions = [...settings.resolveExtensions];
   const relativeAppEntry = `./${Path.relative(settings.rootDir, settings.applicationEntryPoint)}`;
-  const relativeFunctionsEntry = `./${Path.relative(
-    settings.rootDir,
-    settings.functionsEntryPoint
-  )}`;
+
+  const serverFunctionsImport = settings.functionsEntryPoint
+    ? `import * as Functions from ${JSON.stringify(
+        `./${Path.relative(settings.rootDir, settings.functionsEntryPoint)}`
+      )}`
+    : 'const Functions = {};';
 
   const buildPromises: Array<Promise<unknown>> = [
     // Build the SSR library
@@ -67,7 +69,7 @@ export async function buildNodeServer(
 import { ServerRenderer } from ${JSON.stringify(nostalgieServerPath)};
 import { worker } from ${JSON.stringify(nostalgieRequire.resolve('workerpool'))};
 import App from ${JSON.stringify(relativeAppEntry)};
-import * as Functions from ${JSON.stringify(relativeFunctionsEntry)};
+${serverFunctionsImport}
 
 const renderer = new ServerRenderer(App, Functions, ${JSON.stringify(
           clientBuildMetadata.getChunkDependenciesObject()

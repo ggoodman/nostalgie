@@ -19,15 +19,19 @@ export async function build(options: {
   const { logger, settings, service } = options;
 
   const rebuild = async () => {
-    const functionNamesPromise = (async () => {
-      const functionNames = await buildServerFunctions(service, settings);
+    const functionBuildPromise = (async () => {
+      const functionMeta = await buildServerFunctions(service, settings);
 
-      logger.info({ pathName: settings.builtFunctionsPath }, 'server functions build');
+      if (settings.functionsEntryPoint) {
+        logger.info({ pathName: settings.builtFunctionsPath }, 'server functions build');
+      } else {
+        logger.info('no server function entrypoint detected, skipping');
+      }
 
-      return functionNames;
+      return functionMeta;
     })();
     const clientBuildMetadataPromise = (async () => {
-      const { functionNames } = await functionNamesPromise;
+      const { functionNames } = await functionBuildPromise;
       const clientBuildMetadata = await buildClient(
         service,
         settings,
@@ -76,7 +80,7 @@ export async function build(options: {
 
     await Promise.all([
       clientBuildMetadataPromise,
-      functionNamesPromise,
+      functionBuildPromise,
       nodeServerPromise,
       packageJsonPromise,
     ]);
