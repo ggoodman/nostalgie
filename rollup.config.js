@@ -32,6 +32,7 @@ const runtimeModuleNames = [
   'functions',
   'helmet',
   'lazy',
+  'node-browser-apis',
   'routing',
   'runtimes/node',
   'server',

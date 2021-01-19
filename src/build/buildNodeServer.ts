@@ -42,6 +42,7 @@ export async function buildNodeServer(
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
       },
       format: 'cjs',
+      inject: [appRequire.resolve('nostalgie/node-browser-apis')],
       loader: settings.loaders,
       logLevel: 'error',
       minify: settings.buildEnvironment === 'production',

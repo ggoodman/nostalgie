@@ -93,6 +93,7 @@
     "twind": "^0.12.0",
     "unist-util-visit": "^2.0.3",
     "vfile": "^4.2.1",
+    "web-blob": "^2.1.5",
     "workerpool": "^6.0.4",
     "yargs": "^16.2.0"
   }
