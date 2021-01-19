@@ -1,3 +1,4 @@
+//@ts-check
 import RollupPluginCommonJs from '@rollup/plugin-commonjs';
 import RollupPluginJson from '@rollup/plugin-json';
 import RollupPluginNodeResolve from '@rollup/plugin-node-resolve';
@@ -23,6 +24,7 @@ if (typeof createRequire !== 'function') {
   process.exit(1);
 }
 
+//@ts-expect-error
 const runtimeRequire = createRequire(import.meta.url);
 
 const runtimeModuleNames = [
@@ -141,6 +143,9 @@ const config = [
         hook: {
           declarationStats(stats) {
             declarationStats = stats;
+
+            // Needed to satisfy @ts-check :shrug:
+            return undefined;
           },
         },
         // We want to get ESNext and let the transformation / minification
@@ -160,11 +165,6 @@ const config = [
           this.addWatchFile(readmePath);
           this.addWatchFile(licensePath);
         },
-        /**
-         *
-         * @param {*} options
-         * @param {import('rollup').OutputBundle} bundle
-         */
         async writeBundle(options, bundle) {
           /** @type {Record<string, string>} */
           const dependencies = {};
@@ -237,7 +237,7 @@ const config = [
                   bin: {
                     nostalgie: './bin/nostalgie',
                   },
-                  dependencies,
+                  dependencies: PackageJson.dependencies,
                   devDependencies,
                   repository: PackageJson.repository,
                   keywords: PackageJson.keywords,
@@ -268,7 +268,7 @@ const config = [
                     name: `nostalgie-${runtimeModuleName}`,
                     version: PackageJson.version,
                     private: true,
-                    module: true,
+                    type: 'module',
                     main: './index.js',
                     module: './index.js',
                     types: './index.d.ts',

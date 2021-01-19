@@ -30,7 +30,7 @@ export default function DocsPage() {
         <title>Nostalgie - Docs</title>
         {/* <link rel="stylesheet" href={sheetUri} /> */}
       </Helmet>
-      <div className="py-3 prose max-w-none">
+      <div className="py-3 prose prose-lg max-w-none">
         <Docs components={mdxDocsComponents} />
       </div>
     </>
