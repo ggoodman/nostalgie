@@ -10,8 +10,8 @@
     "prepack": "npm run build"
   },
   "devDependencies": {
-    "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^11.1.0",
     "@types/hapi-pino": "^8.0.1",
     "@types/hapi__inert": "^5.2.2",
