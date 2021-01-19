@@ -27,6 +27,13 @@ export function reactShimPlugin(settings: NostalgieSettings): Plugin {
         };
       });
 
+      build.onResolve({ filter: /^react-dom(\/server)?$/, namespace: 'file' }, ({ path }) => {
+        return {
+          path: appRequire.resolve(path),
+          namespace: 'file',
+        };
+      });
+
       build.onLoad({ filter: /.*/, namespace: 'react-shim' }, async () => {
         return {
           contents: `
