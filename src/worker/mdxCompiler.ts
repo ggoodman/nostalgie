@@ -2,21 +2,19 @@ import { BUNDLED_THEMES, getHighlighter, loadTheme } from '@antfu/shiki';
 //@ts-ignore
 import mdx from '@mdx-js/mdx';
 import { htmlEscape } from 'escape-goat';
-import Module from 'module';
 import * as Path from 'path';
 import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
 import { worker } from 'workerpool';
+import { createRequire } from '../createRequire';
 
-const createRequire = Module.createRequire || Module.createRequireFromPath;
-
-const require = createRequire(__filename);
+const runtimeRequire = createRequire(import.meta.url);
 
 worker({
   compileMdx,
 });
 
-export async function compileMdx(path: string, contents: string) {
+export default async function compileMdx(path: string, contents: string) {
   const mdxJsx = await mdx(contents, {
     filepath: path,
     remarkPlugins: [[remarkCodeBlocksShiki, {}]],
@@ -26,7 +24,9 @@ export async function compileMdx(path: string, contents: string) {
   const transformed =
     `
 import * as React from 'react';
-import { mdx, MDXProvider } from ${JSON.stringify(require.resolve('@mdx-js/react/dist/esm'))};
+import { mdx, MDXProvider } from ${JSON.stringify(
+      runtimeRequire.resolve('@mdx-js/react/dist/esm')
+    )};
 
 ${mdxJsx}
 

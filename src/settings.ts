@@ -1,48 +1,43 @@
+import type { Loader } from 'esbuild';
 import * as Path from 'path';
 
-export interface NostalgieSettings {
-  applicationEntryPoint: string;
-  functionsEntryPoint: string;
-  buildDir: string;
-  buildEnvironment: 'development' | 'production';
-  rootDir: string;
-  staticDir: string;
+export interface NostalgieOptions {
+  applicationEntryPoint?: string;
+  functionsEntryPoint?: string;
+  buildDir?: string;
+  buildEnvironment?: 'development' | 'production';
+  rootDir?: string;
+  staticDir?: string;
+}
+export interface NostalgieSettings extends Readonly<Required<NostalgieOptions>> {
+  readonly builtFunctionsPath: string;
+  readonly builtServerPath: string;
+  readonly resolveExtensions: ReadonlyArray<string>;
+
+  readonly loaders: {
+    readonly [ext: string]: Loader;
+  };
 }
 
-type NostalgieSetting = keyof NostalgieSettings;
+export function readNormalizedSettings(options: NostalgieOptions = {}): NostalgieSettings {
+  const rootDir = options.rootDir || process.cwd();
+  const buildDir = Path.resolve(rootDir, './build');
 
-export interface NostalgieSettingsReader {
-  get<K extends keyof NostalgieSettings>(setting: K): NostalgieSettings[K];
-}
-
-class StaticNostalgieSettings implements NostalgieSettingsReader {
-  constructor(private readonly options: Partial<NostalgieSettings>) {}
-
-  get<K extends NostalgieSetting>(setting: K): NostalgieSettings[K] {
-    const rootDir = this.options.rootDir || process.cwd();
-    const buildDir = Path.resolve(rootDir, './build');
-
-    switch (setting) {
-      case 'applicationEntryPoint':
-        return Path.resolve(rootDir, './src/App') as NostalgieSettings[K];
-      case 'buildDir':
-        return buildDir as NostalgieSettings[K];
-      case 'buildEnvironment':
-        return (this.options.buildEnvironment || 'development') as NostalgieSettings[K];
-      case 'functionsEntryPoint':
-        return Path.resolve(rootDir, './src/functions') as NostalgieSettings[K];
-      case 'rootDir':
-        return rootDir as NostalgieSettings[K];
-      case 'staticDir':
-        return Path.resolve(buildDir, './static') as NostalgieSettings[K];
-    }
-
-    throw new Error(`Invariant violation: Unknown setting ${JSON.stringify(setting)}`);
-  }
-}
-
-export function readNormalizedSettings(
-  options: Partial<NostalgieSettings> = {}
-): NostalgieSettingsReader {
-  return new StaticNostalgieSettings(options);
+  return {
+    applicationEntryPoint: Path.resolve(rootDir, './src/App'),
+    buildDir: buildDir,
+    buildEnvironment: options.buildEnvironment || 'development',
+    builtFunctionsPath: Path.resolve(buildDir, './functions.js'),
+    builtServerPath: Path.resolve(buildDir, './index.js'),
+    functionsEntryPoint: Path.resolve(rootDir, './src/functions'),
+    loaders: {
+      '.css': 'file',
+      '.ico': 'file',
+      '.png': 'file',
+      '.svg': 'file',
+    },
+    resolveExtensions: ['.js', '.jsx', '.ts', '.tsx'],
+    rootDir: rootDir,
+    staticDir: Path.resolve(buildDir, './static'),
+  };
 }
