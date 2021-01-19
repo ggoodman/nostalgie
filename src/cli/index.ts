@@ -3,9 +3,11 @@
 
 import { watch } from 'chokidar';
 import { startService } from 'esbuild';
+import { builtinModules } from 'module';
 import * as Path from 'path';
+import type { Logger } from 'pino';
 import Yargs from 'yargs';
-import { build } from '../build';
+import PackageJson from '../../package.json';
 import { wireAbortController, withCleanup } from '../lifecycle';
 import { createDefaultLogger } from '../logging';
 import { readNormalizedSettings } from '../settings';
@@ -32,6 +34,9 @@ Yargs.help()
       } as const),
     async (argv) => {
       const logger = createDefaultLogger();
+
+      versionCheck('build', logger);
+
       const { abort, signal } = wireAbortController(logger);
       const cwd = process.cwd();
       const settings = await readNormalizedSettings({
@@ -49,6 +54,7 @@ Yargs.help()
         signal.onabort = () => service.stop();
         defer(() => abort());
 
+        const { build } = await import('../build');
         await build({ logger, service, settings, signal });
       });
     }
@@ -80,6 +86,9 @@ Yargs.help()
     } as const,
     async (argv) => {
       const logger = createDefaultLogger();
+
+      versionCheck('dev', logger);
+
       const { signal } = wireAbortController(logger);
       const cwd = process.cwd();
       const settings = await readNormalizedSettings({
@@ -107,6 +116,7 @@ Yargs.help()
         });
         defer(() => watcher.close());
 
+        const { build } = await import('../build');
         const { loadHapiServer, rebuild } = await build({ logger, service, settings, signal });
         const { startServer } = await loadHapiServer();
         const restartServer = () =>
@@ -157,3 +167,17 @@ Yargs.help()
       });
     }
   ).argv;
+
+function versionCheck(cmd: string, logger: Logger) {
+  if (!builtinModules.includes('worker_threads')) {
+    logger.fatal(
+      `The ${JSON.stringify(cmd)} command requires Node version ${JSON.stringify(
+        PackageJson.engines.node
+      )}, with support for "require('worker_threads')". Please check your version, you appear to be running ${JSON.stringify(
+        process.version
+      )}.`
+    );
+
+    process.exit(1);
+  }
+}

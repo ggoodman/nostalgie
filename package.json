@@ -10,6 +10,7 @@
     "prepack": "npm run build"
   },
   "devDependencies": {
+    "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^11.1.0",
     "@types/hapi-pino": "^8.0.1",
     "@types/hapi__inert": "^5.2.2",
@@ -53,7 +54,7 @@
   },
   "homepage": "https://github.com/ggoodman/nostalgie#readme",
   "engines": {
-    "node": ">=10.16.0"
+    "node": ">=12.13.0"
   },
   "engineStrict": true,
   "prettier": {
@@ -82,6 +83,7 @@
     "joi": "^17.3.0",
     "pino": "^6.11.0",
     "pino-pretty": "^4.3.0",
+    "piscina": "^2.1.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-error-boundary": "^3.1.0",

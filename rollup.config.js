@@ -1,8 +1,9 @@
 import RollupPluginCommonJs from '@rollup/plugin-commonjs';
+import RollupPluginJson from '@rollup/plugin-json';
 import RollupPluginNodeResolve from '@rollup/plugin-node-resolve';
 import RollupPluginTs from '@wessberg/rollup-plugin-ts';
 import { promises as Fs } from 'fs';
-import { builtinModules } from 'module';
+import { builtinModules, createRequire } from 'module';
 import * as Path from 'path';
 import * as PackageJson from './package.json';
 
@@ -10,6 +11,19 @@ const BARE_MODULE_SPEC_RX = /^((@[^/]+\/[^/@]+|[^./@][^/@]*))(.*)?$/;
 
 /** @type {import('@wessberg/rollup-plugin-ts').DeclarationStats} */
 let declarationStats = {};
+
+if (typeof createRequire !== 'function') {
+  console.error(
+    `❌ Nostalgie must be built in a Node version ${JSON.stringify(
+      PackageJson.engines.node
+    )}, with support for "require('module').createRequire". Please check your version, you appear to be running ${JSON.stringify(
+      process.version
+    )}.`
+  );
+  process.exit(1);
+}
+
+const runtimeRequire = createRequire(import.meta.url);
 
 const runtimeModuleNames = [
   'bootstrap',
@@ -44,10 +58,34 @@ const licensePath = Path.resolve(__dirname, 'LICENSE');
 const config = [
   // CLI
   {
-    input: Path.resolve(__dirname, './src/cli/index.ts'),
+    input: {
+      cli: Path.resolve(__dirname, './src/cli/index.ts'),
+    },
     output: {
-      file: Path.resolve(__dirname, './dist/cli.js'),
+      dir: Path.resolve(__dirname, './dist'),
       format: 'commonjs',
+    },
+    external: (spec) => !spec.startsWith('.') && !spec.startsWith('/'),
+    plugins: [
+      RollupPluginNodeResolve(),
+      RollupPluginCommonJs(),
+      RollupPluginJson(),
+      RollupPluginTs({
+        // This actually runs in node, we need this to be compatible
+        browserslist: ['maintained node versions'],
+        transpiler: 'babel',
+      }),
+    ],
+  },
+  // Piscina Worker
+  {
+    input: {
+      worker: Path.resolve(runtimeRequire.resolve('piscina'), '../worker.js'),
+    },
+    output: {
+      dir: Path.resolve(__dirname, './dist'),
+      format: 'commonjs',
+      exports: 'default',
     },
     external: (spec) => !spec.startsWith('.') && !spec.startsWith('/'),
     plugins: [
@@ -59,6 +97,12 @@ const config = [
         transpiler: 'babel',
       }),
     ],
+    onwarn(warning, warn) {
+      // Known warnings that we know we don't care about
+      if (!['SOURCEMAP_ERROR', 'EVAL'].includes(warning.code)) {
+        warn(warning);
+      }
+    },
   },
   // MDX Compiler Worker
   {

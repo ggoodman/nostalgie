@@ -5,16 +5,11 @@ import { htmlEscape } from 'escape-goat';
 import * as Path from 'path';
 import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
-import { worker } from 'workerpool';
 import { createRequire } from '../createRequire';
 
 const runtimeRequire = createRequire(import.meta.url);
 
-worker({
-  compileMdx,
-});
-
-export default async function compileMdx(path: string, contents: string) {
+export default async function compileMdx([path, contents]: [path: string, contents: string]) {
   const mdxJsx = await mdx(contents, {
     filepath: path,
     remarkPlugins: [[remarkCodeBlocksShiki, {}]],
