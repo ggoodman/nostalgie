@@ -108,7 +108,7 @@ Yargs.help()
           cwd: settings.rootDir,
           // atomic: true,
           // depth: 16,
-          ignored: Path.resolve(settings.rootDir, './build'),
+          ignored: [Path.resolve(settings.rootDir, './build'), '.git'],
           // ignored: /\/(build|node_modules)\//,
           ignoreInitial: true,
           interval: 16,

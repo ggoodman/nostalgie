@@ -18,7 +18,39 @@ interface LazyComponent {
   lazyImport: string;
 }
 
+declare interface SourceFile {
+  path: string;
+  text: string;
+  lines: string[];
+  error?: Error;
+}
+
+declare interface Location {
+  file: string;
+  line?: number;
+  column?: number;
+}
+
+declare interface Entry extends Location {
+  beforeParse: string;
+  callee: string;
+  index: boolean;
+  native: boolean;
+
+  calleeShort: string;
+  fileRelative: string;
+  fileShort: string;
+  fileName: string;
+  thirdParty: boolean;
+
+  hide?: boolean;
+  sourceLine?: string;
+  sourceFile?: SourceFile;
+  error?: Error;
+}
+
 export interface BootstrapOptions {
+  errStack?: Entry[];
   lazyComponents: LazyComponent[];
   publicUrl: string;
   reactQueryState: ReactQueryHydration.DehydratedState;
@@ -27,6 +59,33 @@ export interface BootstrapOptions {
 const DEFAULT_BROWSER_STALE_TIME = 16;
 
 export async function hydrateNostalgie(App: React.ComponentType, options: BootstrapOptions) {
+  if (process.env.NODE_ENV === 'development') {
+    const errStack = options.errStack;
+
+    if (errStack) {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.position = 'absolute';
+      errorDiv.style.right = '0';
+      errorDiv.style.bottom = '0';
+      errorDiv.style.fontFamily = 'monospace';
+      errorDiv.style.backgroundColor = 'red';
+      errorDiv.style.color = '#f5f5f5';
+      errorDiv.style.whiteSpace = 'pre';
+      errorDiv.style.zIndex = '9999';
+      errorDiv.style.padding = '1em 1.5em';
+
+      errorDiv.innerHTML = errStack
+        .map((entry) => {
+          const vscodeUri = encodeURI(`vscode://file/${entry.file}:${entry.line}:${entry.column}`);
+
+          return `<div><a href=${JSON.stringify(vscodeUri)}>${entry.callee}</a></div>`;
+        })
+        .join('\n');
+
+      document.body.prepend(errorDiv);
+    }
+  }
+
   const queryClient = new ReactQuery.QueryClient({
     defaultOptions: {
       queries: {

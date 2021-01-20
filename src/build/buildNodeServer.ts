@@ -19,7 +19,7 @@ export async function buildNodeServer(
   signal: AbortSignal
 ) {
   const buildDir = settings.buildDir;
-  const nostalgieRequire = createRequire(import.meta.url);
+  const nostalgieRequire = createRequire(__filename);
   const appRequire = createRequire(settings.applicationEntryPoint);
   const nostalgieHapiServerPath = appRequire.resolve('nostalgie/runtimes/node');
   // const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');

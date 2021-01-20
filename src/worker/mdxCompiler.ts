@@ -7,7 +7,7 @@ import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
 import { createRequire } from '../createRequire';
 
-const runtimeRequire = createRequire(import.meta.url);
+const runtimeRequire = createRequire(__filename);
 
 export default async function compileMdx([path, contents]: [path: string, contents: string]) {
   const mdxJsx = await mdx(contents, {

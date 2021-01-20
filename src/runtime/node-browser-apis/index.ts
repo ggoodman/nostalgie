@@ -1,3 +1,3 @@
-export { Blob } from 'web-blob';
+export { Blob } from 'blob-polyfill';
 
 export const self = globalThis;

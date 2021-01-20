@@ -6,6 +6,8 @@ import * as Helmet from 'react-helmet-async';
 import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
+import { install } from 'source-map-support';
+// import StackTracey from 'stacktracey';
 import * as Twind from 'twind';
 import * as TwindServer from 'twind/server';
 import type { ChunkDependencies } from '../../build/types';
@@ -15,6 +17,12 @@ import type { ServerFunction, ServerFunctionContext } from '../functions/types';
 import { defaultHelmetProps } from '../helmet';
 import { LazyContext } from '../lazy/context';
 import type { ChunkManager } from '../lazy/types';
+
+if (process.env.NODE_ENV === 'development') {
+  install({
+    environment: 'node',
+  });
+}
 
 interface ServerRendererSettings {
   defaultDeadline: number;
@@ -58,6 +66,7 @@ export class ServerRenderer {
     path: string
   ): Promise<{ html: string; renderCount: number; latency: number }> {
     const start = Date.now();
+    const bootstrapChunk = 'static/build/bootstrap.js';
     const helmetCtx: Helmet.ProviderProps = {};
     const chunkCtx: ChunkManager = {
       chunks: [],
@@ -91,6 +100,9 @@ export class ServerRenderer {
 
     // We'll give ourselves a budget for the number of render passes we're willing to undertake
     let renderCount = 1;
+    let renderedMarkup = '';
+
+    // let errStack: StackTracey['items'] | undefined = undefined;
 
     try {
       // We're going to give a maximum amount of time for this render.
@@ -130,52 +142,61 @@ export class ServerRenderer {
         }
       }
 
-      // Any outstanding queries should be cancelled at this point since our client's lifetime
-      // is limited to this request anyway.
-      const queryClientData = ReactQueryHydration.dehydrate(queryClient);
-      const renderedMarkup = html ?? (renderCount++, renderToString(model));
+      renderedMarkup = html ?? (renderCount++, renderToString(model));
+    } catch (err) {
+      // const stack = new StackTracey(err);
+      // errStack = await stack.withSources().items;
+    }
+    // Any outstanding queries should be cancelled at this point since our client's lifetime
+    // is limited to this request anyway.
+    const queryClientData = ReactQueryHydration.dehydrate(queryClient);
+    renderedMarkup ??= (renderCount++, renderToString(model));
 
-      // They didn't make it in time for the deadline so we'll cancel them
-      queryClient.cancelQueries();
+    // They didn't make it in time for the deadline so we'll cancel them
+    queryClient.cancelQueries();
 
-      // Set up twind for parsing the result and generating markup
-      const customSheet = TwindServer.virtualSheet();
-      const { tw } = Twind.create({
-        sheet: customSheet,
-        mode: Twind.silent,
-        prefix: true,
-        plugins: {
-          ...TwindTypography(),
-        },
-      });
-      // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
-      customSheet.reset();
+    // Set up twind for parsing the result and generating markup
+    const customSheet = TwindServer.virtualSheet();
+    const { tw } = Twind.create({
+      sheet: customSheet,
+      mode: Twind.silent,
+      prefix: true,
+      plugins: {
+        ...TwindTypography(),
+      },
+    });
+    // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
+    customSheet.reset();
 
-      const shimmedMarkup = TwindServer.shim(renderedMarkup, tw);
-      const headTags = [];
+    const shimmedMarkup = TwindServer.shim(renderedMarkup, {
+      tw,
+    });
+    const headTags = [];
 
-      const { helmet } = helmetCtx as Helmet.FilledContext;
+    const { helmet } = helmetCtx as Helmet.FilledContext;
+    const requiredChunks = [bootstrapChunk, ...chunkCtx.chunks.map((chunk) => chunk.chunk)];
 
-      for (const { chunk } of chunkCtx.chunks) {
-        const chunkDeps = this.chunkDependencies[chunk];
+    for (const chunk of requiredChunks) {
+      const chunkDeps = this.chunkDependencies[chunk];
 
-        if (chunkDeps) {
-          for (const chunkDep of chunkDeps) {
-            headTags.push(`<link rel="modulepreload" href="${chunkDep}">`);
-          }
+      if (chunkDeps) {
+        for (const chunkDep of chunkDeps) {
+          headTags.push(`<link rel="modulepreload" href="${chunkDep}">`);
         }
       }
+    }
 
-      const publicUrl = encodeURI('/');
-      const htmlAttrs = helmet.htmlAttributes.toString();
-      const bodyAttrs = helmet.bodyAttributes.toString();
+    const publicUrl = encodeURI('/');
+    const htmlAttrs = helmet.htmlAttributes.toString();
+    const bodyAttrs = helmet.bodyAttributes.toString();
 
-      const bootstrapOptions: BootstrapOptions = {
-        lazyComponents: chunkCtx.chunks,
-        publicUrl,
-        reactQueryState: queryClientData,
-      };
-      const wrapper = `
+    const bootstrapOptions: BootstrapOptions = {
+      // errStack: errStack || undefined,
+      lazyComponents: chunkCtx.chunks,
+      publicUrl,
+      reactQueryState: queryClientData,
+    };
+    const wrapper = `
     <!doctype html>
     <html ${htmlAttrs}>
       <head>
@@ -203,17 +224,10 @@ export class ServerRenderer {
     </html>
           `.trim();
 
-      return {
-        html: wrapper,
-        renderCount: renderCount,
-        latency: Date.now() - start,
-      };
-    } catch (e) {
-      return {
-        html: e.stack,
-        renderCount: renderCount,
-        latency: Date.now() - start,
-      };
-    }
+    return {
+      html: wrapper,
+      renderCount: renderCount,
+      latency: Date.now() - start,
+    };
   }
 }
