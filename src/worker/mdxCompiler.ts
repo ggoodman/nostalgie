@@ -4,6 +4,10 @@ import mdx from '@mdx-js/mdx';
 import { htmlEscape } from 'escape-goat';
 import grayMatter from 'gray-matter';
 import * as Path from 'path';
+//@ts-ignore
+import remarkAutolinkHeadings from 'remark-autolink-headings';
+//@ts-ignore
+import remarkSlug from 'remark-slug';
 import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
 import { createRequire } from '../createRequire';
@@ -25,8 +29,13 @@ export default async function compileMdx([path, contents]: [path: string, conten
   }
 
   const mdxJsx = await mdx(parsed.content, {
+    gfm: true,
     filepath: path,
-    remarkPlugins: [[remarkCodeBlocksShiki, {}]],
+    remarkPlugins: [
+      [remarkCodeBlocksShiki, {}],
+      [remarkSlug, {}],
+      [remarkAutolinkHeadings, {}],
+    ],
     skipExport: true,
   });
 
