@@ -43,7 +43,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ggoodman/typescript-library-template.git"
+    "url": "git+https://github.com/ggoodman/nostalgie.git"
   },
   "keywords": [
     "react",

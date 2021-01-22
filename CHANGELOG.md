@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Fixed repo name lingering from when forking from https://github.com/ggoodman/typescript-library-template
+
 ## 0.65.0 - 2021-01-22
 ### Added
 - Created a changelog adhering to [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/typescript-library-template/compare/v0.65.0...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.65.0...HEAD
