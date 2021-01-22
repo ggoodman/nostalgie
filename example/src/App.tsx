@@ -4,8 +4,21 @@ import * as React from 'react';
 import PlunkerImg from './assets/Nostalgie.svg';
 import Favicon from './favicon.ico';
 
-const LazyDocsPage = React.lazy(() => import('./pages/Docs'));
-const LazyHomePage = React.lazy(() => import('./pages/Home'));
+const pages = [
+  {
+    display: 'Home',
+    path: '/',
+    exactPath: true,
+    Component: React.lazy(() => import('./pages/Home')),
+  },
+  {
+    display: 'Docs',
+    path: '/docs',
+    exactPath: false,
+    Component: React.lazy(() => import('./pages/Docs')),
+  },
+];
+
 const LazyNotFoundPage = React.lazy(() => import('./pages/NotFound'));
 
 function Loading() {
@@ -32,21 +45,17 @@ export default function App() {
         <header className="bg-blue-600 text-gray-50">
           <nav className="flex flex-row flex-nowrap space-x-4 items-end container px-2 mx-auto text-xl h-12">
             <PlunkerImg width="22px" className="block h-10 self-center fill-current text-gray-50" />
-            <NavLink
-              className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
-              to="/"
-              exact
-              activeClassName="border-opacity-100"
-            >
-              Home
-            </NavLink>
-            <NavLink
-              className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
-              to="/docs"
-              activeClassName="border-opacity-100"
-            >
-              Docs
-            </NavLink>
+            {pages.map(({ display, exactPath, path }) => (
+              <NavLink
+                key={display}
+                className="border-b-4 block border-red-600 border-opacity-0 px-3 pb-1"
+                to={path}
+                exact={exactPath}
+                activeClassName="border-opacity-100"
+              >
+                {display}
+              </NavLink>
+            ))}
             <div className="flex-1"></div>
             <Route path="/docs">
               <input className="m-1 px-2 py-1" type="text" placeholder="Search docs..." />
@@ -63,12 +72,9 @@ export default function App() {
         <div className="flex-1 container px-2 mx-auto">
           <React.Suspense fallback={<Loading />}>
             <Switch>
-              <Route exact path="/">
-                <LazyHomePage />
-              </Route>
-              <Route path="/docs">
-                <LazyDocsPage />
-              </Route>
+              {pages.map(({ Component, display, exactPath, path }) => (
+                <Route key={display} exact={exactPath} path={path} component={Component}></Route>
+              ))}
               <Route path="/*">
                 <LazyNotFoundPage />
               </Route>

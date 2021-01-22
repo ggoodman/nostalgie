@@ -1,7 +1,7 @@
 import { Helmet } from 'nostalgie/helmet';
 import * as React from 'react';
-import { mdxDocsComponents } from 'src/lib/mdxDocsComponents';
 import { useStylesheet } from '../hooks/useStylesheet';
+import { mdxDocsComponents } from '../lib/mdxDocsComponents';
 import Docs from './Docs.mdx';
 
 export default function DocsPage() {

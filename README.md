@@ -5,7 +5,7 @@
 
 Nostalgie is an opinionated, full-stack, runtime-agnostic framework for building web apps and web pages using [react](https://reactjs.org).
 
-See below for our [Vision](#Vision).
+See below for our [Vision](#vision).
 
 ## Getting started
 

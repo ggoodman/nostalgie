@@ -1,9 +1,9 @@
 ///<reference lib="dom" />
 import { Helmet } from 'nostalgie/helmet';
 import * as React from 'react';
-import { mdxDocsComponents } from 'src/lib/mdxDocsComponents';
 import Readme from '../../../README.md';
 import { useStylesheet } from '../hooks/useStylesheet';
+import { mdxDocsComponents } from '../lib/mdxDocsComponents';
 
 export default function HomePage() {
   useStylesheet(`
