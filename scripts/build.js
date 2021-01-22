@@ -71,6 +71,7 @@ async function buildCli(service) {
     platform: 'node',
     target: 'node12.16',
     splitting: false,
+    sourcemap: process.env.NODE_ENV !== 'production',
     write: true,
   });
 }
@@ -94,6 +95,7 @@ async function buildMdxCompilerWorker(service) {
     minify: true,
     platform: 'node',
     target: 'node12.16',
+    sourcemap: process.env.NODE_ENV !== 'production',
     splitting: false,
     write: true,
   });
@@ -118,6 +120,7 @@ async function buildPiscinaWorker(service) {
     outfile: Path.resolve(__dirname, '../dist/worker.js'),
     platform: 'node',
     target: 'node12.16',
+    sourcemap: process.env.NODE_ENV !== 'production',
     splitting: false,
     write: true,
   });
@@ -157,6 +160,7 @@ async function buildRuntimeModules(service) {
         },
       },
     ],
+    sourcemap: process.env.NODE_ENV !== 'production',
     splitting: true,
     write: true,
   });
@@ -226,6 +230,16 @@ async function buildRuntimeTypes() {
 }
 
 (async () => {
+  if (!builtinModules.includes('worker_threads')) {
+    console.error(
+      `❌ Building Nostalgie requires Node version ${JSON.stringify(
+        PackageJson.engines.node
+      )}. Please check your version, you appear to be running ${JSON.stringify(process.version)}.`
+    );
+
+    process.exit(1);
+  }
+
   const service = await startService();
   try {
     await Fs.rmdir(Path.resolve(__dirname, '../dist'), { recursive: true });
@@ -265,6 +279,7 @@ async function buildRuntimeTypes() {
             name: PackageJson.name,
             version: PackageJson.version,
             description: PackageJson.description,
+            types: './index.d.ts',
             exports: exportMap,
             bin: {
               nostalgie: './bin/nostalgie',

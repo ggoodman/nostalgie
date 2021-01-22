@@ -1,40 +1,106 @@
-import type { MDXProviderProps } from '@mdx-js/react';
-import type * as React from 'react';
+declare module '*.css' {
+  const url: string;
+  /**
+   * A URI pointing to the external stylesheet
+   */
+  export default url;
+}
 
-export interface MDXComponentProps extends Partial<MDXProviderProps> {}
+declare module '*.md' {
+  import type { MDXProviderProps } from '@mdx-js/react';
+  import type * as React from 'react';
 
-declare global {
-  declare module '*.css' {
-    const value: string;
-    /**
-     * A URI pointing to the external stylesheet
-     */
-    export default value;
-  }
+  export interface MDXComponentProps extends Partial<MDXProviderProps> {}
+  const Component: React.ReactElement<MDXComponentProps>;
+  export default Component;
+  export const excerpt: string;
+  export const frontmatter: { [key: string]: unknown };
+  export const source: string;
+}
 
-  declare module '*.ico' {
-    const value: string;
-    export default value;
-  }
+declare module '*.mdx' {
+  import type { MDXProviderProps } from '@mdx-js/react';
+  import type * as React from 'react';
 
-  declare module '*.md' {
-    const Component: React.ComponentType<MDXComponentProps>;
-    export default Component;
-  }
+  export interface MDXComponentProps extends Partial<MDXProviderProps> {}
+  const Component: React.ReactElement<MDXComponentProps>;
+  export default Component;
+  export const excerpt: string;
+  export const frontmatter: { [key: string]: unknown };
+  export const source: string;
+}
 
-  declare module '*.mdx' {
-    const Component: React.ComponentType<MDXComponentProps>;
-    export default Component;
-  }
+declare module '*.ico' {
+  const url: string;
+  export default url;
+}
+declare module '*.png' {
+  const url: string;
+  export default url;
+}
+declare module '*.jpg' {
+  const url: string;
+  export default url;
+}
+declare module '*.jpeg' {
+  const url: string;
+  export default url;
+}
+declare module '*.gif' {
+  const url: string;
+  export default url;
+}
+declare module '*.webp' {
+  const url: string;
+  export default url;
+}
+declare module '*.mp4' {
+  const url: string;
+  export default url;
+}
+declare module '*.ogg' {
+  const url: string;
+  export default url;
+}
+declare module '*.mp3' {
+  const url: string;
+  export default url;
+}
+declare module '*.wav' {
+  const url: string;
+  export default url;
+}
+declare module '*.flac' {
+  const url: string;
+  export default url;
+}
+declare module '*.aac' {
+  const url: string;
+  export default url;
+}
+declare module '*.woff' {
+  const url: string;
+  export default url;
+}
+declare module '*.woff2' {
+  const url: string;
+  export default url;
+}
+declare module '*.eot' {
+  const url: string;
+  export default url;
+}
+declare module '*.ttf' {
+  const url: string;
+  export default url;
+}
+declare module '*.otf' {
+  const url: string;
+  export default url;
+}
 
-  declare module '*.png' {
-    const value: string;
-    export default value;
-  }
-
-  declare module '*.svg' {
-    const Component: React.SVGFactory;
-    export const text: string;
-    export default Component;
-  }
+declare module '*.svg' {
+  const Component: React.SVGFactory;
+  export const text: string;
+  export default Component;
 }

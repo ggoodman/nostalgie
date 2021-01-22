@@ -2,7 +2,12 @@ import { BUNDLED_THEMES, getHighlighter, loadTheme } from '@antfu/shiki';
 //@ts-ignore
 import mdx from '@mdx-js/mdx';
 import { htmlEscape } from 'escape-goat';
+import grayMatter from 'gray-matter';
 import * as Path from 'path';
+//@ts-ignore
+import remarkAutolinkHeadings from 'remark-autolink-headings';
+//@ts-ignore
+import remarkSlug from 'remark-slug';
 import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
 import { createRequire } from '../createRequire';
@@ -10,9 +15,27 @@ import { createRequire } from '../createRequire';
 const runtimeRequire = createRequire(__filename);
 
 export default async function compileMdx([path, contents]: [path: string, contents: string]) {
-  const mdxJsx = await mdx(contents, {
+  const parsed = grayMatter(contents, {
+    excerpt: true,
+  });
+
+  if (parsed.data !== undefined && typeof parsed.data !== 'object') {
+    throw new Error(
+      `Expected front matter for the file ${Path.relative(
+        process.cwd(),
+        path
+      )} to be undefined or an object, got ${JSON.stringify(typeof parsed.data)}`
+    );
+  }
+
+  const mdxJsx = await mdx(parsed.content, {
+    gfm: true,
     filepath: path,
-    remarkPlugins: [[remarkCodeBlocksShiki, {}]],
+    remarkPlugins: [
+      [remarkCodeBlocksShiki, {}],
+      [remarkSlug, {}],
+      [remarkAutolinkHeadings, {}],
+    ],
     skipExport: true,
   });
 
@@ -24,6 +47,10 @@ import { mdx, MDXProvider } from ${JSON.stringify(
     )};
 
 ${mdxJsx}
+
+export const excerpt = ${JSON.stringify(parsed.excerpt || '')};
+export const frontmatter = ${JSON.stringify(parsed.data)};
+export const source = ${JSON.stringify(contents)};
 
 export default function({ components, ...props } = {}) {
 return React.createElement(MDXProvider, { components }, React.createElement(MDXContent, props));
