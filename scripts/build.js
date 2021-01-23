@@ -22,14 +22,14 @@ const externalModules = [
 ];
 const runtimeModuleNames = [
   'auth',
-  'bootstrap',
   'functions',
   'helmet',
   'lazy',
-  'node-browser-apis',
   'routing',
-  'runtimes/node',
-  'server',
+  'internal/bootstrap',
+  'internal/node-browser-apis',
+  'internal/runtimes/node',
+  'internal/server',
 ];
 
 const typesPath = Path.resolve(__dirname, '../src/runtime/types.d.ts');

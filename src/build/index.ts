@@ -96,7 +96,9 @@ export async function build(options: {
       const buildRelativeRequire = createRequire(Path.join(settings.buildDir, 'index.js'));
 
       // TODO: Fix this type when we're back under control (typeof import('../runtime/server/node'))
-      return buildRelativeRequire('./index.js') as typeof import('../runtime/runtimes/node');
+      return buildRelativeRequire(
+        './index.js'
+      ) as typeof import('../runtime/internal/runtimes/node');
     },
     rebuild,
   };

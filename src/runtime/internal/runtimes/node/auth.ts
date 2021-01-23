@@ -2,7 +2,7 @@ import Boom from '@hapi/boom';
 import * as Cookie from '@hapi/cookie';
 import type { Plugin } from '@hapi/hapi';
 import * as OpenID from 'openid-client';
-import type { NostalgieAuthOptions } from '../../../settings';
+import type { NostalgieAuthOptions } from '../../../../settings';
 
 export const authPlugin: Plugin<NostalgieAuthOptions> = {
   name: 'nostalgie/auth',

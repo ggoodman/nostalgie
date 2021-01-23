@@ -19,7 +19,7 @@ export async function buildClient(
   const staticDir = settings.staticDir;
   const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
   const runtimeRequire = createRequire(Path.resolve(settings.buildDir, './index.js'));
-  const nostalgieBootstrapPath = runtimeRequire.resolve('nostalgie/bootstrap');
+  const nostalgieBootstrapPath = runtimeRequire.resolve('nostalgie/internal/bootstrap');
   const resolveExtensions = [...settings.resolveExtensions];
   const relativeAppEntry = `./${Path.relative(settings.rootDir, settings.applicationEntryPoint)}`;
 

@@ -8,12 +8,12 @@ import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
 import * as Twind from 'twind';
 import 'twind/shim';
-import type { ClientAuth } from '../auth';
-import { AuthContext } from '../auth/server';
-import { defaultHelmetProps } from '../helmet';
-import { LazyContext } from '../lazy/context';
-import { register } from '../lazy/register';
-import type { ChunkManager } from '../lazy/types';
+import type { ClientAuth } from '../../auth';
+import { AuthContext } from '../../auth/server';
+import { defaultHelmetProps } from '../../helmet';
+import { LazyContext } from '../../lazy/context';
+import { register } from '../../lazy/register';
+import type { ChunkManager } from '../../lazy/types';
 
 interface LazyComponent {
   chunk: string;
