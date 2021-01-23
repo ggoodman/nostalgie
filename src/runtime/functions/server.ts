@@ -4,6 +4,7 @@ import { AbortController } from 'abort-controller';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider, QueryObserverResult, useQuery } from 'react-query';
 import { invariant } from '../../invariant';
+import type { ServerAuth } from '../auth/server';
 import type {
   FunctionMutationOptions,
   FunctionQueryOptions,
@@ -35,10 +36,20 @@ export function ServerQueryContextProvider(
   );
 }
 
-export class ServerQueryExecutorImpl implements ServerQueryExecutor {
-  readonly promises = new Set<Promise<unknown>>();
+export interface ServerQueryExecutorImplOptions {
+  auth: ServerAuth;
+  queryClient: QueryClient;
+}
 
-  constructor(readonly queryClient: QueryClient) {}
+export class ServerQueryExecutorImpl implements ServerQueryExecutor {
+  readonly auth: ServerAuth;
+  readonly promises = new Set<Promise<unknown>>();
+  readonly queryClient: QueryClient;
+
+  constructor(options: ServerQueryExecutorImplOptions) {
+    this.auth = options.auth;
+    this.queryClient = options.queryClient;
+  }
 
   executeQuery<T extends ServerFunction>(
     fn: T,
@@ -50,7 +61,7 @@ export class ServerQueryExecutorImpl implements ServerQueryExecutor {
     const queryFn = () => {
       const abortController = new AbortController() as import('abort-controller').AbortController;
       const resultPromise = fn(
-        { signal: abortController.signal, user: undefined },
+        { signal: abortController.signal, auth: this.auth },
         ...args
       ) as Promise<FunctionReturnType<T>>;
 

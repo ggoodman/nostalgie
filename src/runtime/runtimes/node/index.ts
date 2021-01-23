@@ -7,7 +7,11 @@ import * as Path from 'path';
 import { pool } from 'workerpool';
 import { wireAbortController } from '../../../lifecycle';
 import { createDefaultLogger, Logger } from '../../../logging';
+import type { NostalgieAuthOptions } from '../../../settings';
 import type { ServerFunctionContext } from '../../functions/types';
+import type { ServerRenderRequest } from '../../server';
+import { authPlugin } from './auth';
+import { MemoryCacheDriver } from './memoryCacheDriver';
 
 export interface StartServerOptions {
   buildDir?: string;
@@ -15,6 +19,7 @@ export interface StartServerOptions {
   logger?: Logger;
   port?: number;
   signal?: AbortSignal;
+  auth?: NostalgieAuthOptions;
 }
 
 export async function startServer(options: StartServerOptions) {
@@ -23,7 +28,15 @@ export async function startServer(options: StartServerOptions) {
     address: options.host ?? '0.0.0.0',
     port: options.port ?? process.env.PORT ?? 8080,
     host: options.host,
+    cache: MemoryCacheDriver,
   });
+
+  if (options.auth) {
+    await server.register({
+      plugin: authPlugin,
+      options: options.auth,
+    });
+  }
 
   const logger = options.logger ?? createDefaultLogger();
   const signal = options.signal ?? wireAbortController(logger).signal;
@@ -71,8 +84,8 @@ export async function startServer(options: StartServerOptions) {
 
   server.method(
     'renderAppOnServer',
-    (pathname: string) => {
-      return workerPool.exec('renderAppOnServer', [pathname]);
+    (request: ServerRenderRequest) => {
+      return workerPool.exec('renderAppOnServer', [request]);
     },
     {
       // cache: {
@@ -114,7 +127,7 @@ export async function startServer(options: StartServerOptions) {
         args: any[];
       };
       const ctx: ServerFunctionContext = {
-        user: null,
+        auth: request.auth,
         signal: abortController.signal,
       };
       const functionResults = await invokeFunction(functionName, ctx, args);
@@ -127,6 +140,7 @@ export async function startServer(options: StartServerOptions) {
     method: 'GET',
     path: '/favicon.ico',
     options: {
+      auth: false,
       cache: {
         expiresIn: 30 * 1000,
         privacy: 'public',
@@ -143,6 +157,7 @@ export async function startServer(options: StartServerOptions) {
     method: 'GET',
     path: '/robots.txt',
     options: {
+      auth: false,
       cache: {
         expiresIn: 30 * 1000,
         privacy: 'public',
@@ -162,6 +177,7 @@ Disallow: /
     method: 'GET',
     path: '/static/{path*}',
     options: {
+      auth: false,
       cache: {
         expiresIn: 30 * 1000,
         privacy: 'public',
@@ -183,8 +199,12 @@ Disallow: /
   server.route({
     method: 'GET',
     path: '/{any*}',
+    options: {},
     handler: async (request, h) => {
-      const { html, latency, renderCount } = await renderAppOnServer(request.path);
+      const { html, latency, renderCount } = await renderAppOnServer({
+        auth: request.auth,
+        path: request.path,
+      });
 
       request.logger.info(
         {

@@ -122,6 +122,7 @@ Yargs.help()
         const restartServer = () =>
           startServer({
             buildDir: settings.buildDir,
+            auth: settings.auth,
             host: argv.host,
             port: argv.port,
             logger,

@@ -23,7 +23,10 @@ export async function build(options: {
       const functionMeta = await buildServerFunctions(service, settings);
 
       if (settings.functionsEntryPoint) {
-        logger.info({ pathName: settings.builtFunctionsPath }, 'server functions build');
+        logger.info(
+          { pathName: settings.builtFunctionsPath, functionNames: functionMeta.functionNames },
+          'server functions build'
+        );
       } else {
         logger.info('no server function entrypoint detected, skipping');
       }

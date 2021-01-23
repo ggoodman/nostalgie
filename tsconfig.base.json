@@ -15,7 +15,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "pretty": true,
     "resolveJsonModule": true,
     "skipDefaultLibCheck": true,

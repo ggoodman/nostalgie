@@ -33,9 +33,7 @@ export async function buildClient(
   ];
 
   if (settings.functionsEntryPoint) {
-    plugins.push(
-      serverFunctionProxyPlugin(resolveExtensions, settings.functionsEntryPoint, functionNames)
-    );
+    plugins.push(serverFunctionProxyPlugin(settings.functionsEntryPoint, functionNames));
   }
 
   await service.build({

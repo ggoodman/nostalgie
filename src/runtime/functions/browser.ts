@@ -67,11 +67,7 @@ async function invokeViaHttp<T = unknown>(
   batch: { functionName: string; args: any[] },
   signal?: AbortSignal
 ): Promise<T> {
-  const url = new URL(
-    process.env.NOSTALGIE_RPC_PATH!,
-    process.env.NOSTALGIE_PUBLIC_URL || import.meta.url
-  );
-  const res = await fetch(url.href, {
+  const res = await fetch(process.env.NOSTALGIE_RPC_PATH!, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
