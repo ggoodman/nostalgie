@@ -5,7 +5,7 @@ export function UserInfo() {
   const authInfo = useAuth();
 
   return authInfo.isAuthentiated ? (
-    <div className="flex items-center text-sm h-full">
+    <div className="flex items-center text-sm h-full px-4">
       <div className="w-8 h-8">
         <img
           className="rounded-full shadow-md"
