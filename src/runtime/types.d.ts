@@ -11,7 +11,7 @@ declare module '*.md' {
   import type * as React from 'react';
 
   export interface MDXComponentProps extends Partial<MDXProviderProps> {}
-  const Component: React.ReactElement<MDXComponentProps>;
+  const Component: React.ComponentType<MDXComponentProps>;
   export default Component;
   export const excerpt: string;
   export const frontmatter: { [key: string]: unknown };
@@ -23,7 +23,7 @@ declare module '*.mdx' {
   import type * as React from 'react';
 
   export interface MDXComponentProps extends Partial<MDXProviderProps> {}
-  const Component: React.ReactElement<MDXComponentProps>;
+  const Component: React.ComponentType<MDXComponentProps>;
   export default Component;
   export const excerpt: string;
   export const frontmatter: { [key: string]: unknown };
