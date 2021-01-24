@@ -20,5 +20,21 @@
     "prefix": "ns-doc-page",
     "body": ["---", "title: $1", "---", "", "# $1"],
     "description": "Scaffold a documentation page with frontmatter"
-  }
+  },
+	"React function component": {
+		"scope": "typescriptreact",
+		"prefix": "ns-react-component",
+		"body":[
+			"import * as React from 'react';",
+			"",
+			"export interface $1Props {",
+			"  ",
+			"}",
+			"",
+			"export function $1(props: React.PropsWithChildren<$1Props>) {",
+			"  $0",
+			"}",
+			""
+		]
+	}
 }
