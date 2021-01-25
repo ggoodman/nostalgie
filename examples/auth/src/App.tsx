@@ -1,4 +1,4 @@
-import { useAuth } from 'nostalgie/auth';
+import { ClientAuthAuthenticated, ClientAuthUnauthenticated, useAuth } from 'nostalgie/auth';
 import { createFunctionQuery } from 'nostalgie/functions';
 import { Helmet } from 'nostalgie/helmet';
 import * as React from 'react';
@@ -19,15 +19,19 @@ export default function App() {
         />
       </Helmet>
       <div className="flex flex-col items-center justify-center h-screen w-screen overflow-scroll max-w-none">
-        {authState.isAuthentiated ? <Authenticated /> : <NotAuthenticated />}
+        {authState.isAuthentiated === true ? (
+          <Authenticated auth={authState} />
+        ) : (
+          <NotAuthenticated auth={authState} />
+        )}
         <pre></pre>
       </div>
     </>
   );
 }
 
-function Authenticated() {
-  const authState = useAuth();
+function Authenticated(props: { auth: ClientAuthAuthenticated }) {
+  const authState = props.auth;
   const helloState = useHelloFunction([]);
 
   return (
@@ -47,15 +51,15 @@ function Authenticated() {
       <h2 className="text-3xl mb-7 mt-11 font-medium">Your server function says</h2>
       <blockquote>{helloState.data}</blockquote>
       <h2 className="text-3xl mb-7 mt-11 font-medium">Your authentication information:</h2>
-      <pre className="text-left border-gray-300 bg-gray-200 border-2 overflow-scroll px-3 py-2">
+      <pre className="text-left border-gray-300 bg-gray-200 border-2 px-3 py-2 max-h-80 overflow-auto">
         {JSON.stringify(authState.credentials, null, 2)}
       </pre>
     </div>
   );
 }
 
-function NotAuthenticated() {
-  const authState = useAuth();
+function NotAuthenticated(props: { auth: ClientAuthUnauthenticated }) {
+  const authState = props.auth;
   const helloState = useHelloFunction([]);
 
   return (

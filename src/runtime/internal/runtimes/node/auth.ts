@@ -44,7 +44,7 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
       // TODO: FIXME in a way that is dev-friendly
       isSecure: false,
       isHttpOnly: true,
-      ttl: 1000 * 60 * 60, // Session lifetime
+      ttl: null, // Session lifetime
       isSameSite: 'Lax',
     });
 
@@ -130,7 +130,7 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
 
         request.cookieAuth.clear();
 
-        return h.redirect('/');
+        return h.redirect('/').unstate('nauth');
       },
     });
 
@@ -159,6 +159,9 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
         if (!nauth) {
           throw Boom.unauthorized('Invalid nonce');
         }
+
+        // Clear the session cookie now that it has been consumed
+        h.unstate('nauth');
 
         const redirectUri = `${server.info.uri}/.nostalgie/callback`;
         const issuer = await fetchIssuer(options.issuer);
