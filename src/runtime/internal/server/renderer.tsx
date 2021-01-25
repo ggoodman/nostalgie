@@ -11,7 +11,7 @@ import { install } from 'source-map-support';
 import * as Twind from 'twind';
 import * as TwindServer from 'twind/server';
 import type { ChunkDependencies } from '../../../build/types';
-import type { ClientAuth, NostalgieUser } from '../../auth';
+import type { ClientAuth } from '../../auth';
 import { AuthContext, ServerAuth } from '../../auth/server';
 import { ServerQueryContextProvider, ServerQueryExecutorImpl } from '../../functions/server';
 import type { ServerFunction, ServerFunctionContext } from '../../functions/types';
@@ -235,17 +235,18 @@ export class ServerRenderer {
   }
 
   private serverAuthToClientAuth(auth: ServerAuth): ClientAuth {
-    return {
-      isAuthentiated: auth.isAuthenticated,
-      isAuthorized: auth.isAuthorized,
-      credentials: auth.credentials
-        ? {
-            user: auth.credentials.user as NostalgieUser,
-            scope: auth.credentials.scope || [],
-          }
-        : undefined,
-      loginUrl: '/.nostalgie/login',
-      logoutUrl: '/.nostalgie/logout',
-    };
+    return auth.isAuthenticated
+      ? {
+          isAuthentiated: auth.isAuthenticated,
+          credentials: auth.credentials,
+          loginUrl: '/.nostalgie/login',
+          logoutUrl: '/.nostalgie/logout',
+        }
+      : {
+          isAuthentiated: false,
+          error: auth.error,
+          loginUrl: '/.nostalgie/login',
+          logoutUrl: '/.nostalgie/logout',
+        };
   }
 }

@@ -1,17 +1,26 @@
+import type { IdTokenClaims, UserinfoResponse } from 'openid-client';
 import * as React from 'react';
 import { AuthContext } from './server';
 
-export interface ClientAuth {
-  error?: unknown;
-  isAuthentiated: boolean;
-  isAuthorized: boolean;
-  credentials?: {
+export interface ClientAuthAuthenticated {
+  isAuthentiated: true;
+  credentials: {
+    claims: IdTokenClaims;
     scope: string[];
-    user: NostalgieUser;
+    user: UserinfoResponse;
   };
   loginUrl: string;
   logoutUrl: string;
 }
+
+export interface ClientAuthUnauthenticated {
+  error?: unknown;
+  isAuthentiated: false;
+  loginUrl: string;
+  logoutUrl: string;
+}
+
+export type ClientAuth = ClientAuthAuthenticated | ClientAuthUnauthenticated;
 
 export function useAuth() {
   const authContext = React.useContext(AuthContext);

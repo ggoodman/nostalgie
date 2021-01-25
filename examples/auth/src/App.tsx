@@ -31,7 +31,7 @@ function Authenticated() {
   const helloState = useHelloFunction([]);
 
   return (
-    <div className="bg-blue-50 border-4 border-blue-200 px-8 py-7 w-1/3 text-center">
+    <div className="bg-blue-50 border-4 border-blue-200 px-8 py-7 w-4/5 text-center">
       <h1 className="text-4xl mb-8 mt-12 font-semibold">
         {'You are currently '}
         <strong className="underline font-black italic font-serif uppercase">
@@ -59,7 +59,7 @@ function NotAuthenticated() {
   const helloState = useHelloFunction([]);
 
   return (
-    <div className="bg-red-50 border-4 border-red-200 px-8 py-7 w-1/3 text-center">
+    <div className="bg-red-50 border-4 border-red-200 px-8 py-7 w-4/5 text-center">
       <h1 className="text-4xl mb-8 mt-12 font-semibold">
         {'You are currently '}
         <strong className="underline font-black italic font-serif uppercase">

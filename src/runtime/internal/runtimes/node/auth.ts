@@ -3,6 +3,7 @@ import * as Cookie from '@hapi/cookie';
 import type { Plugin } from '@hapi/hapi';
 import * as OpenID from 'openid-client';
 import type { NostalgieAuthOptions } from '../../../../settings';
+import type { ServerAuthCredentials } from '../../../auth/server';
 
 export const authPlugin: Plugin<NostalgieAuthOptions> = {
   name: 'nostalgie/auth',
@@ -20,7 +21,7 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
         isSecure: false,
       },
       keepAlive: true,
-      validateFunc: async (request, session) => {
+      validateFunc: async (_request, session: ServerAuthCredentials) => {
         return {
           valid: true,
           credentials: session,
@@ -186,15 +187,13 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
         }
 
         const userInfo = await client.userinfo(tokenSet.access_token);
-
-        request.cookieAuth.set({
+        const serverAuth: ServerAuthCredentials = {
+          claims: tokenSet.claims(),
+          scope: typeof tokenSet.scope === 'string' ? tokenSet.scope.split(/\s+/) : [],
           user: userInfo,
-          accessToken: tokenSet.access_token,
-          idToken: tokenSet.id_token,
-          refreshToken: tokenSet.refresh_token,
-          expiresAt: tokenSet.expires_at,
-          expiresIn: tokenSet.expires_in,
-        });
+        };
+
+        request.cookieAuth.set(serverAuth);
 
         return h.redirect('/');
       },

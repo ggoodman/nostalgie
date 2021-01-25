@@ -8,6 +8,7 @@ import { pool } from 'workerpool';
 import { wireAbortController } from '../../../../lifecycle';
 import { createDefaultLogger, Logger } from '../../../../logging';
 import type { NostalgieAuthOptions } from '../../../../settings';
+import type { ServerAuth, ServerAuthCredentials } from '../../../auth/server';
 import type { ServerFunctionContext } from '../../../functions/types';
 import type { ServerRenderRequest } from '../../server';
 import { authPlugin } from './auth';
@@ -127,7 +128,7 @@ export async function startServer(options: StartServerOptions) {
         args: any[];
       };
       const ctx: ServerFunctionContext = {
-        auth: request.auth,
+        auth: requestAuthToServerAuth(request.auth),
         signal: abortController.signal,
       };
       const functionResults = await invokeFunction(functionName, ctx, args);
@@ -202,7 +203,7 @@ Disallow: /
     options: {},
     handler: async (request, h) => {
       const { html, latency, renderCount } = await renderAppOnServer({
-        auth: request.auth,
+        auth: requestAuthToServerAuth(request.auth),
         path: request.path,
       });
 
@@ -221,4 +222,16 @@ Disallow: /
   await server.start();
 
   return server;
+}
+
+function requestAuthToServerAuth(auth: Hapi.RequestAuth): ServerAuth {
+  return auth.isAuthenticated
+    ? {
+        isAuthenticated: true,
+        credentials: (auth.credentials as unknown) as ServerAuthCredentials,
+      }
+    : {
+        isAuthenticated: false,
+        error: auth.error,
+      };
 }
