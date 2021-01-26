@@ -2,7 +2,6 @@ import { Helmet } from 'nostalgie/helmet';
 import { NavLink, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import PlunkerImg from './assets/Nostalgie.svg';
-import { UserInfo } from './components/UserInfo';
 import Favicon from './favicon.ico';
 
 const pages = [
@@ -65,7 +64,6 @@ export default function App() {
             >
               GitHub
             </a>
-            <UserInfo />
           </nav>
         </header>
         <div className="flex-1 container px-2 mx-auto">
