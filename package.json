@@ -76,6 +76,7 @@
   },
   "dependencies": {
     "@antfu/shiki": "^0.6.2",
+    "@ggoodman/channels": "^0.2.0",
     "@hapi/boom": "^9.1.1",
     "@hapi/catbox-object": "^2.0.0",
     "@hapi/cookie": "^11.0.2",
