@@ -7,7 +7,7 @@ import * as Path from 'path';
 import { pool } from 'workerpool';
 import { wireAbortController } from '../../../../lifecycle';
 import { createDefaultLogger, Logger } from '../../../../logging';
-import type { NostalgieAuthOptions } from '../../../../settings';
+import { NostalgieAuthOptions, readAuthOptions } from '../../../../settings';
 import type { ServerAuth, ServerAuthCredentials } from '../../../auth/server';
 import type { ServerFunctionContext } from '../../../functions/types';
 import type { ServerRenderRequest } from '../../server';
@@ -21,6 +21,22 @@ export interface StartServerOptions {
   port?: number;
   signal?: AbortSignal;
   auth?: NostalgieAuthOptions;
+}
+
+export function main(options: StartServerOptions) {
+  const logger = createDefaultLogger();
+  const auth = readAuthOptions(options);
+
+  return startServer({
+    auth: auth,
+    buildDir: options.buildDir,
+    host: options.host,
+    logger,
+    port: options.port,
+    signal: wireAbortController(logger).signal,
+  }).catch((err) => {
+    logger.fatal({ err }, 'Error while starting the server');
+  });
 }
 
 export async function startServer(options: StartServerOptions) {

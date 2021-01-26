@@ -108,15 +108,13 @@ worker({
       sourcemap: true,
       stdin: {
         contents: `
-const { startServer } = require(${JSON.stringify(nostalgieHapiServerPath)});
+const { main, startServer } = require(${JSON.stringify(nostalgieHapiServerPath)});
 
 exports.startServer = startServer;
 
 if (require.main === module) {
-  startServer({
+  main({
     buildDir: __dirname,
-  }).catch((err) => {
-    logger.fatal({ err }, 'exception thrown while starting server');
   });
 }
         `,

@@ -95,7 +95,7 @@ export async function readNormalizedSettings(
   };
 }
 
-function readAuthOptions(options: NostalgieOptions = {}) {
+export function readAuthOptions(options: NostalgieOptions = {}) {
   const partialAuth: Partial<NostalgieAuthOptions> = {
     issuer: options.auth?.issuer ?? process.env.AUTH_ISSUER,
     clientId: options.auth?.clientId ?? process.env.AUTH_CLIENT_ID,
