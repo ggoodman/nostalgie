@@ -1,5 +1,6 @@
 import type { AbortSignal } from 'abort-controller';
 import type { UseMutationOptions, UseQueryOptions } from 'react-query';
+import type { ServerAuth } from '../auth/server';
 
 export interface FunctionQueryOptions extends Omit<UseQueryOptions, 'queryFn'> {}
 
@@ -24,8 +25,8 @@ export type FunctionReturnType<T extends ServerFunction> = ReturnType<T> extends
   : ReturnType<T>;
 
 export interface ServerFunctionContext {
+  auth: ServerAuth;
   signal?: AbortSignal;
-  user?: unknown;
 }
 
 export interface ServerFunction {

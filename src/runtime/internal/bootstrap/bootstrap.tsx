@@ -8,10 +8,12 @@ import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
 import * as Twind from 'twind';
 import 'twind/shim';
-import { defaultHelmetProps } from '../helmet';
-import { LazyContext } from '../lazy/context';
-import { register } from '../lazy/register';
-import type { ChunkManager } from '../lazy/types';
+import type { ClientAuth } from '../../auth';
+import { AuthContext } from '../../auth/server';
+import { defaultHelmetProps } from '../../helmet';
+import { LazyContext } from '../../lazy/context';
+import { register } from '../../lazy/register';
+import type { ChunkManager } from '../../lazy/types';
 
 interface LazyComponent {
   chunk: string;
@@ -50,6 +52,7 @@ declare interface Entry extends Location {
 }
 
 export interface BootstrapOptions {
+  auth: ClientAuth;
   errStack?: Entry[];
   lazyComponents: LazyComponent[];
   publicUrl: string;
@@ -119,10 +122,12 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
       <ReactQuery.QueryClientProvider client={queryClient}>
         <ReactQueryHydration.Hydrate state={options.reactQueryState}>
           <Helmet.HelmetProvider>
-            <ReactRouterDOM.BrowserRouter>
-              <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
-              <App />
-            </ReactRouterDOM.BrowserRouter>
+            <AuthContext.Provider value={options.auth}>
+              <ReactRouterDOM.BrowserRouter>
+                <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
+                <App />
+              </ReactRouterDOM.BrowserRouter>
+            </AuthContext.Provider>
           </Helmet.HelmetProvider>
         </ReactQueryHydration.Hydrate>
       </ReactQuery.QueryClientProvider>

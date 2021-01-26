@@ -21,9 +21,9 @@ export async function buildNodeServer(
   const buildDir = settings.buildDir;
   const nostalgieRequire = createRequire(__filename);
   const appRequire = createRequire(settings.applicationEntryPoint);
-  const nostalgieHapiServerPath = appRequire.resolve('nostalgie/runtimes/node');
+  const nostalgieHapiServerPath = appRequire.resolve('nostalgie/internal/runtimes/node');
   // const nostalgiePiscinaWorkerPath = Path.resolve(require.resolve('piscina'), '../worker.js');
-  const nostalgieServerPath = appRequire.resolve('nostalgie/server');
+  const nostalgieServerPath = appRequire.resolve('nostalgie/internal/server');
   const resolveExtensions = [...settings.resolveExtensions];
   const relativeAppEntry = `./${Path.relative(settings.rootDir, settings.applicationEntryPoint)}`;
 
@@ -42,7 +42,7 @@ export async function buildNodeServer(
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
       },
       format: 'cjs',
-      inject: [appRequire.resolve('nostalgie/node-browser-apis')],
+      inject: [appRequire.resolve('nostalgie/internal/node-browser-apis')],
       loader: settings.loaders,
       logLevel: 'error',
       minify: settings.buildEnvironment === 'production',
@@ -108,15 +108,13 @@ worker({
       sourcemap: true,
       stdin: {
         contents: `
-const { startServer } = require(${JSON.stringify(nostalgieHapiServerPath)});
+const { main, startServer } = require(${JSON.stringify(nostalgieHapiServerPath)});
 
 exports.startServer = startServer;
 
 if (require.main === module) {
-  startServer({
+  main({
     buildDir: __dirname,
-  }).catch((err) => {
-    logger.fatal({ err }, 'exception thrown while starting server');
   });
 }
         `,

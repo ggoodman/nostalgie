@@ -10,18 +10,25 @@ import { install } from 'source-map-support';
 // import StackTracey from 'stacktracey';
 import * as Twind from 'twind';
 import * as TwindServer from 'twind/server';
-import type { ChunkDependencies } from '../../build/types';
+import type { ChunkDependencies } from '../../../build/types';
+import type { ClientAuth } from '../../auth';
+import { AuthContext, ServerAuth } from '../../auth/server';
+import { ServerQueryContextProvider, ServerQueryExecutorImpl } from '../../functions/server';
+import type { ServerFunction, ServerFunctionContext } from '../../functions/types';
+import { defaultHelmetProps } from '../../helmet';
+import { LazyContext } from '../../lazy/context';
+import type { ChunkManager } from '../../lazy/types';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
-import { ServerQueryContextProvider, ServerQueryExecutorImpl } from '../functions/server';
-import type { ServerFunction, ServerFunctionContext } from '../functions/types';
-import { defaultHelmetProps } from '../helmet';
-import { LazyContext } from '../lazy/context';
-import type { ChunkManager } from '../lazy/types';
 
 if (process.env.NODE_ENV === 'development') {
   install({
     environment: 'node',
   });
+}
+
+export interface ServerRenderRequest {
+  auth: ServerAuth;
+  path: string;
 }
 
 interface ServerRendererSettings {
@@ -63,7 +70,7 @@ export class ServerRenderer {
   }
 
   async renderAppOnServer(
-    path: string
+    request: ServerRenderRequest
   ): Promise<{ html: string; renderCount: number; latency: number }> {
     const start = Date.now();
     const bootstrapChunk = 'static/build/bootstrap.js';
@@ -74,28 +81,23 @@ export class ServerRenderer {
     };
     const queryClient = new ReactQuery.QueryClient();
     const initialReactQueryState = ReactQueryHydration.dehydrate(queryClient);
-    const queryExecutor = new ServerQueryExecutorImpl(queryClient);
-    const model = React.createElement(
-      ReactRouterDOM.StaticRouter,
-      { location: path },
-      React.createElement(
-        LazyContext.Provider,
-        { value: chunkCtx },
-        React.createElement(
-          ServerQueryContextProvider,
-          { queryExecutor: queryExecutor },
-          React.createElement(
-            ReactQueryHydration.Hydrate,
-            { state: initialReactQueryState },
-            React.createElement(
-              Helmet.HelmetProvider,
-              { context: helmetCtx },
-              React.createElement(Helmet.Helmet, defaultHelmetProps),
-              React.createElement(this.app)
-            )
-          )
-        )
-      )
+    const auth = this.serverAuthToClientAuth(request.auth);
+    const queryExecutor = new ServerQueryExecutorImpl({ auth: request.auth, queryClient });
+    const model = (
+      <LazyContext.Provider value={chunkCtx}>
+        <ServerQueryContextProvider queryExecutor={queryExecutor}>
+          <ReactQueryHydration.Hydrate state={initialReactQueryState}>
+            <Helmet.HelmetProvider context={helmetCtx}>
+              <AuthContext.Provider value={auth}>
+                <ReactRouterDOM.StaticRouter location={request.path}>
+                  <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
+                  <this.app />
+                </ReactRouterDOM.StaticRouter>
+              </AuthContext.Provider>
+            </Helmet.HelmetProvider>
+          </ReactQueryHydration.Hydrate>
+        </ServerQueryContextProvider>
+      </LazyContext.Provider>
     );
 
     // We'll give ourselves a budget for the number of render passes we're willing to undertake
@@ -191,6 +193,7 @@ export class ServerRenderer {
     const bodyAttrs = helmet.bodyAttributes.toString();
 
     const bootstrapOptions: BootstrapOptions = {
+      auth: this.serverAuthToClientAuth(request.auth),
       // errStack: errStack || undefined,
       lazyComponents: chunkCtx.chunks,
       publicUrl,
@@ -229,5 +232,21 @@ export class ServerRenderer {
       renderCount: renderCount,
       latency: Date.now() - start,
     };
+  }
+
+  private serverAuthToClientAuth(auth: ServerAuth): ClientAuth {
+    return auth.isAuthenticated
+      ? {
+          isAuthentiated: auth.isAuthenticated,
+          credentials: auth.credentials,
+          loginUrl: '/.nostalgie/login',
+          logoutUrl: '/.nostalgie/logout',
+        }
+      : {
+          isAuthentiated: false,
+          error: auth.error,
+          loginUrl: '/.nostalgie/login',
+          logoutUrl: '/.nostalgie/logout',
+        };
   }
 }

@@ -5,9 +5,14 @@ import HapiPino from 'hapi-pino';
 import Joi from 'joi';
 import * as Path from 'path';
 import { pool } from 'workerpool';
-import { wireAbortController } from '../../../lifecycle';
-import { createDefaultLogger, Logger } from '../../../logging';
-import type { ServerFunctionContext } from '../../functions/types';
+import { wireAbortController } from '../../../../lifecycle';
+import { createDefaultLogger, Logger } from '../../../../logging';
+import { NostalgieAuthOptions, readAuthOptions } from '../../../../settings';
+import type { ServerAuth, ServerAuthCredentials } from '../../../auth/server';
+import type { ServerFunctionContext } from '../../../functions/types';
+import type { ServerRenderRequest } from '../../server';
+import { authPlugin } from './auth';
+import { MemoryCacheDriver } from './memoryCacheDriver';
 
 export interface StartServerOptions {
   buildDir?: string;
@@ -15,6 +20,23 @@ export interface StartServerOptions {
   logger?: Logger;
   port?: number;
   signal?: AbortSignal;
+  auth?: NostalgieAuthOptions;
+}
+
+export function main(options: StartServerOptions) {
+  const logger = createDefaultLogger();
+  const auth = readAuthOptions(options);
+
+  return startServer({
+    auth: auth,
+    buildDir: options.buildDir,
+    host: options.host,
+    logger,
+    port: options.port,
+    signal: wireAbortController(logger).signal,
+  }).catch((err) => {
+    logger.fatal({ err }, 'Error while starting the server');
+  });
 }
 
 export async function startServer(options: StartServerOptions) {
@@ -23,7 +45,15 @@ export async function startServer(options: StartServerOptions) {
     address: options.host ?? '0.0.0.0',
     port: options.port ?? process.env.PORT ?? 8080,
     host: options.host,
+    cache: MemoryCacheDriver,
   });
+
+  if (options.auth) {
+    await server.register({
+      plugin: authPlugin,
+      options: { auth: options.auth, publicUrl: server.info.uri },
+    });
+  }
 
   const logger = options.logger ?? createDefaultLogger();
   const signal = options.signal ?? wireAbortController(logger).signal;
@@ -71,8 +101,8 @@ export async function startServer(options: StartServerOptions) {
 
   server.method(
     'renderAppOnServer',
-    (pathname: string) => {
-      return workerPool.exec('renderAppOnServer', [pathname]);
+    (request: ServerRenderRequest) => {
+      return workerPool.exec('renderAppOnServer', [request]);
     },
     {
       // cache: {
@@ -114,7 +144,7 @@ export async function startServer(options: StartServerOptions) {
         args: any[];
       };
       const ctx: ServerFunctionContext = {
-        user: null,
+        auth: requestAuthToServerAuth(request.auth),
         signal: abortController.signal,
       };
       const functionResults = await invokeFunction(functionName, ctx, args);
@@ -127,6 +157,7 @@ export async function startServer(options: StartServerOptions) {
     method: 'GET',
     path: '/favicon.ico',
     options: {
+      auth: false,
       cache: {
         expiresIn: 30 * 1000,
         privacy: 'public',
@@ -143,6 +174,7 @@ export async function startServer(options: StartServerOptions) {
     method: 'GET',
     path: '/robots.txt',
     options: {
+      auth: false,
       cache: {
         expiresIn: 30 * 1000,
         privacy: 'public',
@@ -162,6 +194,7 @@ Disallow: /
     method: 'GET',
     path: '/static/{path*}',
     options: {
+      auth: false,
       cache: {
         expiresIn: 30 * 1000,
         privacy: 'public',
@@ -183,8 +216,12 @@ Disallow: /
   server.route({
     method: 'GET',
     path: '/{any*}',
+    options: {},
     handler: async (request, h) => {
-      const { html, latency, renderCount } = await renderAppOnServer(request.path);
+      const { html, latency, renderCount } = await renderAppOnServer({
+        auth: requestAuthToServerAuth(request.auth),
+        path: request.path,
+      });
 
       request.logger.info(
         {
@@ -201,4 +238,16 @@ Disallow: /
   await server.start();
 
   return server;
+}
+
+function requestAuthToServerAuth(auth: Hapi.RequestAuth): ServerAuth {
+  return auth.isAuthenticated
+    ? {
+        isAuthenticated: true,
+        credentials: (auth.credentials as unknown) as ServerAuthCredentials,
+      }
+    : {
+        isAuthenticated: false,
+        error: auth.error,
+      };
 }

@@ -1,7 +1,7 @@
 ///<reference lib="dom" />
 import { Helmet } from 'nostalgie/helmet';
 import * as React from 'react';
-import Readme from '../../../README.md';
+import Readme from '../../../../README.md';
 import { useStylesheet } from '../hooks/useStylesheet';
 import { mdxDocsComponents } from '../lib/mdxDocsComponents';
 

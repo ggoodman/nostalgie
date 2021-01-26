@@ -18,20 +18,22 @@ Yargs.help()
   .strict()
   .showHelpOnFail(false)
   .command(
-    'build',
+    'build [project_root]',
     'Create a build of your nostalgie app',
     (yargs) =>
-      yargs.options({
-        env: {
-          choices: ['development', 'production'],
-          description: 'The environment for which you want to build your nostalgie server and app.',
-          default: 'production',
-        },
-        'root-dir': {
+      yargs
+        .positional('project_root', {
           string: true,
           description: 'The root of your nostalgie project',
-        },
-      } as const),
+        } as const)
+        .options({
+          env: {
+            choices: ['development', 'production'],
+            description:
+              'The environment for which you want to build your nostalgie server and app.',
+            default: 'production',
+          },
+        } as const),
     async (argv) => {
       const logger = createDefaultLogger();
 
@@ -40,7 +42,7 @@ Yargs.help()
       const { abort, signal } = wireAbortController(logger);
       const cwd = process.cwd();
       const settings = await readNormalizedSettings({
-        rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
+        rootDir: Path.resolve(cwd, argv.project_root ?? './'),
         buildEnvironment: argv.env,
       });
 
@@ -60,30 +62,33 @@ Yargs.help()
     }
   )
   .command(
-    'dev',
+    'dev [project_root]',
     'Start nostalgie in development mode',
-    {
-      env: {
-        choices: ['development', 'production'],
-        description: 'The environment for which you want to build your nostalgie server and app.',
-        default: 'development',
-      },
-      host: {
-        string: true,
-        description:
-          'The hostname or IP address to which you want to bind the nostalgie dev server.',
-        default: 'localhost',
-      },
-      port: {
-        number: true,
-        description: 'The port on which you want the nostalgie dev server to run.',
-        default: 8080,
-      },
-      'root-dir': {
-        string: true,
-        description: 'The root of your nostalgie project',
-      },
-    } as const,
+    (yargs) =>
+      yargs
+        .positional('project_root', {
+          string: true,
+          description: 'The root of your nostalgie project',
+        } as const)
+        .options({
+          env: {
+            choices: ['development', 'production'],
+            description:
+              'The environment for which you want to build your nostalgie server and app.',
+            default: 'development',
+          },
+          host: {
+            string: true,
+            description:
+              'The hostname or IP address to which you want to bind the nostalgie dev server.',
+            default: 'localhost',
+          },
+          port: {
+            number: true,
+            description: 'The port on which you want the nostalgie dev server to run.',
+            default: 8080,
+          },
+        } as const),
     async (argv) => {
       const logger = createDefaultLogger();
 
@@ -92,7 +97,7 @@ Yargs.help()
       const { signal } = wireAbortController(logger);
       const cwd = process.cwd();
       const settings = await readNormalizedSettings({
-        rootDir: Path.resolve(cwd, argv['root-dir'] ?? './'),
+        rootDir: Path.resolve(cwd, argv.project_root ?? './'),
         buildEnvironment: argv.env,
       });
 
@@ -122,6 +127,7 @@ Yargs.help()
         const restartServer = () =>
           startServer({
             buildDir: settings.buildDir,
+            auth: settings.auth,
             host: argv.host,
             port: argv.port,
             logger,

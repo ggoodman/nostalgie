@@ -12,32 +12,41 @@ import type {
   ServerFunction,
 } from './types';
 
-export function createFunctionQueryBrowser<T extends ServerFunction>(
-  fn: T,
-  factoryOptions: FunctionQueryOptions = {}
-) {
-  return function useFunctionQuery(
+export function foo<T extends ServerFunction>(fn: T, factoryOptions?: FunctionQueryOptions) {
+  return function useBoundFunctionQuery(
     args: NonContextFunctionArgs<T>,
-    options?: FunctionQueryOptions
+    options: FunctionQueryOptions
   ) {
-    return useQuery(
-      [fn.name, args],
-      (ctx) => {
-        const abortController = new AbortController() as import('abort-controller').AbortController;
-        const resultPromise = invokeViaHttp(
-          { functionName: ctx.queryKey[0], args: ctx.queryKey[1] },
-          abortController.signal
-        );
-
-        return Object.assign(resultPromise, {
-          cancel() {
-            abortController.abort();
-          },
-        });
-      },
-      { ...factoryOptions, ...options, retry: false }
-    ) as QueryObserverResult<FunctionReturnType<T>>;
+    return useQueryFunctionBrowser(
+      fn,
+      args,
+      Object.assign(Object.create(null), options, factoryOptions)
+    );
   };
+}
+
+export function useQueryFunctionBrowser<T extends ServerFunction>(
+  fn: T,
+  args: NonContextFunctionArgs<T>,
+  options?: FunctionQueryOptions
+) {
+  return useQuery(
+    [fn.name, args],
+    (ctx) => {
+      const abortController = new AbortController() as import('abort-controller').AbortController;
+      const resultPromise = invokeViaHttp(
+        { functionName: ctx.queryKey[0], args: ctx.queryKey[1] },
+        abortController.signal
+      );
+
+      return Object.assign(resultPromise, {
+        cancel() {
+          abortController.abort();
+        },
+      });
+    },
+    options
+  ) as QueryObserverResult<FunctionReturnType<T>>;
 }
 
 export function createFunctionMutationBrowser<T extends ServerFunction>(
@@ -48,30 +57,30 @@ export function createFunctionMutationBrowser<T extends ServerFunction>(
     NonContextFunctionArgs<T>
   > = {}
 ) {
-  return function useFunctionMutation(
-    options: FunctionMutationOptions<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>> = {}
+  return function useBoundFunctionMutation(
+    options: FunctionMutationOptions<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>>
   ) {
-    return useMutation<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>>(
-      (args) => {
-        return invokeViaHttp<FunctionReturnType<T>>({ functionName: fn.name, args });
-      },
-      {
-        ...factoryOptions,
-        ...options,
-      }
+    return useMutationFunctionBrowser(
+      fn,
+      Object.assign(Object.create(null), factoryOptions, options)
     );
   };
+}
+
+export function useMutationFunctionBrowser<T extends ServerFunction>(
+  fn: T,
+  options: FunctionMutationOptions<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>> = {}
+) {
+  return useMutation<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>>((args) => {
+    return invokeViaHttp<FunctionReturnType<T>>({ functionName: fn.name, args });
+  }, options);
 }
 
 async function invokeViaHttp<T = unknown>(
   batch: { functionName: string; args: any[] },
   signal?: AbortSignal
 ): Promise<T> {
-  const url = new URL(
-    process.env.NOSTALGIE_RPC_PATH!,
-    process.env.NOSTALGIE_PUBLIC_URL || import.meta.url
-  );
-  const res = await fetch(url.href, {
+  const res = await fetch(process.env.NOSTALGIE_RPC_PATH!, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

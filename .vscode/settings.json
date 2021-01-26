@@ -48,7 +48,7 @@
   "debug.javascript.terminalOptions": {
     "skipFiles": [
       "<node_internals>/**",
-      "**/node_modules/**/*.js"
+      // "**/node_modules/**/*.js"
     ]
   },
   

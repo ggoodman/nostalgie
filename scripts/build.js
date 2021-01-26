@@ -21,14 +21,15 @@ const externalModules = [
   ...builtinModules,
 ];
 const runtimeModuleNames = [
-  'bootstrap',
+  'auth',
   'functions',
   'helmet',
   'lazy',
-  'node-browser-apis',
   'routing',
-  'runtimes/node',
-  'server',
+  'internal/bootstrap',
+  'internal/node-browser-apis',
+  'internal/runtimes/node',
+  'internal/server',
 ];
 
 const typesPath = Path.resolve(__dirname, '../src/runtime/types.d.ts');
@@ -175,8 +176,6 @@ async function buildRuntimeTypes() {
       __dirname,
       `../src/runtime/${runtimeModuleName}/index.ts`
     );
-
-    exportMap[`./${runtimeModuleName}`] = `./${runtimeModuleName}/index.js`;
   }
 
   const build = await rollup({
@@ -242,21 +241,29 @@ async function buildRuntimeTypes() {
 
   const service = await startService();
   try {
-    await Fs.rmdir(Path.resolve(__dirname, '../dist'), { recursive: true });
+    if (!process.env.SKIP_EMPTY) {
+      await Fs.rmdir(Path.resolve(__dirname, '../dist'), { recursive: true });
+    }
+
     await Fs.mkdir(Path.resolve(__dirname, '../dist/bin'), { recursive: true });
 
-    await Promise.all([
+    const buildPromises = [
       buildCli(service),
       buildMdxCompilerWorker(service),
       buildPiscinaWorker(service),
       buildRuntimeModules(service),
-      buildRuntimeTypes(),
       Fs.copyFile(typesPath, Path.resolve(__dirname, '../dist/index.d.ts')),
       Fs.copyFile(nostalgieBinPath, Path.resolve(__dirname, '../dist/bin/nostalgie')),
       Fs.copyFile(nostalgieCmdPath, Path.resolve(__dirname, '../dist/bin/nostalgie.cmd')),
       Fs.copyFile(readmePath, Path.resolve(__dirname, '../dist/README.md')),
       Fs.copyFile(licensePath, Path.resolve(__dirname, '../dist/LICENSE')),
-    ]);
+    ];
+
+    if (!process.env.SKIP_TYPES_BUILD) {
+      buildPromises.push(buildRuntimeTypes());
+    }
+
+    await Promise.all(buildPromises);
 
     const dependencies = {};
     const peerDependencies = {};
@@ -267,6 +274,10 @@ async function buildRuntimeTypes() {
       const versionSpec = mergedDependencies[externalName];
 
       target[externalName] = versionSpec;
+    }
+
+    for (const runtimeModuleName of runtimeModuleNames) {
+      exportMap[`./${runtimeModuleName}`] = `./${runtimeModuleName}/index.js`;
     }
 
     const promises = [];

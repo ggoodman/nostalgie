@@ -4,6 +4,7 @@ import { AbortController } from 'abort-controller';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider, QueryObserverResult, useQuery } from 'react-query';
 import { invariant } from '../../invariant';
+import type { ServerAuth } from '../auth/server';
 import type {
   FunctionMutationOptions,
   FunctionQueryOptions,
@@ -35,10 +36,20 @@ export function ServerQueryContextProvider(
   );
 }
 
-export class ServerQueryExecutorImpl implements ServerQueryExecutor {
-  readonly promises = new Set<Promise<unknown>>();
+export interface ServerQueryExecutorImplOptions {
+  auth: ServerAuth;
+  queryClient: QueryClient;
+}
 
-  constructor(readonly queryClient: QueryClient) {}
+export class ServerQueryExecutorImpl implements ServerQueryExecutor {
+  readonly auth: ServerAuth;
+  readonly promises = new Set<Promise<unknown>>();
+  readonly queryClient: QueryClient;
+
+  constructor(options: ServerQueryExecutorImplOptions) {
+    this.auth = options.auth;
+    this.queryClient = options.queryClient;
+  }
 
   executeQuery<T extends ServerFunction>(
     fn: T,
@@ -50,7 +61,7 @@ export class ServerQueryExecutorImpl implements ServerQueryExecutor {
     const queryFn = () => {
       const abortController = new AbortController() as import('abort-controller').AbortController;
       const resultPromise = fn(
-        { signal: abortController.signal, user: undefined },
+        { signal: abortController.signal, auth: this.auth },
         ...args
       ) as Promise<FunctionReturnType<T>>;
 
@@ -72,53 +83,7 @@ export class ServerQueryExecutorImpl implements ServerQueryExecutor {
   }
 }
 
-export function createFunctionQueryServer<T extends ServerFunction>(
-  fn: T,
-  factoryOptions: FunctionQueryOptions = {}
-) {
-  return function useFunctionQuery(
-    args: NonContextFunctionArgs<T>,
-    options?: FunctionQueryOptions
-  ) {
-    const serverQueryExecutor = React.useContext(ServerQueryContext);
-
-    if (!serverQueryExecutor) {
-      throw new Error(
-        `Invariant violation: the useFunction hook must be called within a ServerQueryContext`
-      );
-    }
-
-    return serverQueryExecutor.executeQuery(fn, args, {
-      ...factoryOptions,
-      ...options,
-      retry: false,
-    }) as QueryObserverResult<FunctionReturnType<T>>;
-  };
-}
-
-export function createFunctionMutationServer<T extends ServerFunction>(
-  _fn: T,
-  _factoryOptions: FunctionMutationOptions<
-    FunctionReturnType<T>,
-    unknown,
-    NonContextFunctionArgs<T>
-  > = {}
-) {
-  return function useFunctionMutation(
-    _options: FunctionMutationOptions<
-      FunctionReturnType<T>,
-      unknown,
-      NonContextFunctionArgs<T>
-    > = {}
-  ) {
-    invariant(
-      true,
-      `The "mutate" method of observers returned by mutation hooks must not be invoked on the server`
-    );
-  };
-}
-
-export function useFunctionServer<T extends ServerFunction>(
+export function useQueryFunctionServer<T extends ServerFunction>(
   fn: T,
   args: NonContextFunctionArgs<T>,
   options?: FunctionQueryOptions
@@ -131,7 +96,19 @@ export function useFunctionServer<T extends ServerFunction>(
     );
   }
 
-  return serverQueryExecutor.executeQuery(fn, args, options) as QueryObserverResult<
-    FunctionReturnType<T>
-  >;
+  return serverQueryExecutor.executeQuery(
+    fn,
+    args,
+    Object.assign(Object.create(null), options, { retry: false })
+  ) as QueryObserverResult<FunctionReturnType<T>>;
+}
+
+export function useMutationFunctionServer<T extends ServerFunction>(
+  _fn: T,
+  _options: FunctionMutationOptions<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>> = {}
+) {
+  invariant(
+    true,
+    `The "mutate" method of observers returned by mutation hooks must not be invoked on the server`
+  );
 }
