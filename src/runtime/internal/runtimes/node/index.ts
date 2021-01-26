@@ -35,7 +35,7 @@ export async function startServer(options: StartServerOptions) {
   if (options.auth) {
     await server.register({
       plugin: authPlugin,
-      options: options.auth,
+      options: { auth: options.auth, publicUrl: server.info.uri },
     });
   }
 

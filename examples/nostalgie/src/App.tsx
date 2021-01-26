@@ -1,11 +1,9 @@
-import { createFunctionQuery } from 'nostalgie/functions';
 import { Helmet } from 'nostalgie/helmet';
 import { NavLink, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import PlunkerImg from './assets/Nostalgie.svg';
 import { UserInfo } from './components/UserInfo';
 import Favicon from './favicon.ico';
-import { whoami } from './functions';
 
 const pages = [
   {
@@ -24,8 +22,6 @@ const pages = [
 
 const LazyNotFoundPage = React.lazy(() => import('./pages/NotFound'));
 
-const useWhoami = createFunctionQuery(whoami);
-
 function Loading() {
   return (
     <>
@@ -35,8 +31,6 @@ function Loading() {
 }
 
 export default function App() {
-  const whoami = useWhoami([]);
-
   return (
     <>
       <Helmet>
@@ -75,7 +69,6 @@ export default function App() {
           </nav>
         </header>
         <div className="flex-1 container px-2 mx-auto">
-          <h1>{`I am ${whoami.data}`}</h1>
           <React.Suspense fallback={<Loading />}>
             <Switch>
               {pages.map(({ Component, display, exactPath, path }) => (

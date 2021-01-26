@@ -83,53 +83,7 @@ export class ServerQueryExecutorImpl implements ServerQueryExecutor {
   }
 }
 
-export function createFunctionQueryServer<T extends ServerFunction>(
-  fn: T,
-  factoryOptions: FunctionQueryOptions = {}
-) {
-  return function useFunctionQuery(
-    args: NonContextFunctionArgs<T>,
-    options?: FunctionQueryOptions
-  ) {
-    const serverQueryExecutor = React.useContext(ServerQueryContext);
-
-    if (!serverQueryExecutor) {
-      throw new Error(
-        `Invariant violation: the useFunction hook must be called within a ServerQueryContext`
-      );
-    }
-
-    return serverQueryExecutor.executeQuery(fn, args, {
-      ...factoryOptions,
-      ...options,
-      retry: false,
-    }) as QueryObserverResult<FunctionReturnType<T>>;
-  };
-}
-
-export function createFunctionMutationServer<T extends ServerFunction>(
-  _fn: T,
-  _factoryOptions: FunctionMutationOptions<
-    FunctionReturnType<T>,
-    unknown,
-    NonContextFunctionArgs<T>
-  > = {}
-) {
-  return function useFunctionMutation(
-    _options: FunctionMutationOptions<
-      FunctionReturnType<T>,
-      unknown,
-      NonContextFunctionArgs<T>
-    > = {}
-  ) {
-    invariant(
-      true,
-      `The "mutate" method of observers returned by mutation hooks must not be invoked on the server`
-    );
-  };
-}
-
-export function useFunctionServer<T extends ServerFunction>(
+export function useQueryFunctionServer<T extends ServerFunction>(
   fn: T,
   args: NonContextFunctionArgs<T>,
   options?: FunctionQueryOptions
@@ -142,7 +96,19 @@ export function useFunctionServer<T extends ServerFunction>(
     );
   }
 
-  return serverQueryExecutor.executeQuery(fn, args, options) as QueryObserverResult<
-    FunctionReturnType<T>
-  >;
+  return serverQueryExecutor.executeQuery(
+    fn,
+    args,
+    Object.assign(Object.create(null), options, { retry: false })
+  ) as QueryObserverResult<FunctionReturnType<T>>;
+}
+
+export function useMutationFunctionServer<T extends ServerFunction>(
+  _fn: T,
+  _options: FunctionMutationOptions<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>> = {}
+) {
+  invariant(
+    true,
+    `The "mutate" method of observers returned by mutation hooks must not be invoked on the server`
+  );
 }

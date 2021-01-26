@@ -1,8 +1,8 @@
 export * from 'react-query';
 export type { ServerFunction, ServerFunctionContext } from './types';
 
-import { createFunctionMutationBrowser, createFunctionQueryBrowser } from './browser';
-import { createFunctionMutationServer, createFunctionQueryServer } from './server';
+import { useMutationFunctionBrowser, useQueryFunctionBrowser } from './browser';
+import { useMutationFunctionServer, useQueryFunctionServer } from './server';
 import type {
   FunctionMutationOptions,
   FunctionQueryOptions,
@@ -39,9 +39,32 @@ import type {
  * }
  * ```
  */
-export function createFunctionQuery<T extends ServerFunction>(
+export function createQueryFunction<T extends ServerFunction>(
   fn: T,
-  factoryOptions: FunctionQueryOptions = {}
+  factoryOptions?: FunctionQueryOptions
+) {
+  return function useBoundQueryFunction(
+    args: NonContextFunctionArgs<T>,
+    options?: FunctionQueryOptions
+  ) {
+    if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
+      if (!isFunctionFacade(fn)) {
+        throw new Error(
+          'Invariant violation: Attempting to invoke a server function not decorated by the Proxy facade'
+        );
+      }
+
+      return useQueryFunctionBrowser(fn, args, Object.assign({}, factoryOptions, options));
+    } else {
+      return useQueryFunctionServer(fn, args, Object.assign({}, factoryOptions, options));
+    }
+  };
+}
+
+export function useQueryFunction<T extends ServerFunction>(
+  fn: T,
+  args: NonContextFunctionArgs<T>,
+  options?: FunctionQueryOptions
 ) {
   if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
     if (!isFunctionFacade(fn)) {
@@ -50,9 +73,9 @@ export function createFunctionQuery<T extends ServerFunction>(
       );
     }
 
-    return createFunctionQueryBrowser(fn, factoryOptions);
+    return useQueryFunctionBrowser(fn, args, options);
   } else {
-    return createFunctionQueryServer(fn, factoryOptions);
+    return useQueryFunctionServer(fn, args, options);
   }
 }
 
@@ -92,25 +115,29 @@ export function createFunctionQuery<T extends ServerFunction>(
  * }
  * ```
  */
-export function createFunctionMutation<T extends ServerFunction>(
+export function createMutationFunction<T extends ServerFunction>(
   fn: T,
-  factoryOptions: FunctionMutationOptions<
+  factoryOptions?: FunctionMutationOptions<
     FunctionReturnType<T>,
     unknown,
     NonContextFunctionArgs<T>
-  > = {}
+  >
 ) {
-  if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
-    if (!isFunctionFacade(fn)) {
-      throw new Error(
-        'Invariant violation: Attempting to invoke a server function not decorated by the Proxy facade'
-      );
-    }
+  return function useBoundMutationFunction(
+    options?: FunctionMutationOptions<FunctionReturnType<T>, unknown, NonContextFunctionArgs<T>>
+  ) {
+    if (process.env.NOSTALGIE_BUILD_TARGET === 'browser') {
+      if (!isFunctionFacade(fn)) {
+        throw new Error(
+          'Invariant violation: Attempting to invoke a server function not decorated by the Proxy facade'
+        );
+      }
 
-    return createFunctionMutationBrowser(fn, factoryOptions);
-  } else {
-    return createFunctionMutationServer(fn, factoryOptions);
-  }
+      return useMutationFunctionBrowser(fn, Object.assign({}, factoryOptions, options));
+    } else {
+      return useMutationFunctionServer(fn, Object.assign({}, factoryOptions, options));
+    }
+  };
 }
 
 interface FunctionFacade {

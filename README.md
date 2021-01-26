@@ -58,7 +58,7 @@ export default function App() {
 
 > **Default: `./src/functions.[js|ts]`**
 >
-> _Note: This file must exist._
+> _Note: When this file does not exist, function support is disabled._
 
 In Nostalgie, invoking server-side code has never been easier. Nostalgie abstracts away the complexity of invoking server-side logic from the frontend in a way that these functions can be called either at runtime in the browser, or at render-time on the server.
 
@@ -89,18 +89,18 @@ export function getBlogPosts(ctx: ServerFunctionContext, author?: string) {
 }
 ```
 
-If we want to use this function from our application code, we use the `useFunction` hook exposed by `nostalgie`. Note that we also import a reference to the _actual_ function. This might sound surprising because that function often won't be able to execute in the browser context. In fact, we probably don't want it and its dependencies increasing the size of our front-end bundle(s). Have no fear, since Nostalgie is also responsible for packaging applications, it will actually replace the functions entrypoint (and any transient dependencies) with a simple object providing the metadata about which functions exist. Importing a reference to the actual function also has the side benefit of helping us get accurate type hints. When using `useFunction` below, we will be hinted with the names and types of the arguments array. We will also have full type hinting for the `blogPosts` value.
+If we want to use this function from our application code, we use the `useQueryFunction` hook exposed by `nostalgie/functions`. Note that we also import a reference to the _actual_ function. This might sound surprising because that function often won't be able to execute in the browser context. In fact, we probably don't want it and its dependencies increasing the size of our front-end bundle(s). Have no fear, since Nostalgie is also responsible for packaging applications, it will actually replace the functions entrypoint (and any transient dependencies) with a simple object providing the metadata about which functions exist. Importing a reference to the actual function also has the side benefit of helping us get accurate type hints. When using `useQueryFunction` below, we will be hinted with the names and types of the arguments array. We will also have full type hinting for the `blogPosts` value.
 
-Behind the scenes, the `useFunction` hook is delegating to [`useQuery`](https://react-query.tanstack.com/reference/useQuery) from [react-query](https://github.com/tannerlinsley/react-query). As a result, the returned `blogPosts` object is an observer of the query. In fact, we could have provided a third argument to `useFunction` to set caching and other options as supported by [`useQuery`](https://react-query.tanstack.com/reference/useQuery).
+Behind the scenes, the `useQueryFunction` hook is delegating to [`useQuery`](https://react-query.tanstack.com/reference/useQuery) from [react-query](https://github.com/tannerlinsley/react-query). As a result, the returned `blogPosts` object is an observer of the query. In fact, we could have provided a third argument to `useQueryFunction` to set caching and other options as supported by [`useQuery`](https://react-query.tanstack.com/reference/useQuery).
 
 ```tsx
 import * as React from 'react';
-import { useFunction } from 'nostalgie';
+import { useQueryFunction } from 'nostalgie/functions';
 import BlogPost from './BlogPost';
 import { getBlogPosts } from './functions';
 
 export default function BlogPostList() {
-  const blogPosts = useFunction(getBlogPosts, ['ggoodman']);
+  const blogPosts = useQueryFunction(getBlogPosts, ['ggoodman']);
 
   if (blogPosts.isLoading) return 'Loading...';
 
@@ -144,18 +144,17 @@ The above will produce artifacts in the `./example/build` dirctory, suitable for
 
 Nostalgie removes many of the difficult, contentious decisions from the equation when building for the web. It aims to make it easier than ever to build server-side-rendered (SSR) apps that can be deployed anywhere and that take full advantage of modern facilities like:
 
-- **Async SSR**: Idiomatic code-splitting using `React.lazy` that even works during SSR. You decide where you want to split things up using `React.lazy` and dynamic `import()` expressions and we wire things up so that it _just works_.
-- **Routing**: Nested, hierarchical routing using [react-router v5](https://github.com/ReactTraining/react-router), letting you ship those glorious top-level page transitions you desperately wanted but couldn't get in your favourite react SSR framework.
-- **SEO**: Full control over the top-level markup rendered by the server using an interface heavily inspired by [react-helmet](https://github.com/nfl/react-helmet). Set your title, meta tags and many others right from within your react components.
+- **Code splitting**: React introduced `React.lazy` as the idiomatic way to introduce code splitting boundaries. Unfortunately, it was quite hard to integrate into SSR apps, leaving projects like [loadable components](https://loadable-components.com/) to fill the gap. Nostalgie makes `React.lazy` work out of the box with SSR and Suspense. You decide where you want to split things up using `React.lazy`, using dynamic `import()` expressions and we wire things up so that it _just works_.
+
+- **Routing**: Nested, hierarchical routing using [react-router v5](https://github.com/ReactTraining/react-router) is the future. This lets you ship those glorious top-level page transitions you desperately wanted but couldn't get in your favourite react SSR framework. With Nostalgie, you control the **whole** page.
+
+- **SEO**: Full control over the top-level markup and meta tags rendered by the server using [react-helmet-async](https://github.com/staylor/react-helmet-async). Set your title, meta tags and many others right from within your react components.
+
 - **Styling**: Built-in integration with [tailwind.css](https://tailwindcss.com/) via [`twind`](https://github.com/tw-in-js/twind). Stop worrying about the hard parts of scalable CSS and catch the tropical breeze.
-- **Serverless functions**: Expose functions that should run on the back-end directly to the front-end. You define your back-end function and call it directly from the front-end. We wire things up for you transparently. Want the result of these functions to be cacheable? Easy, return a `CacheableValue` from your server function and we'll worry about cacheing. We'll even figure out some smart HTTP cache headers to send automatically based on the cache-ability of all server functions invoked during server rendering so that your CDN can serve from _its cache_.
-- **Authentication**: Built-in authentication with any OpenID-compliant service. We think that authentication and identity are a core building block of building any modern web site / app and want to take the complexities off your shoulders.
 
-> _Note: Much of the above is very much an aspirational statement about what we want Nostalgie to be. Not all of this is build (or even designed). That being said, we feel strongly enough about it for it to be mentioned in the vision statement._
+- **Serverless functions**: Expose functions that should run on the back-end directly to the front-end without worrying about http and fetch. You define your back-end functions and call it directly from the front-end using the `useQueryFunction` and `useMutationFunction` hooks. These hooks are automatically wired up to your back-end functions and the built-in authentication system. These delegate to the [`useQuery`]() and [`useMutation`]() hooks exposed by the excellent [`react-query`]() library. Functions results will be automatically included in server-side-rendered pages (up to a configurable time budget deadline). On the client, render while you fetch and move on to getting the business logic shipped.
 
-## Usage
-
-WIP: See `./example` for a real example.
+- **Authentication**: Built-in authentication with any OpenID-compliant issuer. When configured with an OpenID issuer, Nostalgie exposes a `useAuth` hook that provides a `.loginUrl` and `.logoutUrl`. Easily authenticate users and benefit from full awareness of visitor identity both during server-side and client-side rendering. Your server functions will automatically be provided with the identity and authentication state of the visitor and can easily make authorization decisions or authenticated calls to other APIs with the full security of the server-side environment.
 
 ## FAQ
 

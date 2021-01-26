@@ -1,13 +1,25 @@
 import Boom from '@hapi/boom';
 import * as Cookie from '@hapi/cookie';
-import type { Plugin } from '@hapi/hapi';
+import type { Plugin, Request } from '@hapi/hapi';
+import Joi from 'joi';
 import * as OpenID from 'openid-client';
+import { URL } from 'url';
 import type { NostalgieAuthOptions } from '../../../../settings';
 import type { ServerAuthCredentials } from '../../../auth/server';
 
-export const authPlugin: Plugin<NostalgieAuthOptions> = {
+const AuthState = Joi.object({
+  nonce: Joi.string().required(),
+  returnTo: Joi.string().required(),
+});
+interface AuthState {
+  nonce: string;
+  returnTo: string;
+}
+
+export const authPlugin: Plugin<{ auth: NostalgieAuthOptions; publicUrl: string }> = {
   name: 'nostalgie/auth',
   async register(server, options) {
+    const { auth } = options;
     await server.register(Cookie);
 
     server.auth.strategy('nostalgie-session', 'cookie', {
@@ -15,7 +27,7 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
         name: 'nsid',
         encoding: 'iron',
         ttl: 1000 * 60 * 60 * 24 * 7 * 4, // 4 weeks
-        password: options.cookieSecret,
+        password: auth.cookieSecret,
         path: '/',
         // TODO: FIXME in a way that is dev-friendly
         isSecure: false,
@@ -39,7 +51,7 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
 
     server.state('nauth', {
       encoding: 'iron',
-      password: options.cookieSecret,
+      password: auth.cookieSecret,
       path: '/',
       // TODO: FIXME in a way that is dev-friendly
       isSecure: false,
@@ -68,20 +80,21 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
           entity: 'user',
         },
         cors: false,
-        // validate: {
-        //   query: {
-        //     redirect_uri: Joi.string(),
-        //   },
-        // },
+        validate: {
+          query: Joi.object({
+            return_to: Joi.string().default('/'),
+          }).optional(),
+        },
       },
       handler: async (request, h) => {
         if (request.auth.isAuthenticated) {
           return h.redirect('/');
         }
 
-        const issuer = await fetchIssuer(options.issuer);
+        const returnTo = validateReturnTo(request, request.query.return_to);
+        const issuer = await fetchIssuer(auth.issuer);
         const client = new issuer.Client({
-          client_id: options.clientId,
+          client_id: auth.clientId,
           redirect_uris: [`${server.info.uri}/.nostalgie/callback`],
           response_types: ['code'],
         });
@@ -92,7 +105,14 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
           nonce,
         });
 
-        h.state('nauth', { nonce });
+        request.logger.info(
+          {
+            returnTo,
+          },
+          'Starting login transaction'
+        );
+
+        h.state('nauth', { nonce, returnTo });
 
         return h.redirect(url);
       },
@@ -108,12 +128,17 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
           entity: 'user',
         },
         cors: false,
+        validate: {
+          query: Joi.object({
+            return_to: Joi.string().default('/'),
+          }).optional(),
+        },
       },
       handler: async (request, h) => {
         // const issuer = await fetchIssuer(auth.issuer);
         // const client = new issuer.Client({
         //   client_id: auth.clientId,
-        //   redirect_uris: [`${server.info.uri}/.nostalgie/callback`],
+        //   return_tos: [`${server.info.uri}/.nostalgie/callback`],
         //   response_types: ['code'],
         // });
         // const tokenSet = new OpenID.TokenSet({
@@ -125,12 +150,21 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
         // });
         // const endSessionUrl = client.endSessionUrl({
         //   id_token_hint: tokenSet,
-        //   post_logout_redirect_uri: '/',
+        //   post_logout_return_to: '/',
         // });
 
+        const returnTo = validateReturnTo(request, request.query.return_to);
+
+        request.logger.info(
+          {
+            sub: (request.auth.credentials as any).claims.sub,
+            returnTo,
+          },
+          'Logged out'
+        );
         request.cookieAuth.clear();
 
-        return h.redirect('/').unstate('nauth');
+        return h.redirect(returnTo).unstate('nauth');
       },
     });
 
@@ -154,20 +188,32 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
           return h.redirect('/');
         }
 
-        const nauth = request.state.nauth as { nonce?: string } | undefined;
-
-        if (!nauth) {
-          throw Boom.unauthorized('Invalid nonce');
-        }
-
+        const nauthState = request.state.nauth;
         // Clear the session cookie now that it has been consumed
         h.unstate('nauth');
 
+        const validationResult = AuthState.validate(nauthState, {
+          stripUnknown: true,
+        });
+
+        if (validationResult.error) {
+          request.logger.warn(
+            {
+              err: validationResult.error,
+            },
+            'Error while validating authentication state cookie payload'
+          );
+
+          throw Boom.badImplementation();
+        }
+
+        const nauth = validationResult.value as AuthState;
+        const returnTo = validateReturnTo(request, nauth.returnTo);
         const redirectUri = `${server.info.uri}/.nostalgie/callback`;
-        const issuer = await fetchIssuer(options.issuer);
+        const issuer = await fetchIssuer(auth.issuer);
         const client = new issuer.Client({
-          client_id: options.clientId,
-          client_secret: options.clientSecret,
+          client_id: auth.clientId,
+          client_secret: auth.clientSecret,
           redirect_uris: [redirectUri],
           // response_types: ['id_token token'],
         });
@@ -183,7 +229,7 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
 
         if (!tokenSet.access_token) {
           request.logger.warn(
-            { issuer: options.issuer },
+            { issuer: auth.issuer },
             'received a token set lacking an access_token'
           );
           throw Boom.badImplementation();
@@ -198,8 +244,50 @@ export const authPlugin: Plugin<NostalgieAuthOptions> = {
 
         request.cookieAuth.set(serverAuth);
 
-        return h.redirect('/');
+        request.logger.info(
+          {
+            sub: serverAuth.claims.sub,
+            returnTo,
+          },
+          'Login callback completed'
+        );
+
+        return h.redirect(returnTo);
       },
     });
   },
 };
+
+function validateReturnTo(request: Request, redirectCandidate: string): string {
+  let returnTo = '/';
+
+  try {
+    const publicUrlObj = new URL(request.server.info.uri);
+    const resolvedUrl = new URL(redirectCandidate, publicUrlObj);
+
+    if (
+      publicUrlObj.hostname === resolvedUrl.hostname &&
+      publicUrlObj.port === resolvedUrl.port &&
+      publicUrlObj.protocol === resolvedUrl.protocol &&
+      resolvedUrl.pathname.startsWith(publicUrlObj.pathname)
+    ) {
+      returnTo = `${resolvedUrl.pathname}?${resolvedUrl.search}`;
+    } else {
+      request.logger.warn(
+        {
+          return_to: redirectCandidate,
+        },
+        'Rejecting unsafe redirect'
+      );
+    }
+  } catch (err) {
+    request.logger.warn(
+      {
+        return_to: redirectCandidate,
+      },
+      'Rejecting unsafe redirect'
+    );
+  }
+
+  return returnTo;
+}
