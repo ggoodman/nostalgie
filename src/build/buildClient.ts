@@ -4,6 +4,7 @@ import { promises as Fs } from 'fs';
 import * as Path from 'path';
 import { createRequire } from '../createRequire';
 import type { NostalgieSettings } from '../settings';
+import { cssBrowserPlugin } from './esbuildPlugins/cssPlugin';
 import { decorateDeferredImportsBrowserPlugin } from './esbuildPlugins/decorateDeferredImportsBrowserPlugin';
 import { mdxPlugin } from './esbuildPlugins/mdxPlugin';
 import { reactShimPlugin } from './esbuildPlugins/reactShimPlugin';
@@ -15,17 +16,19 @@ export async function buildClient(
   settings: NostalgieSettings,
   functionNames: string[],
   signal: AbortSignal
-): Promise<Metadata> {
+): Promise<{ cssMap: Map<string, string>; meta: Metadata }> {
   const staticDir = settings.staticDir;
   const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
   const runtimeRequire = createRequire(Path.resolve(settings.buildDir, './index.js'));
   const nostalgieBootstrapPath = runtimeRequire.resolve('nostalgie/internal/bootstrap');
   const resolveExtensions = [...settings.resolveExtensions];
   const relativeAppEntry = `./${Path.relative(settings.rootDir, settings.applicationEntryPoint)}`;
+  const cssMap = new Map<string, string>();
 
   const plugins: Plugin[] = [
     mdxPlugin({ signal }),
     svgPlugin(),
+    cssBrowserPlugin(settings, service, cssMap),
     reactShimPlugin(settings),
     decorateDeferredImportsBrowserPlugin({
       rootDir: settings.rootDir,
@@ -79,9 +82,9 @@ export function start(options) {
   const metaFileContents = await Fs.readFile(clientMetaPath, 'utf8');
 
   // The metadata has potentially sensitive info like local paths
-  await Fs.unlink(clientMetaPath);
+  // await Fs.unlink(clientMetaPath);
 
-  const metaFileData: Metadata = JSON.parse(metaFileContents);
+  const meta: Metadata = JSON.parse(metaFileContents);
 
-  return metaFileData;
+  return { cssMap, meta };
 }

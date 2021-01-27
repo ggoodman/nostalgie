@@ -35,16 +35,11 @@ export async function build(options: {
     })();
     const clientBuildMetadataPromise = (async () => {
       const { functionNames } = await functionBuildPromise;
-      const clientBuildMetadata = await buildClient(
-        service,
-        settings,
-        functionNames,
-        options.signal
-      );
+      const { cssMap, meta } = await buildClient(service, settings, functionNames, options.signal);
 
       logger.info({ pathName: settings.staticDir }, 'client assets written');
 
-      return new ClientBuildMetadata(settings, clientBuildMetadata);
+      return new ClientBuildMetadata(settings, meta, cssMap);
     })();
 
     const nodeServerPromise = (async () => {

@@ -1,3 +1,6 @@
 export interface ChunkDependencies {
-  [chunkName: string]: string[];
+  [chunkName: string]: {
+    modules: string[];
+    styles: { relPath: string; css: string }[];
+  };
 }

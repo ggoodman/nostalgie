@@ -1,5 +1,11 @@
+///<reference types="nostalgie/auth" />
+///<reference types="nostalgie/functions" />
+///<reference types="nostalgie/helmet" />
+///<reference types="nostalgie/lazy" />
+///<reference types="nostalgie/routing" />
+
 declare module '*.css' {
-  const url: string;
+  const url: void;
   /**
    * A URI pointing to the external stylesheet
    */
