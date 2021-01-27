@@ -20,6 +20,15 @@ import { LazyContext } from '../../lazy/context';
 import type { ChunkManager } from '../../lazy/types';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
 
+declare global {
+  var __nostalgie_css: (buildPath: string, css: string) => void;
+}
+
+// const injectedCss = new Map<string, string>();
+// global.__nostalgie_css = (buildPath: string, css: string) => {
+//   injectedCss.set(buildPath, css);
+// }
+
 if (process.env.NODE_ENV === 'development') {
   install({
     environment: 'node',
@@ -177,13 +186,29 @@ export class ServerRenderer {
 
     const { helmet } = helmetCtx as Helmet.FilledContext;
     const requiredChunks = [bootstrapChunk, ...chunkCtx.chunks.map((chunk) => chunk.chunk)];
+    const seenChunks = new Set();
 
-    for (const chunk of requiredChunks) {
+    while (requiredChunks.length) {
+      const chunk = requiredChunks.shift()!;
+
+      // Make sure we don't process twice
+      if (seenChunks.has(chunk)) continue;
+      seenChunks.add(chunk);
+
       const chunkDeps = this.chunkDependencies[chunk];
 
       if (chunkDeps) {
-        for (const chunkDep of chunkDeps) {
+        for (const chunkDep of chunkDeps.modules) {
           headTags.push(`<link rel="modulepreload" href="${chunkDep}">`);
+          // Capture transitive dependencies
+          // Chunk dependencies are stored as absolute paths. We need to trim
+          // the leading '/` or it won't match the key format
+          requiredChunks.push(chunkDep.slice(1));
+        }
+        for (const chunkDep of chunkDeps.styles) {
+          headTags.push(
+            `<style data-ns-css=${JSON.stringify(chunkDep.relPath)}>${chunkDep.css}</style>`
+          );
         }
       }
     }
@@ -200,32 +225,30 @@ export class ServerRenderer {
       reactQueryState: queryClientData,
     };
     const wrapper = `
-    <!doctype html>
-    <html ${htmlAttrs}>
-      <head>
-        ${helmet.title.toString()}
-        ${helmet.meta.toString()}
-        <link rel="modulepreload" href="${publicUrl}static/build/bootstrap.js" />
-        ${chunkCtx.chunks.map(
-          ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}${encodeURI(chunk)}" />`
-        )}
-        ${helmet.link.toString()}
-        ${headTags.join('\n')}
-        ${helmet.noscript.toString()}
-        ${helmet.script.toString()}
-        ${TwindServer.getStyleTag(customSheet)}
-        ${helmet.style.toString()}
-      </head>
-      <body ${bodyAttrs}>
-        <div id="root">${shimmedMarkup}</div>
-        <script async type="module">
-          import { start } from "${publicUrl}static/build/bootstrap.js";
-    
-          start(${JSON.stringify(bootstrapOptions)});
-        </script>
-      </body>
-    </html>
-          `.trim();
+<!doctype html>
+<html ${htmlAttrs}>
+<head>
+${helmet.title.toString()}
+${helmet.meta.toString()}
+<link rel="modulepreload" href="${publicUrl}static/build/bootstrap.js" />
+${chunkCtx.chunks.map(
+  ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}${encodeURI(chunk)}" />`
+)}
+${helmet.link.toString()}
+${headTags.join('\n')}
+${helmet.noscript.toString()}
+${helmet.script.toString()}
+${TwindServer.getStyleTag(customSheet)}
+${helmet.style.toString()}
+</head>
+<body ${bodyAttrs}>
+<div id="root">${shimmedMarkup}</div>
+<script async type="module">
+import { start } from "${publicUrl}static/build/bootstrap.js";
+start(${JSON.stringify(bootstrapOptions)});
+</script>
+</body>
+</html>`.trim();
 
     return {
       html: wrapper,
