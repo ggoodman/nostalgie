@@ -7,9 +7,8 @@ import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
 import { install } from 'source-map-support';
-// import StackTracey from 'stacktracey';
 import * as Twind from 'twind';
-import * as TwindServer from 'twind/server';
+import * as TwindServer from 'twind/shim/server';
 import type { ChunkDependencies } from '../../../build/types';
 import type { ClientAuth } from '../../auth';
 import { AuthContext, ServerAuth } from '../../auth/server';
@@ -114,8 +113,6 @@ export class ServerRenderer {
     let renderCount = 1;
     let renderedMarkup = '';
 
-    // let errStack: StackTracey['items'] | undefined = undefined;
-
     try {
       // We're going to give a maximum amount of time for this render.
       const deadlineAt = Date.now() + this.settings.defaultDeadline;
@@ -156,8 +153,7 @@ export class ServerRenderer {
 
       renderedMarkup = html ?? (renderCount++, renderToString(model));
     } catch (err) {
-      // const stack = new StackTracey(err);
-      // errStack = await stack.withSources().items;
+      // TODO: Bake error into dev builds for devex
     }
     // Any outstanding queries should be cancelled at this point since our client's lifetime
     // is limited to this request anyway.
@@ -171,8 +167,9 @@ export class ServerRenderer {
     const customSheet = TwindServer.virtualSheet();
     const { tw } = Twind.create({
       sheet: customSheet,
-      mode: Twind.silent,
+      mode: 'silent',
       prefix: true,
+      preflight: true,
       plugins: {
         ...TwindTypography(),
       },
@@ -181,7 +178,15 @@ export class ServerRenderer {
     customSheet.reset();
 
     const shimmedMarkup = TwindServer.shim(renderedMarkup, {
-      tw,
+      tw: tw as any,
+      lowerCaseTagName: false,
+      comment: false,
+      blockTextElements: {
+        script: true,
+        noscript: true,
+        style: true,
+        pre: true,
+      },
     });
     const headTags = [];
 

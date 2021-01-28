@@ -42,7 +42,7 @@ export class ServerRendererBuilder {
   private readonly service: Service;
   private readonly settings: NostalgieSettings;
   private readonly token: CancellationToken;
-  private readonly watcher = watch([], { ignoreInitial: true });
+  private readonly watcher = watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
   private readonly watchedFiles = new Set<string>();
 
   constructor(options: ServerRendererBuilderOptions) {

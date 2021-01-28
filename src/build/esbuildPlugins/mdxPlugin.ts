@@ -39,7 +39,7 @@ export function mdxPlugin(options: { token: CancellationToken }): Plugin {
 
         const contents = await Fs.readFile(path, 'utf8');
 
-        watcher ??= watch([], { ignoreInitial: true });
+        watcher ??= watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
         watcher.on('all', (_eventType, path) => {
           if (typeof path === 'string') {
             cache.del(path);

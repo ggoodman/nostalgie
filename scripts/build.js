@@ -76,7 +76,7 @@ async function buildCli(service) {
     platform: 'node',
     target: 'node12.16',
     splitting: false,
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: false,
     write: true,
   });
 }
@@ -100,7 +100,7 @@ async function buildMdxCompilerWorker(service) {
     minify: true,
     platform: 'node',
     target: 'node12.16',
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: false,
     splitting: false,
     write: true,
   });
@@ -125,7 +125,7 @@ async function buildPiscinaWorker(service) {
     outfile: Path.resolve(__dirname, '../dist/worker.js'),
     platform: 'node',
     target: 'node12.16',
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: false,
     splitting: false,
     write: true,
   });
@@ -165,7 +165,7 @@ async function buildRuntimeModules(service) {
         },
       },
     ],
-    sourcemap: true,
+    sourcemap: false,
     splitting: true,
     write: true,
   });
@@ -174,62 +174,74 @@ async function buildRuntimeModules(service) {
 async function buildRuntimeTypes() {
   /** @type {Extract<import('rollup').InputOption, {}>} */
   const runtimeInput = {};
+  /** @type {Promise<void>[]} */
+  const buildPromises = [];
 
   for (const runtimeModuleName of runtimeModuleNames) {
-    runtimeInput[`${runtimeModuleName}/index`] = Path.resolve(
-      __dirname,
-      `../src/runtime/${runtimeModuleName}/index.ts`
+    buildPromises.push(
+      (async () => {
+        const build = await rollup({
+          input: {
+            [`${runtimeModuleName}/index`]: Path.resolve(
+              __dirname,
+              `../src/runtime/${runtimeModuleName}/index.ts`
+            ),
+          },
+          external: (name) => !name.startsWith('.') && !name.startsWith('/'),
+          plugins: [
+            RollupPluginNodeResolve(),
+            RollupPluginTs({
+              hook: {
+                declarationStats(stats) {
+                  for (const typeDefinitionName of Object.keys(stats)) {
+                    const { externalTypes } = stats[typeDefinitionName];
+
+                    for (const { library, version } of externalTypes) {
+                      const versionSpec = mergedDependencies[library] || version;
+
+                      if (devDependencies[library] && devDependencies[library] !== versionSpec) {
+                        throw new Error(
+                          `Internal inconsistency between required type versions for ${library}`
+                        );
+                      }
+
+                      devDependencies[library] = versionSpec;
+                    }
+                  }
+
+                  // Needed to satisfy @ts-check :shrug:
+                  return undefined;
+                },
+              },
+              // We want to get ESNext and let the transformation / minification
+              // happen at build time
+              transpiler: 'typescript',
+              transpileOnly: true,
+            }),
+          ],
+        });
+
+        const outDir = Path.resolve(__dirname, `../dist/`);
+        const buildResult = await build.generate({
+          dir: outDir,
+          format: 'esm',
+          esModule: true,
+          sourcemap: false,
+        });
+
+        for (const chunk of buildResult.output) {
+          if (chunk.type === 'asset') {
+            const fileName = Path.resolve(outDir, chunk.fileName);
+
+            await Fs.mkdir(Path.dirname(fileName), { recursive: true });
+            await Fs.writeFile(fileName, chunk.source);
+          }
+        }
+      })()
     );
   }
 
-  const build = await rollup({
-    input: runtimeInput,
-    external: (name) => !name.startsWith('.') && !name.startsWith('/'),
-    plugins: [
-      RollupPluginNodeResolve(),
-      RollupPluginTs({
-        hook: {
-          declarationStats(stats) {
-            for (const typeDefinitionName of Object.keys(stats)) {
-              const { externalTypes } = stats[typeDefinitionName];
-
-              for (const { library, version } of externalTypes) {
-                const versionSpec = mergedDependencies[library] || version;
-
-                if (devDependencies[library] && devDependencies[library] !== versionSpec) {
-                  throw new Error(
-                    `Internal inconsistency between required type versions for ${library}`
-                  );
-                }
-
-                devDependencies[library] = versionSpec;
-              }
-            }
-
-            // Needed to satisfy @ts-check :shrug:
-            return undefined;
-          },
-        },
-        // We want to get ESNext and let the transformation / minification
-        // happen at build time
-        transpiler: 'typescript',
-      }),
-    ],
-  });
-
-  const outDir = Path.resolve(__dirname, '../dist');
-  const buildResult = await build.generate({
-    dir: outDir,
-    format: 'esm',
-    esModule: true,
-    sourcemap: false,
-  });
-
-  for (const chunk of buildResult.output) {
-    if (chunk.type === 'asset') {
-      await Fs.writeFile(Path.resolve(outDir, chunk.fileName), chunk.source);
-    }
-  }
+  await Promise.all(buildPromises);
 }
 
 (async () => {
@@ -269,15 +281,29 @@ async function buildRuntimeTypes() {
 
     await Promise.all(buildPromises);
 
-    const dependencies = {};
+    const dependencies = {
+      // For some reason the type dependency is not being detected for this so
+      // let's hard-code it in. We need this as an explicit dependency so that types are available
+      // for routing-related stuff.
+      '@types/react-router-dom': PackageJson.devDependencies['@types/react-router-dom'],
+    };
     const peerDependencies = {};
 
     for (const externalName of externalModules) {
       const target =
         externalName === 'react' || externalName === 'react-dom' ? peerDependencies : dependencies;
       const versionSpec = mergedDependencies[externalName];
+      if (externalName.includes('react-router'))
+        console.debug({
+          externalName,
+          mergedDependencies,
+          target: target === peerDependencies ? 'peerDependencies' : 'dependencies',
+          mergedSpec: versionSpec,
+        });
 
-      target[externalName] = versionSpec;
+      if (versionSpec) {
+        target[externalName] = versionSpec;
+      }
     }
 
     for (const runtimeModuleName of runtimeModuleNames) {

@@ -25,7 +25,7 @@ export class NodeServerBuilder {
   private readonly onBuildEmitter = new Emitter<NodeServerBuildResult>();
   private readonly service: Service;
   private readonly settings: NostalgieSettings;
-  private readonly watcher = watch([], { ignoreInitial: true });
+  private readonly watcher = watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
   private readonly watchedFiles = new Set<string>();
 
   constructor(options: NodeServerBuilderOptions) {

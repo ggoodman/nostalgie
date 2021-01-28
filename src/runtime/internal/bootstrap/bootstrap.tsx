@@ -6,8 +6,7 @@ import * as Helmet from 'react-helmet-async';
 import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
-import * as Twind from 'twind';
-import 'twind/shim';
+import { setup } from 'twind/shim';
 import type { ClientAuth } from '../../auth';
 import { AuthContext } from '../../auth/server';
 import { defaultHelmetProps } from '../../helmet';
@@ -102,12 +101,16 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
     chunks: [],
     lazyComponentState: new Map(),
   };
+  const rootEl = document.getElementById('root');
 
-  Twind.setup({
-    mode: Twind.silent,
+  setup({
+    mode: 'silent',
+    prefix: true,
+    preflight: true,
     plugins: {
       ...TwindTypography(),
     },
+    target: rootEl!,
   });
 
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {
@@ -133,7 +136,7 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
         </ReactQueryHydration.Hydrate>
       </ReactQuery.QueryClientProvider>
     </LazyContext.Provider>,
-    document.getElementById('root')
+    rootEl
   );
 
   if (process.env.NODE_ENV !== 'production') {
