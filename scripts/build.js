@@ -136,7 +136,7 @@ async function buildRuntimeModules(service) {
     bundle: true,
     external: externalModules,
     define: {
-      'process.env.NODE_ENV': JSON.stringify('production'),
+      // 'process.env.NODE_ENV': JSON.stringify('production'),
     },
     entryPoints: runtimeModuleNames.map((n) =>
       Path.resolve(__dirname, `../src/runtime/${n}/index.ts`)
@@ -161,7 +161,7 @@ async function buildRuntimeModules(service) {
         },
       },
     ],
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: true,
     splitting: true,
     write: true,
   });

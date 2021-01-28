@@ -3,6 +3,7 @@ import { BUNDLED_THEMES, getHighlighter, loadTheme } from '@antfu/shiki';
 import mdx from '@mdx-js/mdx';
 import { htmlEscape } from 'escape-goat';
 import grayMatter from 'gray-matter';
+import LRUCache from 'lru-cache';
 import * as Path from 'path';
 //@ts-ignore
 import remarkAutolinkHeadings from 'remark-autolink-headings';
@@ -12,6 +13,12 @@ import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
 import { createRequire } from '../createRequire';
 
+const cache = new LRUCache<string, string>({
+  max: 1024 * 1024 * 32, // 32 mb
+  length(value, key) {
+    return value.length + (key ? key.length : 0);
+  },
+});
 const runtimeRequire = createRequire(__filename);
 
 export default async function compileMdx([path, contents]: [path: string, contents: string]) {
@@ -90,34 +97,42 @@ const remarkCodeBlocksShiki: import('unified').Plugin = () => {
         }
       }
 
-      const fgColor = highlighter.getForegroundColor(requestedTheme).toUpperCase();
-      const bgColor = highlighter.getBackgroundColor(requestedTheme).toUpperCase();
-      const tokens = highlighter.codeToThemedTokens(node.value, node.lang, requestedTheme);
-      const lines = tokens.map((lineTokens, zeroBasedLineNumber) => {
-        const renderedLine = lineTokens
-          .map((token) => {
-            const color = token.color;
-            const styleString =
-              color && color !== fgColor ? ` style="color: ${htmlEscape(color)}"` : '';
+      const cacheKey = JSON.stringify([requestedTheme, node.lang, node.value]);
+      let nodeValue = cache.get(cacheKey);
 
-            return `<span${styleString}>${htmlEscape(token.content)}</span>`;
-          })
-          .join('');
+      if (!nodeValue) {
+        const fgColor = highlighter.getForegroundColor(requestedTheme).toUpperCase();
+        const bgColor = highlighter.getBackgroundColor(requestedTheme).toUpperCase();
+        const tokens = highlighter.codeToThemedTokens(node.value, node.lang, requestedTheme);
+        const lines = tokens.map((lineTokens, zeroBasedLineNumber) => {
+          const renderedLine = lineTokens
+            .map((token) => {
+              const color = token.color;
+              const styleString =
+                color && color !== fgColor ? ` style="color: ${htmlEscape(color)}"` : '';
 
-        return `<span class="codeblock-line" data-line-number="${
-          zeroBasedLineNumber + 1
-        }">${renderedLine}</span>`;
-      });
+              return `<span${styleString}>${htmlEscape(token.content)}</span>`;
+            })
+            .join('');
 
-      const html = lines.join('\n');
-      const styleString = ` style="color: ${htmlEscape(fgColor)};background-color: ${htmlEscape(
-        bgColor
-      )}"`;
+          return `<span class="codeblock-line" data-line-number="${
+            zeroBasedLineNumber + 1
+          }">${renderedLine}</span>`;
+        });
+
+        const html = lines.join('\n');
+        const styleString = ` style="color: ${htmlEscape(fgColor)};background-color: ${htmlEscape(
+          bgColor
+        )}"`;
+        nodeValue = `<pre data-lang="${htmlEscape(
+          node.lang
+        )}"${styleString}><code>${html}</code></pre>`;
+
+        cache.set(cacheKey, nodeValue);
+      }
 
       (node as any).type = 'html';
-      node.value = `<pre data-lang="${htmlEscape(
-        node.lang
-      )}"${styleString}><code>${html}</code></pre>`;
+      node.value = nodeValue;
       node.children = [];
 
       return SKIP;

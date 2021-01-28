@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Improved the internal wiring of the build pipeline so that no unnecessary work is performed and so that work will be running at maximum concurrency.
+- Add support for automatic browser reloads in `nostalgie dev`. This isn't 'hot reloading' (yet) but nevertheless provides a huge boost to developer ergonomics.
+  
+  To opt out:
+  
+  ```bash
+  nostalgie dev --disable-hot-reload
+  ```
+- Introduce the `--log-level` flag for `nostalgie dev` and `nostalgie build`.
+
+### Changed
+- When authentication is configured, the cookies used to persiste ephemeral and long-lived session state will now always be `Secure` in production.
+  
+  More precisely, whenever `process.env.NODE_ENV` is not `"development"`, cookies will always be set with the `Secure` flag.
 
 ## [0.66.0] - 2021-01-27
 ### Added

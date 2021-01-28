@@ -3,6 +3,7 @@ import { NavLink, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import PlunkerImg from './assets/Nostalgie.svg';
 import Favicon from './favicon.ico';
+import './styles/scrollbar.css';
 
 const pages = [
   {
@@ -16,6 +17,12 @@ const pages = [
     path: '/docs',
     exactPath: false,
     Component: React.lazy(() => import('./pages/Docs')),
+  },
+  {
+    display: 'Changelog',
+    path: '/changelog',
+    exactPath: false,
+    Component: React.lazy(() => import('./pages/Changelog')),
   },
 ];
 
@@ -34,12 +41,6 @@ export default function App() {
     <>
       <Helmet>
         <link rel="icon" href={Favicon} />
-        <style>{`
-      html {
-        overflow-x: hidden;
-        margin-right: calc(-1 * (100vw - 100%));
-      }
-      `}</style>
       </Helmet>
       <div className="flex flex-col">
         <header className="bg-blue-600 text-gray-50">
@@ -66,7 +67,7 @@ export default function App() {
             </a>
           </nav>
         </header>
-        <div className="flex-1 container px-2 mx-auto">
+        <main className="flex-1 container px-2 py-12 mx-auto">
           <React.Suspense fallback={<Loading />}>
             <Switch>
               {pages.map(({ Component, display, exactPath, path }) => (
@@ -77,7 +78,7 @@ export default function App() {
               </Route>
             </Switch>
           </React.Suspense>
-        </div>
+        </main>
       </div>
     </>
   );

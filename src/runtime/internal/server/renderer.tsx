@@ -37,6 +37,7 @@ if (process.env.NODE_ENV === 'development') {
 
 export interface ServerRenderRequest {
   auth: ServerAuth;
+  automaticReload?: boolean;
   path: string;
 }
 
@@ -219,6 +220,7 @@ export class ServerRenderer {
 
     const bootstrapOptions: BootstrapOptions = {
       auth: this.serverAuthToClientAuth(request.auth),
+      automaticReload: request.automaticReload,
       // errStack: errStack || undefined,
       lazyComponents: chunkCtx.chunks,
       publicUrl,

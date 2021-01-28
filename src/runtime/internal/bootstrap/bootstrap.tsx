@@ -53,6 +53,7 @@ declare interface Entry extends Location {
 
 export interface BootstrapOptions {
   auth: ClientAuth;
+  automaticReload?: boolean;
   errStack?: Entry[];
   lazyComponents: LazyComponent[];
   publicUrl: string;
@@ -134,4 +135,15 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
     </LazyContext.Provider>,
     document.getElementById('root')
   );
+
+  if (process.env.NODE_ENV !== 'production') {
+    // Nest this 2nd condition to make it extra easy for DCE in production.
+    if (options.automaticReload) {
+      const eventSource = new EventSource('/.nostalgie/events');
+
+      eventSource.addEventListener('reload', (e) => {
+        window.location.reload();
+      });
+    }
+  }
 }

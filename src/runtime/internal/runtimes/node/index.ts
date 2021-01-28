@@ -4,7 +4,8 @@ import { AbortController, AbortSignal } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import Joi from 'joi';
 import * as Path from 'path';
-import { pool } from 'workerpool';
+import { PassThrough } from 'stream';
+import { pool, WorkerPool } from 'workerpool';
 import { wireAbortController } from '../../../../lifecycle';
 import { createDefaultLogger, Logger } from '../../../../logging';
 import { NostalgieAuthOptions, readAuthOptions } from '../../../../settings';
@@ -14,7 +15,10 @@ import type { ServerRenderRequest } from '../../server';
 import { authPlugin } from './auth';
 import { MemoryCacheDriver } from './memoryCacheDriver';
 
+const POOL_RELOADED_EVENT = 'poolReloaded';
+
 export interface StartServerOptions {
+  automaticReload?: boolean;
   buildDir?: string;
   host?: string;
   logger?: Logger;
@@ -39,14 +43,22 @@ export function main(options: StartServerOptions) {
   });
 }
 
-export async function startServer(options: StartServerOptions) {
+export interface NostalgieServer extends Hapi.Server {
+  methods: {
+    invokeFunction: import('../../server').ServerRenderer['invokeFunction'];
+    reloadPool(): Promise<void>;
+    renderAppOnServer: import('../../server').ServerRenderer['renderAppOnServer'];
+  };
+}
+
+export async function initializeServer(options: StartServerOptions): Promise<NostalgieServer> {
   const buildDir = options.buildDir ?? __dirname;
   const server = new Hapi.Server({
     address: options.host ?? '0.0.0.0',
     port: options.port ?? process.env.PORT ?? 8080,
     host: options.host,
     cache: MemoryCacheDriver,
-  });
+  }) as NostalgieServer;
 
   if (options.auth) {
     await server.register({
@@ -82,14 +94,35 @@ export async function startServer(options: StartServerOptions) {
     },
   ]);
 
-  const workerPool = pool(Path.resolve(buildDir, './ssr.js'), {
-    // workerType: 'auto',
-    // forkOpts: {
-    //   stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-    // },
-    // minWorkers: 1,
-    // maxWorkers: 1,
-  });
+  const createPool = () =>
+    pool(Path.resolve(buildDir, './ssr.js'), {
+      // workerType: 'auto',
+      // forkOpts: {
+      //   stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+      // },
+      // minWorkers: 1,
+      // maxWorkers: 1,
+    });
+
+  const recreatePool = async () => {
+    if (workerPool) {
+      server.logger.info('recreating server renderer worker pool');
+
+      await workerPool.terminate(true).catch(() => {
+        // Swallow errors
+      });
+    }
+
+    workerPool = createPool();
+
+    server.events.emit(POOL_RELOADED_EVENT, true);
+
+    return workerPool;
+  };
+  let workerPool: WorkerPool = createPool();
+
+  server.event(POOL_RELOADED_EVENT);
+  server.method('reloadPool', recreatePool);
 
   server.ext('onPreStop', async () => {
     try {
@@ -113,8 +146,7 @@ export async function startServer(options: StartServerOptions) {
       // },
     }
   );
-  const renderAppOnServer = server.methods
-    .renderAppOnServer as import('../../server').ServerRenderer['renderAppOnServer'];
+  const renderAppOnServer = server.methods.renderAppOnServer;
 
   server.method(
     'invokeFunction',
@@ -122,8 +154,46 @@ export async function startServer(options: StartServerOptions) {
       return workerPool.exec('invokeFunction', [functionName, ctx, args]);
     }
   );
-  const invokeFunction = server.methods
-    .invokeFunction as import('../../server').ServerRenderer['invokeFunction'];
+  const invokeFunction = server.methods.invokeFunction;
+
+  if (options.automaticReload) {
+    logger.debug('Starting automatic restart handler');
+
+    server.route({
+      method: 'GET',
+      path: '/.nostalgie/events',
+      options: {
+        cache: false,
+        timeout: {
+          server: false,
+          socket: 5000,
+        },
+      },
+      handler(request, h) {
+        const eventStream = new PassThrough();
+        const res = h
+          .response(eventStream)
+          .code(200)
+          .header('content-type', 'text/event-stream')
+          .header('content-encoding', 'identity');
+        const interval = setInterval(() => {
+          eventStream.write(`event: ping\r\ndata: ${Date.now()}\r\n\r\n`);
+        }, 2000);
+
+        const onPoolReload = () => {
+          eventStream.write(`event: reload\r\ndata: ${Date.now()}\r\n\r\n`);
+        };
+        server.events.addListener(POOL_RELOADED_EVENT, onPoolReload);
+
+        request.events.on('disconnect', () => {
+          clearInterval(interval);
+          server.events.removeListener(POOL_RELOADED_EVENT, onPoolReload);
+        });
+
+        return res;
+      },
+    });
+  }
 
   server.route({
     method: 'POST',
@@ -220,6 +290,7 @@ Disallow: /
     handler: async (request, h) => {
       const { html, latency, renderCount } = await renderAppOnServer({
         auth: requestAuthToServerAuth(request.auth),
+        automaticReload: options.automaticReload,
         path: request.path,
       });
 
@@ -234,6 +305,14 @@ Disallow: /
       return h.response(html).header('content-type', 'text/html');
     },
   });
+
+  await server.initialize();
+
+  return server;
+}
+
+export async function startServer(options: StartServerOptions) {
+  const server = await initializeServer(options);
 
   await server.start();
 
