@@ -7,15 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Added
-- Improved the internal wiring of the build pipeline so that no unnecessary work is performed and so that work will be running at maximum concurrency.
-- Add support for automatic browser reloads in `nostalgie dev`. This isn't 'hot reloading' (yet) but nevertheless provides a huge boost to developer ergonomics.
+- Improved the internal wiring of the build pipeline so that no unnecessary work is performed and so that work will be running at maximum concurrency. (#10)
+- Add support for automatic browser reloads in `nostalgie dev`. This isn't 'hot reloading' (yet) but nevertheless provides a huge boost to developer ergonomics. (#10)
   
   To opt out:
   
   ```bash
   nostalgie dev --disable-hot-reload
   ```
-- Introduce the `--log-level` flag for `nostalgie dev` and `nostalgie build`.
+- Introduce the `--log-level` flag for `nostalgie dev` and `nostalgie build`. (#10)
 
 ### Changed
 - When authentication is configured, the cookies used to persiste ephemeral and long-lived session state will now always be `Secure` in production.
