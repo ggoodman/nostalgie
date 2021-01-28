@@ -1,17 +1,18 @@
+///<reference lib="dom" />
 import { Helmet } from 'nostalgie/helmet';
 import * as React from 'react';
+import Changelog from '../../../../CHANGELOG.md';
 import { mdxDocsComponents } from '../lib/mdxDocsComponents';
 import '../styles/code.css';
-import Docs from './Docs.mdx';
 
-export default function DocsPage() {
+export default function HomePage() {
   return (
     <>
       <Helmet>
-        <title>Nostalgie - Docs</title>
+        <title>Nostalgie - Changelog</title>
       </Helmet>
       <div className="py-3 prose prose-lg max-w-none">
-        <Docs components={mdxDocsComponents} />
+        <Changelog components={mdxDocsComponents} />
       </div>
     </>
   );

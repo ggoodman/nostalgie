@@ -1,11 +1,11 @@
 //@ts-ignore
 // const logPromise = import('why-is-node-running');
 
-import { watch } from 'chokidar';
 import { startService } from 'esbuild';
 import { builtinModules } from 'module';
 import * as Path from 'path';
 import type { Logger } from 'pino';
+import { CancellationTokenSource } from 'ts-primitives';
 import Yargs from 'yargs';
 import PackageJson from '../../package.json';
 import { wireAbortController, withCleanup } from '../lifecycle';
@@ -33,9 +33,13 @@ Yargs.help()
               'The environment for which you want to build your nostalgie server and app.',
             default: 'production',
           },
+          'log-level': {
+            description: 'Change the verbosity of logs produced by the CLI.',
+            choices: ['trace', 'debug', 'info', 'warn', 'error', 'fatal'],
+          },
         } as const),
     async (argv) => {
-      const logger = createDefaultLogger();
+      const logger = createDefaultLogger({ level: argv['log-level'] });
 
       versionCheck('build', logger);
 
@@ -56,8 +60,12 @@ Yargs.help()
         signal.onabort = () => service.stop();
         defer(() => abort());
 
-        const { build } = await import('../build');
-        await build({ logger, service, settings, signal });
+        const tokenSource = new CancellationTokenSource();
+        signal.onabort = () => tokenSource.dispose(true);
+
+        const { Builder } = await import('../build');
+        const builder = new Builder({ logger, service, settings, token: tokenSource.token });
+        await builder.build();
       });
     }
   )
@@ -88,9 +96,17 @@ Yargs.help()
             description: 'The port on which you want the nostalgie dev server to run.',
             default: 8080,
           },
+          'log-level': {
+            description: 'Change the verbosity of logs produced by the CLI.',
+            choices: ['trace', 'debug', 'info', 'warn', 'error', 'fatal'],
+          },
+          'disable-hot-reload': {
+            boolean: true,
+            description: 'Disable the automatic reload behaviour when running in development mode.',
+          },
         } as const),
     async (argv) => {
-      const logger = createDefaultLogger();
+      const logger = createDefaultLogger({ level: argv['log-level'] });
 
       versionCheck('dev', logger);
 
@@ -109,66 +125,16 @@ Yargs.help()
         process.chdir(cwd);
         defer(() => service.stop());
 
-        const watcher = watch('.', {
-          cwd: settings.rootDir,
-          // atomic: true,
-          // depth: 16,
-          ignored: [Path.resolve(settings.rootDir, './build'), '.git'],
-          // ignored: /\/(build|node_modules)\//,
-          ignoreInitial: true,
-          interval: 16,
-          followSymlinks: false,
-        });
-        defer(() => watcher.close());
+        const tokenSource = new CancellationTokenSource();
+        signal.onabort = () => tokenSource.dispose(true);
 
-        const { build } = await import('../build');
-        const { loadHapiServer, rebuild } = await build({ logger, service, settings, signal });
-        const { startServer } = await loadHapiServer();
-        const restartServer = () =>
-          startServer({
-            buildDir: settings.buildDir,
-            auth: settings.auth,
-            host: argv.host,
-            port: argv.port,
-            logger,
-            signal,
-          });
-
-        let serverStartPromise = restartServer();
-        let rebuildDepth = 0;
-
-        watcher.on('all', (eventName, path) => {
-          rebuildDepth++;
-          if (rebuildDepth <= 2) {
-            logger.info(
-              { eventName, path, rebuildDepth },
-              'change detected, rebuilding and restarting'
-            );
-
-            // TODO: Fix type for lastServer when we're back under control
-            serverStartPromise = serverStartPromise.then(async (lastServer: any) => {
-              try {
-                const rebuildPromise = rebuild();
-                const stopPromise = lastServer.stop({ timeout: 5000 });
-
-                await Promise.all([rebuildPromise, stopPromise]);
-
-                return restartServer();
-              } finally {
-                rebuildDepth--;
-              }
-            });
-          }
-        });
-
-        try {
-          await serverStartPromise;
-        } catch (err) {
-          logger.error(err, 'Error while starting server');
-          process.exit(1);
-        }
-        await new Promise((resolve) => {
-          signal.onabort = resolve;
+        const { Builder } = await import('../build');
+        const builder = new Builder({ logger, service, settings, token: tokenSource.token });
+        await builder.watch({
+          automaticReload: argv['disable-hot-reload'] !== false,
+          host: argv.host,
+          port: argv.port,
+          signal,
         });
       });
     }

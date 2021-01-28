@@ -1,100 +1,185 @@
 import type { AbortSignal } from 'abort-controller';
 import type { Service } from 'esbuild';
-import { promises as Fs } from 'fs';
 import * as Path from 'path';
 import type { Logger } from 'pino';
+import type { CancellationToken } from 'ts-primitives';
+import { DisposableStore, Event, ThrottledDelayer } from 'ts-primitives';
 import { createRequire } from '../createRequire';
+import type { NostalgieServer } from '../runtime/internal/runtimes/node';
 import type { NostalgieSettings } from '../settings';
-import { buildClient } from './buildClient';
-import { buildNodeServer } from './buildNodeServer';
-import { buildServerFunctions } from './buildServerFunctions';
-import { ClientBuildMetadata } from './metadata';
+import { ClientAssetBuilder } from './builders/client';
+import { ServerFunctionsBuilder } from './builders/functions';
+import { NodeServerBuilder } from './builders/server';
+import { ServerRendererBuilder } from './builders/ssr';
 
-export async function build(options: {
+export interface BuilderOptions {
   logger: Logger;
   settings: NostalgieSettings;
   service: Service;
-  signal: AbortSignal;
-}) {
-  const { logger, settings, service } = options;
+  throttleInterval?: number;
+  token: CancellationToken;
+}
 
-  const rebuild = async () => {
-    const functionBuildPromise = (async () => {
-      const functionMeta = await buildServerFunctions(service, settings);
+export class Builder {
+  private readonly delayer: ThrottledDelayer<unknown>;
+  private readonly disposer = new DisposableStore();
+  private readonly functionsBuilder: ServerFunctionsBuilder;
+  private readonly clientAssetBuilder: ClientAssetBuilder;
+  private readonly logger: Logger;
+  private nodeServerPath?: string;
+  private server?: NostalgieServer;
+  private readonly serverRendererBuilder: ServerRendererBuilder;
+  private readonly settings: NostalgieSettings;
+  private readonly nodeServerBuilder: NodeServerBuilder;
+  private readonly token: CancellationToken;
 
-      if (settings.functionsEntryPoint) {
-        logger.info(
-          { pathName: settings.builtFunctionsPath, functionNames: functionMeta.functionNames },
-          'server functions build'
-        );
-      } else {
-        logger.info('no server function entrypoint detected, skipping');
-      }
+  constructor(options: BuilderOptions) {
+    const { logger, settings, service, token } = options;
 
-      return functionMeta;
-    })();
-    const clientBuildMetadataPromise = (async () => {
-      const { functionNames } = await functionBuildPromise;
-      const { cssMap, meta } = await buildClient(service, settings, functionNames, options.signal);
+    this.delayer = new ThrottledDelayer(options.throttleInterval ?? 0);
+    this.logger = logger;
+    this.settings = settings;
+    this.token = token;
 
-      logger.info({ pathName: settings.staticDir }, 'client assets written');
+    token.onCancellationRequested(() => {
+      this.disposer.dispose();
+    });
 
-      return new ClientBuildMetadata(settings, meta, cssMap);
-    })();
+    this.functionsBuilder = new ServerFunctionsBuilder({
+      logger,
+      service,
+      settings,
+    });
+    this.disposer.add(this.functionsBuilder);
 
-    const nodeServerPromise = (async () => {
-      const clientBuildMetadata = await clientBuildMetadataPromise;
-      // const { serverFunctionsSourcePath } = await functionNamesPromise;
+    this.clientAssetBuilder = new ClientAssetBuilder({
+      functionsBuilder: this.functionsBuilder,
+      logger,
+      service,
+      settings,
+      token,
+    });
+    this.disposer.add(this.clientAssetBuilder);
 
-      await buildNodeServer(service, settings, logger, clientBuildMetadata, options.signal);
+    this.serverRendererBuilder = new ServerRendererBuilder({
+      clientAssetBuilder: this.clientAssetBuilder,
+      logger,
+      service,
+      settings,
+      token,
+    });
+    this.disposer.add(this.serverRendererBuilder);
 
-      logger.info({ pathName: settings.builtServerPath }, 'node server written');
-    })();
+    this.nodeServerBuilder = new NodeServerBuilder({
+      logger,
+      service,
+      settings,
+    });
+    this.disposer.add(this.nodeServerBuilder);
+  }
 
-    const packageJsonPromise = (async () => {
-      await Fs.mkdir(settings.buildDir, { recursive: true });
-      await Fs.writeFile(
-        Path.join(settings.buildDir, 'package.json'),
-        JSON.stringify(
-          {
-            name: 'nostalgie-app',
-            version: '0.0.0',
-            private: true,
-            main: './index.js',
-            // type: 'module',
-            engines: {
-              node: '> 12.2.0',
-            },
-            engineStrict: true,
-            scripts: {
-              start: 'node ./index.js',
-            },
-          },
-          null,
-          2
-        )
-      );
-    })();
+  async build() {
+    const { functionsBuilder, clientAssetBuilder, serverRendererBuilder, nodeServerBuilder } = this;
+
+    const functionsBuildPromise = Event.toPromise(functionsBuilder.onBuild);
+    const clientAssetBuildPromise = Event.toPromise(clientAssetBuilder.onBuild);
+    const serverRendererBuildPromise = Event.toPromise(serverRendererBuilder.onBuild);
+    const nodeServerBuildPromise = Event.toPromise(nodeServerBuilder.onBuild);
 
     await Promise.all([
-      clientBuildMetadataPromise,
-      functionBuildPromise,
-      nodeServerPromise,
-      packageJsonPromise,
+      functionsBuilder.start(),
+      clientAssetBuilder.start(),
+      serverRendererBuilder.start(),
+      nodeServerBuilder.start(),
     ]);
-  };
 
-  await rebuild();
+    await Promise.all([
+      functionsBuildPromise,
+      clientAssetBuildPromise,
+      serverRendererBuildPromise,
+      nodeServerBuildPromise,
+    ]);
+  }
 
-  return {
-    async loadHapiServer() {
-      const buildRelativeRequire = createRequire(Path.join(settings.buildDir, 'index.js'));
+  async watch(options: {
+    host: string;
+    automaticReload: boolean;
+    port: number;
+    signal: AbortSignal;
+  }) {
+    const { functionsBuilder, clientAssetBuilder, serverRendererBuilder, nodeServerBuilder } = this;
 
-      // TODO: Fix this type when we're back under control (typeof import('../runtime/server/node'))
-      return buildRelativeRequire(
-        './index.js'
-      ) as typeof import('../runtime/internal/runtimes/node');
-    },
-    rebuild,
-  };
+    nodeServerBuilder.onBuild(({ nodeServerPath }) => {
+      this.nodeServerPath = nodeServerPath;
+      this.delayer.trigger(async () => {
+        if (this.server) {
+          await this.server.methods.reloadPool();
+        } else {
+          await this.startOrRestartServer(options);
+        }
+      });
+    });
+
+    serverRendererBuilder.onBuild(() => {
+      this.delayer.trigger(async () => {
+        if (this.server) {
+          await this.server.methods.reloadPool();
+        } else {
+          await this.startOrRestartServer(options);
+        }
+      });
+    });
+
+    await Promise.all([
+      functionsBuilder.start(),
+      clientAssetBuilder.start(),
+      serverRendererBuilder.start(),
+      nodeServerBuilder.start(),
+    ]);
+
+    await Event.toPromise(this.token.onCancellationRequested as any);
+  }
+
+  private async startOrRestartServer(options: {
+    automaticReload: boolean;
+    host: string;
+    port: number;
+    signal: AbortSignal;
+  }) {
+    const nodeServerPath = this.nodeServerPath;
+    if (!nodeServerPath) {
+      return;
+    }
+    const buildRelativeRequire = createRequire(Path.join(this.settings.buildDir, 'index.js'));
+
+    // TODO: Fix this type when we're back under control (typeof import('../runtime/server/node'))
+    const { initializeServer } = buildRelativeRequire(
+      nodeServerPath
+    ) as typeof import('../runtime/internal/runtimes/node');
+
+    this.logger.debug({ initializeServer, nodeServerPath }, 'loaded server');
+
+    const initializationPromise = initializeServer({
+      auth: this.settings.auth,
+      automaticReload: options.automaticReload,
+      buildDir: this.settings.buildDir,
+      host: options.host,
+      port: options.port,
+      logger: this.logger,
+      signal: options.signal,
+    });
+
+    initializationPromise.catch(() => {
+      // Ignore error for now. We await this promise
+      // later
+    });
+
+    if (this.server) {
+      await this.server.stop({ timeout: 5000 });
+    }
+
+    this.server = await initializationPromise;
+
+    await this.server.start();
+  }
 }

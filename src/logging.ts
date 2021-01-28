@@ -2,9 +2,10 @@ import Pino from 'pino';
 
 export type { Logger } from 'pino';
 
-export function createDefaultLogger() {
+export function createDefaultLogger(options: { level?: string } = {}) {
   return Pino({
     serializers: Pino.stdSerializers,
+    level: options.level ?? 'info',
     name: '@nostalgie/internal/server',
     prettyPrint:
       process.env.NODE_ENV !== 'production'

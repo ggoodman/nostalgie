@@ -29,8 +29,7 @@ export const authPlugin: Plugin<{ auth: NostalgieAuthOptions; publicUrl: string 
         ttl: 1000 * 60 * 60 * 24 * 7 * 4, // 4 weeks
         password: auth.cookieSecret,
         path: '/',
-        // TODO: FIXME in a way that is dev-friendly
-        isSecure: false,
+        isSecure: process.env.NODE_ENV !== 'development',
       },
       keepAlive: true,
       validateFunc: async (_request, session: ServerAuthCredentials) => {
@@ -53,8 +52,7 @@ export const authPlugin: Plugin<{ auth: NostalgieAuthOptions; publicUrl: string 
       encoding: 'iron',
       password: auth.cookieSecret,
       path: '/',
-      // TODO: FIXME in a way that is dev-friendly
-      isSecure: false,
+      isSecure: process.env.NODE_ENV !== 'development',
       isHttpOnly: true,
       ttl: null, // Session lifetime
       isSameSite: 'Lax',
