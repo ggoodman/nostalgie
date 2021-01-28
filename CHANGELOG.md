@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Mark `@mdx-js/react` and `workerpool` modules as install-time dependencies because we rely on being able to `require.resolve()` their files at build-time.
 
 ## [0.67.0] - 2021-01-28
 ### Added

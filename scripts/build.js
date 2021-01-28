@@ -12,12 +12,16 @@ const PackageJson = require('../package.json');
 
 const externalModules = [
   '@antfu/shiki',
+  // Used only for mdx files. We rely on require.resolve() to work here.
+  '@mdx-js/react',
   'chokidar',
   'esbuild',
   // We don't want to bundle this so that applications can choose versions
   'react',
   // We don't want to bundle this so that applications can choose versions
   'react-dom',
+  // Used by the builder. We rely on require.resolve() to work here.
+  'workerpool',
   ...builtinModules,
 ];
 const runtimeModuleNames = [
