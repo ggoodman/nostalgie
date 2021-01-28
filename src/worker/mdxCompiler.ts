@@ -76,7 +76,8 @@ interface CodeNode extends Node {
 
 const remarkCodeBlocksShiki: import('unified').Plugin = () => {
   return async function transformer(tree) {
-    const oneDark = await loadTheme(Path.resolve(__dirname, '../src/OneDark.json'));
+    // The path is relative to the dist dir where themes will be put in a themes folder
+    const oneDark = await loadTheme(Path.resolve(__dirname, './themes/OneDark.json'));
     const highlighter = await getHighlighter({ themes: [...BUNDLED_THEMES, oneDark] });
     const themeOptionRx = /^theme:(.+)$/;
 

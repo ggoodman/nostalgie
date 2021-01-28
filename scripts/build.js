@@ -284,7 +284,15 @@ async function buildRuntimeTypes() {
       exportMap[`./${runtimeModuleName}`] = `./${runtimeModuleName}/index.js`;
     }
 
-    const promises = [];
+    const promises = [
+      (async () => {
+        await Fs.mkdir(Path.resolve(__dirname, '../dist/themes'), { recursive: true });
+        await Fs.copyFile(
+          Path.resolve(__dirname, '../src/themes/OneDark.json'),
+          Path.resolve(__dirname, '../dist/themes/OneDark.json')
+        );
+      })(),
+    ];
 
     promises.push(
       Fs.writeFile(

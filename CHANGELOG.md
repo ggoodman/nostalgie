@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Copy the `./src/themes/OneDark.json` theme file into the `./dist/themes/` folder at build time so that it is readable by the mdx compilation worker at build-time.
 
 ## [0.67.1] - 2021-01-28
 ### Fixed
