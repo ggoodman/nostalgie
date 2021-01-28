@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.67.2] - 2021-01-28
 ### Fixed
 - Copy the `./src/themes/OneDark.json` theme file into the `./dist/themes/` folder at build time so that it is readable by the mdx compilation worker at build-time.
 
@@ -72,7 +74,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.67.1...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.67.2...HEAD
+[0.67.2]: https://github.com/ggoodman/nostalgie/compare/v0.67.1...v0.67.2
 [0.67.1]: https://github.com/ggoodman/nostalgie/compare/v0.67.0...v0.67.1
 [0.67.0]: https://github.com/ggoodman/nostalgie/compare/v0.66.0...v0.67.0
 [0.66.0]: https://github.com/ggoodman/nostalgie/compare/v0.65.1...v0.66.0
