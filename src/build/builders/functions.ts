@@ -134,7 +134,7 @@ export class ServerFunctionsBuilder {
       );
     }
 
-    this.logger.debug({ latency: Date.now() - start }, 'Finished server functions build');
+    this.logger.info({ latency: Date.now() - start }, 'Finished server functions build');
 
     this.onBuildEmitter.fire({
       functionNames: functionsOutput.exports,

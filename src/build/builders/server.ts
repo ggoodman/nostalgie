@@ -56,6 +56,26 @@ export class NodeServerBuilder {
     const resolveExtensions = [...this.settings.resolveExtensions];
     const nodeServerPath = Path.resolve(this.settings.buildDir, './index.js');
 
+    // Kick off the node runtime docker file write
+    const dockerFilePromise = (async () => {
+      await Fs.mkdir(this.settings.buildDir, { recursive: true });
+      await Fs.writeFile(
+        Path.resolve(this.settings.buildDir, './Dockerfile'),
+        `
+FROM node:14-alpine
+USER node
+WORKDIR /srv
+ADD . /srv/
+ENV PORT=8080 NODE_ENV=${this.settings.buildEnvironment}
+CMD [ "node",  "/srv/index.js" ]
+        `.trim() + '\n'
+      );
+    })();
+    dockerFilePromise.catch(() => {
+      // Drop error here so we don't get unhandled. We'll get the
+      // error later when we await this.
+    });
+
     await this.service.build({
       bundle: true,
       define: {
@@ -121,7 +141,10 @@ export class NodeServerBuilder {
       }
     }
 
-    this.logger.debug({ latency: Date.now() - start }, 'Finished node server build');
+    // Make sure the dockerfile was written by now
+    await dockerFilePromise;
+
+    this.logger.info({ latency: Date.now() - start }, 'Finished node server build');
 
     this.onBuildEmitter.fire({ nodeServerPath });
   }

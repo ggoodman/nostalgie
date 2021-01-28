@@ -170,7 +170,7 @@ export class ClientAssetBuilder {
       }
     }
 
-    this.logger.debug({ latency: Date.now() - start }, 'Finished client asset build');
+    this.logger.info({ latency: Date.now() - start }, 'Finished client asset build');
 
     this.onBuildEmitter.fire({ meta: new ClientBuildMetadata(this.settings, meta, cssMap) });
   }

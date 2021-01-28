@@ -165,7 +165,7 @@ worker({
       }
     }
 
-    this.logger.debug({ latency: Date.now() - start }, 'Finished server renderer build');
+    this.logger.info({ latency: Date.now() - start }, 'Finished server renderer build');
 
     this.onBuildEmitter.fire({});
   }
