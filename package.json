@@ -12,7 +12,7 @@
     "prepack": "npm run build",
     "preversion": "kacl prerelease",
     "version": "kacl release && git add CHANGELOG.md",
-    "postversion": "git push && gh-release"
+    "postversion": "git push --follow-tags && gh-release"
   },
   "devDependencies": {
     "@brightcove/kacl": "^0.1.11",
