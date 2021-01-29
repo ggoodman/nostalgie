@@ -30,6 +30,7 @@ const runtimeModuleNames = [
   'helmet',
   'lazy',
   'routing',
+  'styling',
   'internal/bootstrap',
   'internal/node-browser-apis',
   'internal/runtimes/node',

@@ -17,6 +17,7 @@ import type { ServerFunction, ServerFunctionContext } from '../../functions/type
 import { defaultHelmetProps } from '../../helmet';
 import { LazyContext } from '../../lazy/context';
 import type { ChunkManager } from '../../lazy/types';
+import { TwindContext } from '../../styling/internal';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
 
 declare global {
@@ -92,21 +93,37 @@ export class ServerRenderer {
     const initialReactQueryState = ReactQueryHydration.dehydrate(queryClient);
     const auth = this.serverAuthToClientAuth(request.auth);
     const queryExecutor = new ServerQueryExecutorImpl({ auth: request.auth, queryClient });
+    // Set up twind for parsing the result and generating markup
+    const customSheet = TwindServer.virtualSheet();
+    const { tw } = Twind.create({
+      sheet: customSheet,
+      mode: 'silent',
+      prefix: true,
+      preflight: true,
+      plugins: {
+        ...TwindTypography(),
+      },
+    });
+    // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
+    customSheet.reset();
+
     const model = (
-      <LazyContext.Provider value={chunkCtx}>
-        <ServerQueryContextProvider queryExecutor={queryExecutor}>
-          <ReactQueryHydration.Hydrate state={initialReactQueryState}>
-            <Helmet.HelmetProvider context={helmetCtx}>
-              <AuthContext.Provider value={auth}>
-                <ReactRouterDOM.StaticRouter location={request.path}>
-                  <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
-                  <this.app />
-                </ReactRouterDOM.StaticRouter>
-              </AuthContext.Provider>
-            </Helmet.HelmetProvider>
-          </ReactQueryHydration.Hydrate>
-        </ServerQueryContextProvider>
-      </LazyContext.Provider>
+      <TwindContext.Provider value={tw}>
+        <LazyContext.Provider value={chunkCtx}>
+          <ServerQueryContextProvider queryExecutor={queryExecutor}>
+            <ReactQueryHydration.Hydrate state={initialReactQueryState}>
+              <Helmet.HelmetProvider context={helmetCtx}>
+                <AuthContext.Provider value={auth}>
+                  <ReactRouterDOM.StaticRouter location={request.path}>
+                    <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
+                    <this.app />
+                  </ReactRouterDOM.StaticRouter>
+                </AuthContext.Provider>
+              </Helmet.HelmetProvider>
+            </ReactQueryHydration.Hydrate>
+          </ServerQueryContextProvider>
+        </LazyContext.Provider>
+      </TwindContext.Provider>
     );
 
     // We'll give ourselves a budget for the number of render passes we're willing to undertake
@@ -162,20 +179,6 @@ export class ServerRenderer {
 
     // They didn't make it in time for the deadline so we'll cancel them
     queryClient.cancelQueries();
-
-    // Set up twind for parsing the result and generating markup
-    const customSheet = TwindServer.virtualSheet();
-    const { tw } = Twind.create({
-      sheet: customSheet,
-      mode: 'silent',
-      prefix: true,
-      preflight: true,
-      plugins: {
-        ...TwindTypography(),
-      },
-    });
-    // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
-    customSheet.reset();
 
     const shimmedMarkup = TwindServer.shim(renderedMarkup, {
       tw: tw as any,
