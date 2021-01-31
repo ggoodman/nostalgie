@@ -1,9 +1,9 @@
-import { createRequire as createRequireFromUrl, createRequireFromPath } from 'module';
+import Module from 'module';
 import * as Url from 'url';
 
 export function createRequire(urlOrPath: string) {
-  if (typeof createRequireFromUrl === 'function') {
-    return createRequireFromUrl(urlOrPath);
+  if (typeof (Module as any).createRequireFromUrl === 'function') {
+    return (Module as any).createRequireFromUrl(urlOrPath);
   }
 
   let pathname = urlOrPath;
@@ -14,5 +14,7 @@ export function createRequire(urlOrPath: string) {
     pathname = parsedUrl.pathname!;
   } catch {}
 
-  return createRequireFromPath(pathname);
+  return typeof Module.createRequire === 'function'
+    ? Module.createRequire(pathname)
+    : Module.createRequireFromPath(pathname);
 }

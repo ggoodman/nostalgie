@@ -1,34 +1,68 @@
-import { ClientAuthAuthenticated, ClientAuthUnauthenticated, useAuth } from 'nostalgie/auth';
-import { createFunctionQuery } from 'nostalgie/functions';
+import {
+  ClientAuthAuthenticated,
+  ClientAuthUnauthenticated,
+  useAuthorized,
+  withAuthenticationRequired,
+} from 'nostalgie/auth';
+import { createQueryFunction } from 'nostalgie/functions';
 import { Helmet } from 'nostalgie/helmet';
+import { Link, Route } from 'nostalgie/routing';
 import * as React from 'react';
 import { hello } from './functions';
 
-const useHelloFunction = createFunctionQuery(hello);
+const useHelloFunction = createQueryFunction(hello, { cacheTime: 20000, staleTime: 30000 });
 
 export default function App() {
-  const authState = useAuth();
+  const authState = useAuthorized();
 
   return (
     <>
-      <Helmet>
+      <Helmet
+        bodyAttributes={{
+          className: 'h-screen w-screen overflow-auto',
+        }}
+      >
         <title>Simple authentication example · Nostalgie</title>
         <meta
           name="description"
           content="A simple example of using Nostalgie authentication in both the front- and back-end"
         />
       </Helmet>
-      <div className="flex flex-col items-center justify-center h-screen w-screen overflow-scroll max-w-none">
-        {authState.isAuthentiated === true ? (
+      <div className="flex flex-col items-center justify-center max-w-none">
+        <Route path="/" exact>
+          <Link to="/authenticated">Open the authenticated route</Link>
+        </Route>
+        <Route path="/authenticated" component={AuthenticatedComponent}></Route>
+        {authState.isAuthenticated === true ? (
           <Authenticated auth={authState} />
         ) : (
           <NotAuthenticated auth={authState} />
         )}
-        <pre></pre>
       </div>
     </>
   );
 }
+
+const AuthenticatedComponent = withAuthenticationRequired(
+  () => {
+    return (
+      <div>
+        <h1>You are authenticated</h1>
+        <Link to="/">Back to home</Link>
+      </div>
+    );
+  },
+  {
+    fallback({ loginUrl }) {
+      return (
+        <div>
+          <h1>Authentication required</h1>
+          <a href={loginUrl}>Please log in</a>
+        </div>
+      );
+    },
+  }
+);
 
 function Authenticated(props: { auth: ClientAuthAuthenticated }) {
   const authState = props.auth;

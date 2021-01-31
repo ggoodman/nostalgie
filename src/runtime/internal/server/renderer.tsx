@@ -80,7 +80,7 @@ export class ServerRenderer {
 
   async renderAppOnServer(
     request: ServerRenderRequest
-  ): Promise<{ html: string; renderCount: number; latency: number }> {
+  ): Promise<{ html: string; queries: number; renderCount: number; latency: number }> {
     const start = Date.now();
     const bootstrapChunk = 'static/build/bootstrap.js';
     const helmetCtx: Helmet.ProviderProps = {};
@@ -260,6 +260,7 @@ start(${JSON.stringify(bootstrapOptions)});
     return {
       html: wrapper,
       renderCount: renderCount,
+      queries: queryExecutor.promises.size,
       latency: Date.now() - start,
     };
   }
@@ -267,13 +268,13 @@ start(${JSON.stringify(bootstrapOptions)});
   private serverAuthToClientAuth(auth: ServerAuth): ClientAuth {
     return auth.isAuthenticated
       ? {
-          isAuthentiated: auth.isAuthenticated,
+          isAuthenticated: true,
           credentials: auth.credentials,
           loginUrl: '/.nostalgie/login',
           logoutUrl: '/.nostalgie/logout',
         }
       : {
-          isAuthentiated: false,
+          isAuthenticated: false,
           error: auth.error,
           loginUrl: '/.nostalgie/login',
           logoutUrl: '/.nostalgie/logout',

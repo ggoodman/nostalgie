@@ -91,7 +91,10 @@ export class ServerRendererBuilder {
         'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
       },
       format: 'cjs',
-      inject: [appRequire.resolve('nostalgie/internal/node-browser-apis')],
+      inject: [
+        appRequire.resolve('nostalgie/internal/inject-react'),
+        appRequire.resolve('nostalgie/internal/node-browser-apis'),
+      ],
       loader: this.settings.loaders,
       logLevel: 'error',
       metafile: metaPath,

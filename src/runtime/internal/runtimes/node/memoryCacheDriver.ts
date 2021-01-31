@@ -1,4 +1,5 @@
 import Boom from '@hapi/boom';
+import type { CachedObject, ClientApi } from '@hapi/catbox';
 import * as Hoek from '@hapi/hoek';
 
 const internals = {
@@ -15,9 +16,9 @@ export interface MemoryCacheDriverOptions {
   minCleanupIntervalMsec?: number;
 }
 
-export class MemoryCacheDriver {
+export class MemoryCacheDriver<T = any> implements ClientApi<T> {
   private readonly settings: Required<MemoryCacheDriverOptions>;
-  private cache: Map<string, Map<string, { stored: number; ttl: number }>> | null = null;
+  private cache: Map<string, Map<string, CachedObject<T>>> | null = null;
   private size = 0;
   private _timer: NodeJS.Timeout | null = null;
   private _timerDue: number | null = null;
@@ -43,7 +44,7 @@ export class MemoryCacheDriver {
     this._timerDue = null;
   }
 
-  start() {
+  async start() {
     if (!this.cache) {
       this.cache = new Map();
       this.size = 0;
@@ -116,7 +117,7 @@ export class MemoryCacheDriver {
     return null;
   }
 
-  get(key: { segment: string; id: string }) {
+  async get(key: { segment: string; id: string }) {
     if (!this.cache) {
       throw new Boom.Boom('Connection not started');
     }
@@ -139,12 +140,12 @@ export class MemoryCacheDriver {
     return envelope;
   }
 
-  set(key: { segment: string; id: string }, item: unknown, ttl: number) {
+  async set(key: { segment: string; id: string }, item: T, ttl: number) {
     if (!this.cache) {
       throw new Boom.Boom('Connection not started');
     }
 
-    const envelope = {
+    const envelope: CachedObject<T> = {
       item,
       ttl,
       stored: Date.now(),
@@ -170,7 +171,7 @@ export class MemoryCacheDriver {
     ++this.size;
   }
 
-  drop(key: { segment: string; id: string }) {
+  async drop(key: { segment: string; id: string }) {
     if (!this.cache) {
       throw new Boom.Boom('Connection not started');
     }
