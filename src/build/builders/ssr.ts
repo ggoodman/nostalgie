@@ -11,6 +11,7 @@ import {
   toDisposable,
 } from 'ts-primitives';
 import { createRequire } from '../../createRequire';
+import type { ServerRendererOptions } from '../../runtime/internal/server';
 import type { NostalgieSettings } from '../../settings';
 import { decorateDeferredImportsServerPlugin } from '../esbuildPlugins/decorateDeferredImportsServerPlugin';
 import { mdxPlugin } from '../esbuildPlugins/mdxPlugin';
@@ -77,6 +78,9 @@ export class ServerRendererBuilder {
       this.settings.rootDir,
       this.settings.applicationEntryPoint
     )}`;
+    const serverRendererOptions: ServerRendererOptions = {
+      enableTailwind: !!this.settings.tailwindConfigPath,
+    };
 
     const serverFunctionsImport = this.settings.functionsEntryPoint
       ? `import * as Functions from ${JSON.stringify(
@@ -127,7 +131,7 @@ ${serverFunctionsImport}
 
 const renderer = new ServerRenderer(App, Functions, ${JSON.stringify(
           clientBuildResult.meta.getChunkDependenciesObject()
-        )});
+        )}, ${JSON.stringify(serverRendererOptions)});
 
 worker({
   invokeFunction: renderer.invokeFunction.bind(renderer),

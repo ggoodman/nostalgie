@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "clean": "rm -rf ./dist",
-    "dev": "nodemon --watch src --watch scripts/build.js --ext js,jsx,ts,tsx ./scripts/build.js",
+    "dev": "SKIP_EMPTY=1 nodemon --watch src --watch scripts/build.js --ext js,jsx,ts,tsx ./scripts/build.js",
     "build": "node ./scripts/build.js",
     "posttest": "kacl lint",
     "prepack": "npm run build",

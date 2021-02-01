@@ -180,6 +180,10 @@ export class Builder {
 
     this.server = await initializationPromise;
 
-    await this.server.start();
+    try {
+      await this.server.start();
+    } catch (err) {
+      this.logger.warn({ err }, 'error while starting server, waiting for changes');
+    }
   }
 }

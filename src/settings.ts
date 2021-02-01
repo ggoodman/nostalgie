@@ -24,8 +24,10 @@ export interface NostalgieOptions {
   buildEnvironment?: 'development' | 'production';
   rootDir?: string;
   staticDir?: string;
+  tailwindConfigPath?: string;
 }
-export interface NostalgieSettings extends FrozenInterface<NostalgieOptions, 'auth'> {
+export interface NostalgieSettings
+  extends FrozenInterface<NostalgieOptions, 'auth' | 'tailwindConfigPath'> {
   readonly builtFunctionsPath: string;
   readonly builtServerPath: string;
   readonly resolveExtensions: ReadonlyArray<string>;
@@ -75,6 +77,17 @@ export async function readNormalizedSettings(
     extensions: defaultExtensions,
   });
 
+  let tailwindConfigPath: string | undefined;
+
+  try {
+    tailwindConfigPath = await resolveAsync('./tailwind.config', {
+      basedir: rootDir,
+      extensions: defaultExtensions,
+    });
+  } catch {
+    // Skip this
+  }
+
   return {
     applicationEntryPoint,
     auth: readAuthOptions(options),
@@ -92,6 +105,7 @@ export async function readNormalizedSettings(
     resolveExtensions: defaultExtensions,
     rootDir: rootDir,
     staticDir: Path.resolve(buildDir, './static'),
+    tailwindConfigPath,
   };
 }
 

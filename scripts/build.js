@@ -32,6 +32,7 @@ const runtimeModuleNames = [
   'functions',
   'helmet',
   'lazy',
+  'styling',
   'routing',
   'internal/bootstrap',
   'internal/inject-react',
@@ -251,7 +252,7 @@ async function buildRuntimeTypes() {
       // For some reason the type dependency is not being detected for this so
       // let's hard-code it in. We need this as an explicit dependency so that types are available
       // for routing-related stuff.
-      '@types/react-router-dom': PackageJson.devDependencies['@types/react-router-dom'],
+      // '@types/react-router-dom': PackageJson.devDependencies['@types/react-router-dom'],
     };
     const peerDependencies = {};
 

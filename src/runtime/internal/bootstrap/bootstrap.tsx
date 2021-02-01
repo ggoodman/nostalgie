@@ -6,7 +6,6 @@ import * as Helmet from 'react-helmet-async';
 import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
-import { setup } from 'twind/shim';
 import type { ClientAuth } from '../../auth';
 import { AuthContext } from '../../auth/server';
 import { defaultHelmetProps } from '../../helmet';
@@ -53,6 +52,7 @@ declare interface Entry extends Location {
 export interface BootstrapOptions {
   auth: ClientAuth;
   automaticReload?: boolean;
+  enableTailwind?: boolean;
   errStack?: Entry[];
   lazyComponents: LazyComponent[];
   publicUrl: string;
@@ -63,6 +63,15 @@ const DEFAULT_BROWSER_STALE_TIME = 16;
 
 export async function hydrateNostalgie(App: React.ComponentType, options: BootstrapOptions) {
   if (process.env.NODE_ENV === 'development') {
+    // Nest this 2nd condition to make it extra easy for DCE in production.
+    if (options.automaticReload) {
+      const eventSource = new EventSource('/.nostalgie/events');
+
+      eventSource.addEventListener('reload', (e) => {
+        window.location.reload();
+      });
+    }
+
     const errStack = options.errStack;
 
     if (errStack) {
@@ -103,15 +112,19 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
   };
   const rootEl = document.getElementById('root');
 
-  setup({
-    mode: 'silent',
-    prefix: true,
-    preflight: true,
-    plugins: {
-      ...TwindTypography(),
-    },
-    target: rootEl!,
-  });
+  if (options.enableTailwind) {
+    const { setup } = await import('twind/shim');
+
+    setup({
+      mode: 'silent',
+      prefix: true,
+      preflight: true,
+      plugins: {
+        ...TwindTypography(),
+      },
+      target: rootEl!,
+    });
+  }
 
   const promises = options.lazyComponents.map(({ chunk, lazyImport }) => {
     return import(`${options.publicUrl}${chunk}`).then((m) => {
@@ -138,15 +151,4 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
     </LazyContext.Provider>,
     rootEl
   );
-
-  if (process.env.NODE_ENV !== 'production') {
-    // Nest this 2nd condition to make it extra easy for DCE in production.
-    if (options.automaticReload) {
-      const eventSource = new EventSource('/.nostalgie/events');
-
-      eventSource.addEventListener('reload', (e) => {
-        window.location.reload();
-      });
-    }
-  }
 }
