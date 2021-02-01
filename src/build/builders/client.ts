@@ -74,6 +74,7 @@ export class ClientAssetBuilder {
     const staticDir = this.settings.staticDir;
     const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
     const runtimeRequire = createRequire(Path.resolve(this.settings.buildDir, './index.js'));
+    const appRequire = createRequire(this.settings.applicationEntryPoint);
     const nostalgieBootstrapPath = runtimeRequire.resolve('nostalgie/internal/bootstrap');
     const resolveExtensions = [...this.settings.resolveExtensions];
     const relativeAppEntry = `./${Path.relative(
@@ -113,6 +114,7 @@ export class ClientAssetBuilder {
       external: [],
       format: 'esm',
       incremental: true,
+      inject: [appRequire.resolve('nostalgie/internal/inject-react')],
       loader: this.settings.loaders,
       metafile: clientMetaPath,
       minify: this.settings.buildEnvironment === 'production',

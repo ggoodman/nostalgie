@@ -2,7 +2,7 @@
 // const logPromise = import('why-is-node-running');
 
 import { startService } from 'esbuild';
-import { builtinModules } from 'module';
+import Module from 'module';
 import * as Path from 'path';
 import type { Logger } from 'pino';
 import { CancellationTokenSource } from 'ts-primitives';
@@ -11,6 +11,8 @@ import PackageJson from '../../package.json';
 import { wireAbortController, withCleanup } from '../lifecycle';
 import { createDefaultLogger } from '../logging';
 import { readNormalizedSettings } from '../settings';
+
+const builtinModules = Module.builtinModules;
 
 Yargs.help()
   .demandCommand()

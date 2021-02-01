@@ -1,14 +1,17 @@
 //@ts-check
+
+const ChildProcess = require('child_process');
 const { startService } = require('esbuild');
+const Fs = require('fs').promises;
 const { builtinModules } = require('module');
 const { rollup } = require('rollup');
+const RollupPluginDts = require('rollup-plugin-dts').default;
 const Path = require('path');
-const Fs = require('fs').promises;
-const RollupPluginNodeResolve = require('@rollup/plugin-node-resolve').nodeResolve;
-/** @type {import('@wessberg/rollup-plugin-ts').default} */
-//@ts-ignore
-const RollupPluginTs = require('@wessberg/rollup-plugin-ts');
+const Util = require('util');
+
 const PackageJson = require('../package.json');
+
+const execAsync = Util.promisify(ChildProcess.execFile);
 
 const externalModules = [
   '@antfu/shiki',
@@ -29,8 +32,10 @@ const runtimeModuleNames = [
   'functions',
   'helmet',
   'lazy',
+  'styling',
   'routing',
   'internal/bootstrap',
+  'internal/inject-react',
   'internal/node-browser-apis',
   'internal/runtimes/node',
   'internal/server',
@@ -76,7 +81,7 @@ async function buildCli(service) {
     platform: 'node',
     target: 'node12.16',
     splitting: false,
-    sourcemap: false,
+    sourcemap: process.env.NODE_ENV === 'development',
     write: true,
   });
 }
@@ -100,7 +105,7 @@ async function buildMdxCompilerWorker(service) {
     minify: true,
     platform: 'node',
     target: 'node12.16',
-    sourcemap: false,
+    sourcemap: process.env.NODE_ENV === 'development',
     splitting: false,
     write: true,
   });
@@ -125,7 +130,7 @@ async function buildPiscinaWorker(service) {
     outfile: Path.resolve(__dirname, '../dist/worker.js'),
     platform: 'node',
     target: 'node12.16',
-    sourcemap: false,
+    sourcemap: process.env.NODE_ENV === 'development',
     splitting: false,
     write: true,
   });
@@ -165,7 +170,7 @@ async function buildRuntimeModules(service) {
         },
       },
     ],
-    sourcemap: false,
+    sourcemap: process.env.NODE_ENV === 'development',
     splitting: true,
     write: true,
   });
@@ -177,66 +182,28 @@ async function buildRuntimeTypes() {
   /** @type {Promise<void>[]} */
   const buildPromises = [];
 
+  await execAsync(Path.resolve(__dirname, '../node_modules/.bin/tsc'), ['--build', '--force'], {
+    cwd: Path.resolve(__dirname, '../'),
+  });
+
   for (const runtimeModuleName of runtimeModuleNames) {
     buildPromises.push(
       (async () => {
         const build = await rollup({
-          input: {
-            [`${runtimeModuleName}/index`]: Path.resolve(
-              __dirname,
-              `../src/runtime/${runtimeModuleName}/index.ts`
-            ),
-          },
+          input: Path.resolve(
+            __dirname,
+            `../dist/.types/src/runtime/${runtimeModuleName}/index.d.ts`
+          ),
           external: (name) => !name.startsWith('.') && !name.startsWith('/'),
-          plugins: [
-            RollupPluginNodeResolve(),
-            RollupPluginTs({
-              hook: {
-                declarationStats(stats) {
-                  for (const typeDefinitionName of Object.keys(stats)) {
-                    const { externalTypes } = stats[typeDefinitionName];
-
-                    for (const { library, version } of externalTypes) {
-                      const versionSpec = mergedDependencies[library] || version;
-
-                      if (devDependencies[library] && devDependencies[library] !== versionSpec) {
-                        throw new Error(
-                          `Internal inconsistency between required type versions for ${library}`
-                        );
-                      }
-
-                      devDependencies[library] = versionSpec;
-                    }
-                  }
-
-                  // Needed to satisfy @ts-check :shrug:
-                  return undefined;
-                },
-              },
-              // We want to get ESNext and let the transformation / minification
-              // happen at build time
-              transpiler: 'typescript',
-              transpileOnly: true,
-            }),
-          ],
+          plugins: [RollupPluginDts()],
         });
 
-        const outDir = Path.resolve(__dirname, `../dist/`);
-        const buildResult = await build.generate({
-          dir: outDir,
+        const outFilePath = Path.resolve(__dirname, `../dist/${runtimeModuleName}/index.d.ts`);
+
+        await build.write({
+          file: outFilePath,
           format: 'esm',
-          esModule: true,
-          sourcemap: false,
         });
-
-        for (const chunk of buildResult.output) {
-          if (chunk.type === 'asset') {
-            const fileName = Path.resolve(outDir, chunk.fileName);
-
-            await Fs.mkdir(Path.dirname(fileName), { recursive: true });
-            await Fs.writeFile(fileName, chunk.source);
-          }
-        }
       })()
     );
   }
@@ -285,7 +252,7 @@ async function buildRuntimeTypes() {
       // For some reason the type dependency is not being detected for this so
       // let's hard-code it in. We need this as an explicit dependency so that types are available
       // for routing-related stuff.
-      '@types/react-router-dom': PackageJson.devDependencies['@types/react-router-dom'],
+      // '@types/react-router-dom': PackageJson.devDependencies['@types/react-router-dom'],
     };
     const peerDependencies = {};
 
@@ -350,6 +317,8 @@ async function buildRuntimeTypes() {
         )
       )
     );
+
+    promises.push(Fs.writeFile(Path.resolve(__dirname, '../dist/.npmignore'), '.types\n'));
 
     for (const runtimeModuleName of runtimeModuleNames) {
       const packageJsonPath = Path.resolve(__dirname, `../dist/${runtimeModuleName}/package.json`);

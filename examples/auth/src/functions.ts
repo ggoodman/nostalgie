@@ -1,4 +1,4 @@
-import { ServerFunctionContext } from 'nostalgie/functions';
+import type { ServerFunctionContext } from 'nostalgie/functions';
 
 export function hello(ctx: ServerFunctionContext) {
   return `Hello ${

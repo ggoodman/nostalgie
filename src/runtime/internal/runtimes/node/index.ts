@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom';
 import * as Hapi from '@hapi/hapi';
 import HapiInert from '@hapi/inert';
 import { AbortController, AbortSignal } from 'abort-controller';
@@ -57,15 +58,12 @@ export async function initializeServer(options: StartServerOptions): Promise<Nos
     address: options.host ?? '0.0.0.0',
     port: options.port ?? process.env.PORT ?? 8080,
     host: options.host,
-    cache: MemoryCacheDriver,
   }) as NostalgieServer;
 
-  if (options.auth) {
-    await server.register({
-      plugin: authPlugin,
-      options: { auth: options.auth, publicUrl: server.info.uri },
-    });
-  }
+  server.cache.provision({
+    provider: MemoryCacheDriver as Hapi.CacheProvider<any>,
+    name: 'memory',
+  });
 
   const logger = options.logger ?? createDefaultLogger();
   const signal = options.signal ?? wireAbortController(logger).signal;
@@ -93,6 +91,13 @@ export async function initializeServer(options: StartServerOptions): Promise<Nos
       options: {},
     },
   ]);
+
+  if (options.auth) {
+    await server.register({
+      plugin: authPlugin,
+      options: { auth: options.auth, publicUrl: server.info.uri },
+    });
+  }
 
   const createPool = () =>
     pool(Path.resolve(buildDir, './ssr.js'), {
@@ -284,11 +289,22 @@ Disallow: /
   });
 
   server.route({
+    method: 'ANY',
+    path: '/.nostalgie/{any*}',
+    options: {
+      auth: false,
+    },
+    handler: (_request, h) => {
+      throw Boom.notFound();
+    },
+  });
+
+  server.route({
     method: 'GET',
     path: '/{any*}',
     options: {},
     handler: async (request, h) => {
-      const { html, latency, renderCount } = await renderAppOnServer({
+      const { html, latency, queries, renderCount } = await renderAppOnServer({
         auth: requestAuthToServerAuth(request.auth),
         automaticReload: options.automaticReload,
         path: request.path,
@@ -297,6 +313,7 @@ Disallow: /
       request.logger.info(
         {
           latency,
+          queries,
           renderCount,
         },
         'rendered app'

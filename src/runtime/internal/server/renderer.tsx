@@ -17,6 +17,7 @@ import type { ServerFunction, ServerFunctionContext } from '../../functions/type
 import { defaultHelmetProps } from '../../helmet';
 import { LazyContext } from '../../lazy/context';
 import type { ChunkManager } from '../../lazy/types';
+import { TwindContext } from '../../styling/internal';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
 
 declare global {
@@ -42,6 +43,7 @@ export interface ServerRenderRequest {
 
 interface ServerRendererSettings {
   defaultDeadline: number;
+  enableTailwind: boolean;
   maxIterations: number;
 }
 
@@ -64,6 +66,7 @@ export class ServerRenderer {
     this.chunkDependencies = chunkDependencies;
     this.settings = {
       defaultDeadline: options.defaultDeadline ?? 500,
+      enableTailwind: !!options.enableTailwind,
       maxIterations: options.maxIterations ?? 5,
     };
   }
@@ -80,7 +83,7 @@ export class ServerRenderer {
 
   async renderAppOnServer(
     request: ServerRenderRequest
-  ): Promise<{ html: string; renderCount: number; latency: number }> {
+  ): Promise<{ html: string; queries: number; renderCount: number; latency: number }> {
     const start = Date.now();
     const bootstrapChunk = 'static/build/bootstrap.js';
     const helmetCtx: Helmet.ProviderProps = {};
@@ -92,21 +95,36 @@ export class ServerRenderer {
     const initialReactQueryState = ReactQueryHydration.dehydrate(queryClient);
     const auth = this.serverAuthToClientAuth(request.auth);
     const queryExecutor = new ServerQueryExecutorImpl({ auth: request.auth, queryClient });
+    // Set up twind for parsing the result and generating markup
+    const customSheet = TwindServer.virtualSheet();
+    const { tw } = Twind.create({
+      sheet: customSheet,
+      mode: 'silent',
+      prefix: true,
+      preflight: this.settings.enableTailwind,
+      plugins: {
+        ...(this.settings.enableTailwind ? TwindTypography() : {}),
+      },
+    });
+    // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
+    customSheet.reset();
     const model = (
-      <LazyContext.Provider value={chunkCtx}>
-        <ServerQueryContextProvider queryExecutor={queryExecutor}>
-          <ReactQueryHydration.Hydrate state={initialReactQueryState}>
-            <Helmet.HelmetProvider context={helmetCtx}>
-              <AuthContext.Provider value={auth}>
-                <ReactRouterDOM.StaticRouter location={request.path}>
-                  <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
-                  <this.app />
-                </ReactRouterDOM.StaticRouter>
-              </AuthContext.Provider>
-            </Helmet.HelmetProvider>
-          </ReactQueryHydration.Hydrate>
-        </ServerQueryContextProvider>
-      </LazyContext.Provider>
+      <TwindContext.Provider value={tw}>
+        <LazyContext.Provider value={chunkCtx}>
+          <ServerQueryContextProvider queryExecutor={queryExecutor}>
+            <ReactQueryHydration.Hydrate state={initialReactQueryState}>
+              <Helmet.HelmetProvider context={helmetCtx}>
+                <AuthContext.Provider value={auth}>
+                  <ReactRouterDOM.StaticRouter location={request.path}>
+                    <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
+                    <this.app />
+                  </ReactRouterDOM.StaticRouter>
+                </AuthContext.Provider>
+              </Helmet.HelmetProvider>
+            </ReactQueryHydration.Hydrate>
+          </ServerQueryContextProvider>
+        </LazyContext.Provider>
+      </TwindContext.Provider>
     );
 
     // We'll give ourselves a budget for the number of render passes we're willing to undertake
@@ -163,31 +181,19 @@ export class ServerRenderer {
     // They didn't make it in time for the deadline so we'll cancel them
     queryClient.cancelQueries();
 
-    // Set up twind for parsing the result and generating markup
-    const customSheet = TwindServer.virtualSheet();
-    const { tw } = Twind.create({
-      sheet: customSheet,
-      mode: 'silent',
-      prefix: true,
-      preflight: true,
-      plugins: {
-        ...TwindTypography(),
-      },
-    });
-    // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
-    customSheet.reset();
-
-    const shimmedMarkup = TwindServer.shim(renderedMarkup, {
-      tw: tw as any,
-      lowerCaseTagName: false,
-      comment: false,
-      blockTextElements: {
-        script: true,
-        noscript: true,
-        style: true,
-        pre: true,
-      },
-    });
+    if (this.settings.enableTailwind) {
+      renderedMarkup = TwindServer.shim(renderedMarkup, {
+        tw,
+        lowerCaseTagName: false,
+        comment: false,
+        blockTextElements: {
+          script: true,
+          noscript: true,
+          style: true,
+          pre: true,
+        },
+      });
+    }
     const headTags = [];
 
     const { helmet } = helmetCtx as Helmet.FilledContext;
@@ -226,6 +232,7 @@ export class ServerRenderer {
     const bootstrapOptions: BootstrapOptions = {
       auth: this.serverAuthToClientAuth(request.auth),
       automaticReload: request.automaticReload,
+      enableTailwind: this.settings.enableTailwind,
       // errStack: errStack || undefined,
       lazyComponents: chunkCtx.chunks,
       publicUrl,
@@ -249,7 +256,7 @@ ${TwindServer.getStyleTag(customSheet)}
 ${helmet.style.toString()}
 </head>
 <body ${bodyAttrs}>
-<div id="root">${shimmedMarkup}</div>
+<div id="root">${renderedMarkup}</div>
 <script async type="module">
 import { start } from "${publicUrl}static/build/bootstrap.js";
 start(${JSON.stringify(bootstrapOptions)});
@@ -260,6 +267,7 @@ start(${JSON.stringify(bootstrapOptions)});
     return {
       html: wrapper,
       renderCount: renderCount,
+      queries: queryExecutor.promises.size,
       latency: Date.now() - start,
     };
   }
@@ -267,13 +275,13 @@ start(${JSON.stringify(bootstrapOptions)});
   private serverAuthToClientAuth(auth: ServerAuth): ClientAuth {
     return auth.isAuthenticated
       ? {
-          isAuthentiated: auth.isAuthenticated,
+          isAuthenticated: true,
           credentials: auth.credentials,
           loginUrl: '/.nostalgie/login',
           logoutUrl: '/.nostalgie/logout',
         }
       : {
-          isAuthentiated: false,
+          isAuthenticated: false,
           error: auth.error,
           loginUrl: '/.nostalgie/login',
           logoutUrl: '/.nostalgie/logout',

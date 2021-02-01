@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Introduce `nostalgie/styling` as a module through-which to deliver a styled-components-like experience. Right now, this is built on `twind` and `twind/css`. (#12)
+  
+  This PR introduces support for (typed) styling of intrinsic HTML elements _a la_ `styled-components` with both the factory and explicit apis, respectively:
+  
+  ```ts
+  import { styled } from 'nostalgie/styling';
+  
+  const Button = styled.button`
+    border: 1px solid rebeccapurple;
+  `;
+  ```
+  
+  ```ts
+  import { styled } from 'nostalgie/styling';
+  
+  const Button = styled('button')`
+    border: 1px solid rebeccapurple;
+  `;
+  ```
+  
+  Additionally, object syntaxes are supported, like:
+  
+  ```ts
+  import { styled } from 'nostalgie/styling';
+  
+  const Button = styled({
+    border: '1px solid rebeccapurple',
+  });
+  ```
+- React JSX files no longer need to `import * as React from 'react'` as this will be injected automatically. Importing react in this way will have no harmful side-effects and may be considered optional. (#12)
+
+### Changed
+- **[BREAKING]** The automatic tailwindcss styling will only be enabled when a `tailwind.config.js` file is found in the root of the project. (#12)
 
 ## [0.67.3] - 2021-01-28
 ### Changed
