@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.68.2] - 2021-02-02
 ### Fixed
 - Moved required typedef dependencies to the `"dependencies"` field and added `"peerDependencies"` for `@types/react` and `@types/react-dom`.
 
@@ -123,7 +125,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.68.1...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.68.2...HEAD
+[0.68.2]: https://github.com/ggoodman/nostalgie/compare/v0.68.1...v0.68.2
 [0.68.1]: https://github.com/ggoodman/nostalgie/compare/v0.68.0...v0.68.1
 [0.68.0]: https://github.com/ggoodman/nostalgie/compare/v0.67.3...v0.68.0
 [0.67.3]: https://github.com/ggoodman/nostalgie/compare/v0.67.2...v0.67.3
