@@ -27,6 +27,8 @@ const externalModules = [
   'workerpool',
   ...builtinModules,
 ];
+// Type definition modules for the 'externalModules'
+const devDependencyNames = ['@types/mdx-js__react', '@types/react', '@types/react-dom'];
 const runtimeModuleNames = [
   'auth',
   'functions',
@@ -60,6 +62,18 @@ const metaPaths = {
   piscinaWorker: '../dist/meta/piscinaWorker.json',
   runtimeModules: '../dist/meta/runtimeModules.json',
 };
+
+for (const devDependencyName of devDependencyNames) {
+  const range = PackageJson.devDependencies[devDependencyName];
+
+  if (!range) {
+    throw new Error(
+      `Invariant violation: Expected ${devDependencyName} to be in the devDependencies field of package.json`
+    );
+  }
+
+  devDependencies[devDependencyName] = range;
+}
 
 /**
  *
