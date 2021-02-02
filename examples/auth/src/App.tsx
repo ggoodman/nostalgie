@@ -6,7 +6,7 @@ import {
 } from 'nostalgie/auth';
 import { createQueryFunction } from 'nostalgie/functions';
 import { Helmet } from 'nostalgie/helmet';
-import { Link, Route } from 'nostalgie/routing';
+import { Link, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import { hello } from './functions';
 
@@ -29,15 +29,17 @@ export default function App() {
         />
       </Helmet>
       <div className="flex flex-col items-center justify-center max-w-none">
-        <Route path="/" exact>
-          <Link to="/authenticated">Open the authenticated route</Link>
-        </Route>
-        <Route path="/authenticated" component={AuthenticatedComponent}></Route>
-        {authState.isAuthenticated === true ? (
-          <Authenticated auth={authState} />
-        ) : (
-          <NotAuthenticated auth={authState} />
-        )}
+        <Switch>
+          <Route path="/authenticated" component={AuthenticatedComponent}></Route>
+          <Route path="/" exact>
+            <Link to="/authenticated">Open the authenticated route</Link>
+            {authState.isAuthenticated === true ? (
+              <Authenticated auth={authState} />
+            ) : (
+              <NotAuthenticated auth={authState} />
+            )}
+          </Route>
+        </Switch>
       </div>
     </>
   );
