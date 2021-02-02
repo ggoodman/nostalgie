@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Moved required typedef dependencies to the `"dependencies"` field and added `"peerDependencies"` for `@types/react` and `@types/react-dom`.
 
 ## [0.68.1] - 2021-02-02
 ### Fixed

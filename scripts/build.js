@@ -28,7 +28,7 @@ const externalModules = [
   ...builtinModules,
 ];
 // Type definition modules for the 'externalModules'
-const devDependencyNames = ['@types/mdx-js__react', '@types/react', '@types/react-dom'];
+const typeDependencyNames = ['@types/mdx-js__react', '@types/react-router-dom'];
 const runtimeModuleNames = [
   'auth',
   'functions',
@@ -49,8 +49,16 @@ const nostalgieCmdPath = Path.resolve(__dirname, '../src/cli/bin/nostalgie.cmd')
 const readmePath = Path.resolve(__dirname, '../README.md');
 const licensePath = Path.resolve(__dirname, '../LICENSE');
 
+// Fields we'll build up to produce our package.json
 const exportMap = {};
+const dependencies = {};
 const devDependencies = {};
+// We want to use the react version from the user's app (as long as it satisfies peerDep ranges)
+const peerDependencies = {
+  '@types/react': PackageJson.devDependencies['@types/react'],
+  '@types/react-dom': PackageJson.devDependencies['@types/react-dom'],
+};
+
 const mergedDependencies = {
   ...(PackageJson.dependencies || {}),
   ...(PackageJson.devDependencies || {}),
@@ -63,16 +71,18 @@ const metaPaths = {
   runtimeModules: '../dist/meta/runtimeModules.json',
 };
 
-for (const devDependencyName of devDependencyNames) {
-  const range = PackageJson.devDependencies[devDependencyName];
+// All type definitions relied upon at runtime should be marked as "dependencies"
+// per the TypeScript handbook: https://www.typescriptlang.org/docs/handbook/declaration-files/publishing.html#dependencies
+for (const typeDependencyName of typeDependencyNames) {
+  const range = PackageJson.devDependencies[typeDependencyName];
 
   if (!range) {
     throw new Error(
-      `Invariant violation: Expected ${devDependencyName} to be in the devDependencies field of package.json`
+      `Invariant violation: Expected ${typeDependencyName} to be in the devDependencies field of package.json`
     );
   }
 
-  devDependencies[devDependencyName] = range;
+  dependencies[typeDependencyName] = range;
 }
 
 /**
@@ -261,14 +271,6 @@ async function buildRuntimeTypes() {
     }
 
     await Promise.all(buildPromises);
-
-    const dependencies = {
-      // For some reason the type dependency is not being detected for this so
-      // let's hard-code it in. We need this as an explicit dependency so that types are available
-      // for routing-related stuff.
-      // '@types/react-router-dom': PackageJson.devDependencies['@types/react-router-dom'],
-    };
-    const peerDependencies = {};
 
     for (const externalName of externalModules) {
       const target =
