@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Re-added `devDependencies` for packages like `@mdx-js/react` whose types are dependended upon by nostalgie packages / compiled types.
 
 ## [0.68.0] - 2021-02-01
 ### Added
