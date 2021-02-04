@@ -50,7 +50,10 @@ const readmePath = Path.resolve(__dirname, '../README.md');
 const licensePath = Path.resolve(__dirname, '../LICENSE');
 
 // Fields we'll build up to produce our package.json
-const exportMap = {};
+const exportMap = {
+  // Explicitly export the package.json to simplify life for tooling authors
+  './package.json': './package.json',
+};
 const dependencies = {};
 const devDependencies = {};
 // We want to use the react version from the user's app (as long as it satisfies peerDep ranges)

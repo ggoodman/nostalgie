@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Add `"pakage.json"` as an explicit export in the package's export map. This makes it easier for tooling authors to identify the root of the locally-installed version of `nostalgie` and to figure out the modules' dependencies and version.
+- Bumped dependencies to latest within semver range.
 
 ## [0.68.2] - 2021-02-02
 ### Fixed
