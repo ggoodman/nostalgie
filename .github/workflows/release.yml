@@ -11,9 +11,12 @@ jobs:
         with:
           node-version: '14'
           registry-url: https://registry.npmjs.org/
-      - run: npm i --no-fund --no-audit
-      - run: npm run build
-      - run: cd dist
-      - run: npm publish
+      - name: "Install dependencies"
+        run: npm i --no-fund --no-audit
+      - name: "Build distribution"
+        run: npm run build
+      - name: "Publish to NPM"
+        working-directory: './dist'
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
