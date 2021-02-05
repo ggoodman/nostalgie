@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Added detailed [Contribution guidelines](./docs/Contributing.md) to help newcomers get acquainted with Nostalgie's architecture and codebase.
+- Publish releases of Nostalgie automatically, triggered by GitHub releases.
 
 ### Changed
 - Renamed `nostalgie/internal/server` to `nostalgie/internal/renderer` to better reflect purpose.
