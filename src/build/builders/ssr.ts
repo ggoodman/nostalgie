@@ -11,7 +11,7 @@ import {
   toDisposable,
 } from 'ts-primitives';
 import { createRequire } from '../../createRequire';
-import type { ServerRendererOptions } from '../../runtime/internal/server';
+import type { ServerRendererOptions } from '../../runtime/internal/renderer';
 import type { NostalgieSettings } from '../../settings';
 import { decorateDeferredImportsServerPlugin } from '../esbuildPlugins/decorateDeferredImportsServerPlugin';
 import { mdxPlugin } from '../esbuildPlugins/mdxPlugin';
@@ -72,7 +72,7 @@ export class ServerRendererBuilder {
     const metaPath = Path.resolve(buildDir, './serverRendererMetadata.json');
     const nostalgieRequire = createRequire(__filename);
     const appRequire = createRequire(this.settings.applicationEntryPoint);
-    const nostalgieServerPath = appRequire.resolve('nostalgie/internal/server');
+    const nostalgieServerPath = appRequire.resolve('nostalgie/internal/renderer');
     const resolveExtensions = [...this.settings.resolveExtensions];
     const relativeAppEntry = `./${Path.relative(
       this.settings.rootDir,

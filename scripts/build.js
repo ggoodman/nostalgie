@@ -39,8 +39,8 @@ const runtimeModuleNames = [
   'internal/bootstrap',
   'internal/inject-react',
   'internal/node-browser-apis',
+  'internal/renderer',
   'internal/runtimes/node',
-  'internal/server',
 ];
 
 const typesPath = Path.resolve(__dirname, '../src/runtime/types.d.ts');

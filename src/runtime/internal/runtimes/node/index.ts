@@ -12,7 +12,7 @@ import { createDefaultLogger, Logger } from '../../../../logging';
 import { NostalgieAuthOptions, readAuthOptions } from '../../../../settings';
 import type { ServerAuth, ServerAuthCredentials } from '../../../auth/server';
 import type { ServerFunctionContext } from '../../../functions/types';
-import type { ServerRenderRequest } from '../../server';
+import type { ServerRenderRequest } from '../../renderer';
 import { authPlugin } from './auth';
 import { MemoryCacheDriver } from './memoryCacheDriver';
 
@@ -46,9 +46,9 @@ export function main(options: StartServerOptions) {
 
 export interface NostalgieServer extends Hapi.Server {
   methods: {
-    invokeFunction: import('../../server').ServerRenderer['invokeFunction'];
+    invokeFunction: import('../../renderer').ServerRenderer['invokeFunction'];
     reloadPool(): Promise<void>;
-    renderAppOnServer: import('../../server').ServerRenderer['renderAppOnServer'];
+    renderAppOnServer: import('../../renderer').ServerRenderer['renderAppOnServer'];
   };
 }
 
