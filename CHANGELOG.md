@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.68.4] - 2021-02-05
 ### Added
 - Added detailed [Contribution guidelines](./docs/Contributing.md) to help newcomers get acquainted with Nostalgie's architecture and codebase.
 - Publish releases of Nostalgie automatically, triggered by GitHub releases.
@@ -136,7 +138,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.68.3...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.68.4...HEAD
+[0.68.4]: https://github.com/ggoodman/nostalgie/compare/v0.68.3...v0.68.4
 [0.68.3]: https://github.com/ggoodman/nostalgie/compare/v0.68.2...v0.68.3
 [0.68.2]: https://github.com/ggoodman/nostalgie/compare/v0.68.1...v0.68.2
 [0.68.1]: https://github.com/ggoodman/nostalgie/compare/v0.68.0...v0.68.1
