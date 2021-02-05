@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added detailed [Contribution guidelines](./docs/Contributing.md) to help newcomers get acquainted with Nostalgie's architecture and codebase.
+
 ### Changed
 - Renamed `nostalgie/internal/server` to `nostalgie/internal/renderer` to better reflect purpose.
 

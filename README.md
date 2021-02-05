@@ -7,6 +7,12 @@ Nostalgie is an opinionated, full-stack, runtime-agnostic framework for building
 
 See below for our [Vision](#vision).
 
+**Nostalgie is looking for contributions!**
+
+We've written up a detailed [Contribution Guide](./docs/Contributing.md) to help get acquainted with Nostalgie's codebase and architecture.
+
+We look forward to seeing you getting involved!
+
 ## Getting started
 
 ### Installing `nostalgie`
