@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Increased logging during build and forced clean exit upon completion.
   
   There is some, as-yet-unknown handle keeping Node's event loop alive. To work around that, we're forcing exit via `process.exit(0)` when the build completes.
+- Switch to requirin `npm@7` during development to prepare for using workspaces.
 
 ## [0.68.5] - 2021-02-05
 ### Fixed

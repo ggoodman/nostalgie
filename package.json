@@ -16,9 +16,9 @@
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^11.1.1",
-    "@types/hapi-pino": "^8.0.1",
     "@types/hapi__cookie": "^10.1.2",
     "@types/hapi__inert": "^5.2.2",
+    "@types/hapi-pino": "^8.0.1",
     "@types/lru-cache": "^5.1.0",
     "@types/mdx-js__react": "^1.5.3",
     "@types/node": "^12.19.16",
@@ -62,7 +62,8 @@
   },
   "homepage": "https://github.com/ggoodman/nostalgie#readme",
   "engines": {
-    "node": ">=12.13.0"
+    "node": ">=12.13.0",
+    "npm": ">7.5.0"
   },
   "engineStrict": true,
   "prettier": {
@@ -98,8 +99,8 @@
     "pino": "^6.11.0",
     "pino-pretty": "^4.5.0",
     "piscina": "^2.1.0",
-    "react": "^17.0.0 || ^16.8.0",
-    "react-dom": "^17.0.0 || ^16.8.0",
+    "react": "^16.8.0",
+    "react-dom": "^16.8.0",
     "react-helmet-async": "^1.0.7",
     "react-query": "^3.7.1",
     "react-router-dom": "^5.2.0",
