@@ -116,5 +116,9 @@
     "vfile": "^4.2.1",
     "workerpool": "^6.1.0",
     "yargs": "^16.2.0"
-  }
+  },
+  "workspaces": [
+    "./packages/create-nostalgie-app",
+    "./packages/template"
+  ]
 }

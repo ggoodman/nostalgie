@@ -8,3 +8,4 @@ stats.html
 tsconfig.tsbuildinfo
 examples/*/build
 .env
+build
