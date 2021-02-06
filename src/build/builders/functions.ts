@@ -44,14 +44,20 @@ export class ServerFunctionsBuilder {
   }
 
   async build() {
+    const start = Date.now();
+
     if (!this.settings.functionsEntryPoint) {
+      this.logger.info(
+        { latency: Date.now() - start },
+        'Server functions build skipped; no functions entrypoint found.'
+      );
+
       return this.onBuildEmitter.fire({
         functionNames: [],
         serverFunctionsEntry: null,
       });
     }
 
-    const start = Date.now();
     this.logger.debug('Starting client asset build');
     this.logger.info('Starting server functions build');
 

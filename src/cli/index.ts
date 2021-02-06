@@ -68,6 +68,7 @@ Yargs.help()
         const { Builder } = await import('../build');
         const builder = new Builder({ logger, service, settings, token: tokenSource.token });
         await builder.build();
+        process.exit(0);
       });
     }
   )

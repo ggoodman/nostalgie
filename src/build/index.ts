@@ -79,6 +79,7 @@ export class Builder {
   }
 
   async build() {
+    const start = Date.now();
     const { functionsBuilder, clientAssetBuilder, serverRendererBuilder, nodeServerBuilder } = this;
 
     const functionsBuildPromise = Event.toPromise(functionsBuilder.onBuild);
@@ -99,6 +100,8 @@ export class Builder {
       serverRendererBuildPromise,
       nodeServerBuildPromise,
     ]);
+
+    this.logger.info({ latency: Date.now() - start }, 'Build completed');
   }
 
   async watch(options: {
