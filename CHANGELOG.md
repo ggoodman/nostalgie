@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Bumped dependencies:
+  
+  - `react-query` to `3.8.0`.
+  - `blob-polyfill` to `5.0.20210201`
 
 ## [0.69.0] - 2021-02-06
 ### Added

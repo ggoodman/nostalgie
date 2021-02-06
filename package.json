@@ -87,7 +87,7 @@
     "@svgr/plugin-svgo": "^5.5.0",
     "@twind/typography": "0.0.1",
     "abort-controller": "^3.0.0",
-    "blob-polyfill": "^4.0.20200601",
+    "blob-polyfill": "^5.0.20210201",
     "chokidar": "^3.5.1",
     "esbuild": "^0.8.42",
     "escape-goat": "^3.0.0",
