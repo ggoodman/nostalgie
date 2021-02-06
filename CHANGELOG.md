@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.69.1] - 2021-02-06
 ### Changed
 - Bumped dependencies:
   
@@ -159,7 +161,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.69.0...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.69.1...HEAD
+[0.69.1]: https://github.com/ggoodman/nostalgie/compare/v0.69.0...v0.69.1
 [0.69.0]: https://github.com/ggoodman/nostalgie/compare/v0.68.5...v0.69.0
 [0.68.5]: https://github.com/ggoodman/nostalgie/compare/v0.68.4...v0.68.5
 [0.68.4]: https://github.com/ggoodman/nostalgie/compare/v0.68.3...v0.68.4
