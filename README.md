@@ -15,6 +15,8 @@ We look forward to seeing you getting involved!
 
 ## Getting started
 
+Please see the [Getting Started](./docs/tutorials/Getting%20Started.md) page for a complete tutorial from nothing to Nostalgie app in 30 seconds.
+
 ### Installing `nostalgie`
 
 We can install it globally to keep things simple. The main entrypoint is a CLI called `nostalgie`.

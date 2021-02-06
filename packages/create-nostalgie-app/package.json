@@ -1,0 +1,29 @@
+{
+  "name": "create-nostalgie-app",
+  "version": "0.0.0",
+  "description": "Automatically bootstrap a Nostalgie Application",
+  "main": "index.js",
+  "bin": {
+    "create-nostalgie-app": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "nostalgie",
+    "react",
+    "ssr"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "degit": "^2.8.0",
+    "git-remote-origin-url": "^3.1.0",
+    "github-url-from-git": "^1.5.0",
+    "yargs": "^16.2.0"
+  },
+  "devDependencies": {
+    "@types/degit": "^2.8.1"
+  }
+}
