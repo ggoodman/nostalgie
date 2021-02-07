@@ -2,7 +2,7 @@
   "name": "nostalgie",
   "version": "0.69.1",
   "private": true,
-  "description": "Opinionated template repository for creating a TypeScript library",
+  "description": "Opinionated, full-stack, runtime-agnostic framework for building web apps and web pages using react.",
   "main": "index.js",
   "scripts": {
     "clean": "rm -rf ./dist",
@@ -12,7 +12,24 @@
     "prepack": "npm run build",
     "preversion": "kacl prerelease",
     "version": "kacl release && git add CHANGELOG.md",
-    "postversion": "git push --follow-tags && gh-release"
+    "postversion": "git push --follow-tags && gh-release",
+    "lint": "eslint '**/*.{js,jsx,ts,tsx}'",
+    "lint:fix": "eslint '**/*.{js,jsx,ts,tsx}' --fix",
+    "prettier": "prettier --check '**/*.{js,jsx,ts,tsx,json,md,html,yml,yaml}'",
+    "prettier:fix": "prettier --write '**/*.{js,jsx,ts,tsx,json,md,html,yml,yaml}'"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "npm run lint:fix"
+    ],
+    "*.{js,jsx,ts,tsx,json,md,html,yml,yaml}": [
+      "npm run prettier:fix"
+    ]
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^11.1.1",
@@ -30,9 +47,18 @@
     "@types/unist": "^2.0.3",
     "@types/workerpool": "^6.0.0",
     "@types/yargs": "^16.0.0",
+    "@typescript-eslint/eslint-plugin": "^4.14.2",
     "@wessberg/rollup-plugin-ts": "^1.3.8",
+    "eslint-config-airbnb-typescript": "^12.3.1",
+    "eslint-config-prettier": "^7.2.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-react": "^7.22.0",
+    "eslint-plugin-react-hooks": "^4.2.0",
     "gh-release": "^5.0.0",
+    "husky": "^4.3.8",
     "kacl": "^1.0.0",
+    "lint-staged": "^10.5.4",
     "lru-cache": "^6.0.0",
     "nodemon": "^2.0.7",
     "npm-run-all": "^4.1.5",
@@ -67,10 +93,21 @@
   },
   "engineStrict": true,
   "prettier": {
-    "arrowParens": "always",
     "printWidth": 100,
     "proseWrap": "always",
     "singleQuote": true
+  },
+  "eslintConfig": {
+    "extends": [
+      "airbnb-typescript",
+      "airbnb/hooks",
+      "prettier",
+      "prettier/@typescript-eslint",
+      "prettier/react"
+    ],
+    "parserOptions": {
+      "project": "./tsconfig.json"
+    }
   },
   "dependencies": {
     "@antfu/shiki": "^0.6.2",
