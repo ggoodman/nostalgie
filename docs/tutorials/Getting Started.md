@@ -17,7 +17,13 @@ To scaffold a Nostalgie app, you can use the [create-nostalgie-app](https://npm.
 npx create-nostalgie-app my-app
 ```
 
-Your app will be scaffoldedin the `my-app` directory and is ready to go.
+Your app will be scaffolded in the `my-app` directory and is ready to go.
+
+You can alternatively provide custom template using the Degit compatible path https://github.com/Rich-Harris/degit#usage:
+
+```sh
+npx create-nostalgie-app my-app --template account/repo/path#branch
+```
 
 ### 2. Run your project in development mode
 

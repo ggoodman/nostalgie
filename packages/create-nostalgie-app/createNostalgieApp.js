@@ -14,7 +14,7 @@ const GitHubUrlFromGit = require('github-url-from-git');
 const ChildProcess = require('child_process');
 const Events = require('events');
 
-const TEMPLATE_SPEC = 'ggoodman/nostalgie/packages/template#main';
+const DEFAULT_TEMPLATE_SPEC = 'ggoodman/nostalgie/packages/template#main';
 
 const allowedFiles = new Set(['.gitignore']);
 const allowedDirectories = new Set(['.git']);
@@ -44,6 +44,12 @@ function init() {
           force: {
             boolean: true,
             description: 'Force scaffolding even if the target directory is not empty',
+          },
+          template: {
+            string: true,
+            default: DEFAULT_TEMPLATE_SPEC,
+            description:
+              'Provide custom template using Degit compatible path https://github.com/Rich-Harris/degit#usage',
           },
         }),
     async (argv) => {
@@ -76,7 +82,7 @@ function init() {
           }
         }
 
-        const degit = Degit(TEMPLATE_SPEC);
+        const degit = Degit(argv.template);
 
         degit.on('info', (event) => {
           console.error(Chalk.cyan(`> ${event.message.replace('options.', '--')}`));
