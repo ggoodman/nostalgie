@@ -11,11 +11,11 @@ jobs:
         with:
           node-version: '14'
           registry-url: https://registry.npmjs.org/
-      - name: "Install dependencies"
+      - name: 'Install dependencies'
         run: npm i --no-fund --no-audit
-      - name: "Build distribution"
+      - name: 'Build distribution'
         run: npm run build
-      - name: "Publish to NPM"
+      - name: 'Publish to NPM'
         working-directory: './dist'
         run: npm publish
         env:
