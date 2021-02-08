@@ -1,6 +1,6 @@
 {
   "name": "nostalgie",
-  "version": "0.69.1",
+  "version": "0.69.2",
   "private": true,
   "description": "Opinionated template repository for creating a TypeScript library",
   "main": "index.js",

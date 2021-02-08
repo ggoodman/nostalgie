@@ -6,13 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Fixed
-- Fixed obvious (in retrospect) XSS vector in using `JSON.stringify` to encode initial boostrap data into the initial html markup. This is corrected by using [`jsesc`](https://github.com/mathiasbynens/jsesc) to safely encode data for embedding in a script tag.
+
+## [0.69.2] - 2021-02-08
 ### Changed
 - Bumped dependencies:
   
   - `joi@17.4.0`
   - `react-query@3.8.2`
+
+### Fixed
+- Fixed obvious (in retrospect) XSS vector in using `JSON.stringify` to encode initial boostrap data into the initial html markup. This is corrected by using [`jsesc`](https://github.com/mathiasbynens/jsesc) to safely encode data for embedding in a script tag.
 
 ## [0.69.1] - 2021-02-06
 ### Changed
@@ -168,7 +171,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.69.1...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.69.2...HEAD
+[0.69.2]: https://github.com/ggoodman/nostalgie/compare/v0.69.1...v0.69.2
 [0.69.1]: https://github.com/ggoodman/nostalgie/compare/v0.69.0...v0.69.1
 [0.69.0]: https://github.com/ggoodman/nostalgie/compare/v0.68.5...v0.69.0
 [0.68.5]: https://github.com/ggoodman/nostalgie/compare/v0.68.4...v0.68.5
