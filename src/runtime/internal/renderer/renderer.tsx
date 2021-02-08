@@ -1,5 +1,6 @@
 import Boom from '@hapi/boom';
 import TwindTypography from '@twind/typography';
+import jsesc from 'jsesc';
 import * as React from 'react';
 import { renderToString } from 'react-dom/server';
 import * as Helmet from 'react-helmet-async';
@@ -259,7 +260,7 @@ ${helmet.style.toString()}
 <div id="root">${renderedMarkup}</div>
 <script async type="module">
 import { start } from "${publicUrl}static/build/bootstrap.js";
-start(${JSON.stringify(bootstrapOptions)});
+start(${jsesc(bootstrapOptions, { es6: true, isScriptContext: true, minimal: true })});
 </script>
 </body>
 </html>`.trim();
