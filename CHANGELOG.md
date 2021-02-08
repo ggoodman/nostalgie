@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Fixed
 - Fixed obvious (in retrospect) XSS vector in using `JSON.stringify` to encode initial boostrap data into the initial html markup. This is corrected by using [`jsesc`](https://github.com/mathiasbynens/jsesc) to safely encode data for embedding in a script tag.
+### Changed
+- Bumped dependencies:
+  
+  - `joi@17.4.0`
+  - `react-query@3.8.2`
 
 ## [0.69.1] - 2021-02-06
 ### Changed
