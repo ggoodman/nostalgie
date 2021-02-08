@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed obvious (in retrospect) XSS vector in using `JSON.stringify` to encode initial boostrap data into the initial html markup. This is corrected by using [`jsesc`](https://github.com/mathiasbynens/jsesc) to safely encode data for embedding in a script tag.
 
 ## [0.69.1] - 2021-02-06
 ### Changed
