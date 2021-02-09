@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Adjusted Server Function calls from the browser to collect invocations in a small window of time and issue a single http request for the entire batch. Implemented a streaming solution for reading back these responses (even out-of-order) so that Server Function calls can resolve as quickly as their outcome is available.
 
 ## [0.69.2] - 2021-02-08
 ### Changed
