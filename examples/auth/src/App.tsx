@@ -10,7 +10,7 @@ import { Link, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import { hello } from './functions';
 
-const useHelloFunction = createQueryFunction(hello, { cacheTime: 20000, staleTime: 30000 });
+const useHelloFunction = createQueryFunction(hello, { staleTime: 0 });
 
 export default function App() {
   const authState = useAuthorized();

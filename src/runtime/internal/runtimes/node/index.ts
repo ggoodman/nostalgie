@@ -5,12 +5,14 @@ import { AbortController, AbortSignal } from 'abort-controller';
 import HapiPino from 'hapi-pino';
 import Joi from 'joi';
 import * as Path from 'path';
-import { PassThrough } from 'stream';
+import { PassThrough, Stream } from 'stream';
 import { pool, WorkerPool } from 'workerpool';
 import { wireAbortController } from '../../../../lifecycle';
 import { createDefaultLogger, Logger } from '../../../../logging';
 import { NostalgieAuthOptions, readAuthOptions } from '../../../../settings';
 import type { ServerAuth, ServerAuthCredentials } from '../../../auth/server';
+import { RPCMimeType, RPCResultKind } from '../../../functions/constants';
+import { errorToWireData } from '../../../functions/internal';
 import type { ServerFunctionContext } from '../../../functions/types';
 import type { ServerRenderRequest } from '../../renderer';
 import { authPlugin } from './auth';
@@ -206,25 +208,49 @@ export async function initializeServer(options: StartServerOptions): Promise<Nos
     options: {
       cors: false,
       validate: {
-        payload: Joi.object({
-          functionName: Joi.string().required(),
-          args: Joi.array().required(),
-        }),
+        payload: Joi.array().items(
+          Joi.object({
+            functionName: Joi.string().required(),
+            args: Joi.array().required(),
+          })
+        ),
       },
     },
     handler: async (request, h) => {
       const abortController = new AbortController();
-      const { functionName, args } = request.payload as {
+      const requests = request.payload as ReadonlyArray<{
         functionName: string;
         args: any[];
-      };
+      }>;
       const ctx: ServerFunctionContext = {
         auth: requestAuthToServerAuth(request.auth),
         signal: abortController.signal,
       };
-      const functionResults = await invokeFunction(functionName, ctx, args);
 
-      return h.response(JSON.stringify(functionResults)).type('application/json');
+      const stream = new Stream.PassThrough();
+      const res = h.response(stream).type(RPCMimeType);
+      const functionPromises: Promise<void>[] = [];
+
+      for (let i = 0; i < requests.length; i++) {
+        const idx = i;
+        const { functionName, args } = requests[idx];
+        const functionResultPromise = invokeFunction(functionName, ctx, args).then(
+          (functionResult) => {
+            stream.write(`${idx}\t${RPCResultKind.Success}\t${JSON.stringify(functionResult)}`);
+          },
+          (err) => {
+            stream.write(`${idx}\t${RPCResultKind.Error}\t${JSON.stringify(errorToWireData(err))}`);
+          }
+        );
+
+        functionPromises.push(functionResultPromise);
+      }
+
+      Promise.all(functionPromises).then(() => {
+        stream.end();
+      });
+
+      return res;
     },
   });
 

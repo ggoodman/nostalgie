@@ -13,7 +13,7 @@
     "incremental": true,
     "isolatedModules": true,
     "jsx": "react",
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM.Iterable", "ESNext.AsyncIterable"],
     "module": "esnext",
     "moduleResolution": "node",
     "noEmit": false,
@@ -28,7 +28,8 @@
     "sourceMap": true,
     "strict": true,
     "stripInternal": true,
-    "target": "ESNext"
+    "target": "ESNext",
+    "types": [],
   },
   "include": ["./package.json", "./src"]
 }
