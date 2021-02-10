@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.69.3] - 2021-02-10
 ### Fixed
 - Fixed the orchestration of the different build steps so that the node server will not attempt to start until the SSR library is ready.
   
@@ -175,7 +177,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.69.2...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.69.3...HEAD
+[0.69.3]: https://github.com/ggoodman/nostalgie/compare/v0.69.2...v0.69.3
 [0.69.2]: https://github.com/ggoodman/nostalgie/compare/v0.69.1...v0.69.2
 [0.69.1]: https://github.com/ggoodman/nostalgie/compare/v0.69.0...v0.69.1
 [0.69.0]: https://github.com/ggoodman/nostalgie/compare/v0.68.5...v0.69.0
