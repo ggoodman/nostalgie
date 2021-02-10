@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed the orchestration of the different build steps so that the node server will not attempt to start until the SSR library is ready.
+  
+  Also wired up the internal build throttling mechanism that was present but unused.
 
 ## [0.69.2] - 2021-02-08
 ### Changed

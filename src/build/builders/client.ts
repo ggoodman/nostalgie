@@ -146,7 +146,7 @@ export class ClientAssetBuilder {
     const metaFileContents = await Fs.readFile(clientMetaPath, 'utf8');
 
     // The metadata has potentially sensitive info like local paths
-    // await Fs.unlink(clientMetaPath);
+    await Fs.unlink(clientMetaPath);
 
     const meta: Metadata = JSON.parse(metaFileContents);
 
@@ -182,11 +182,17 @@ export class ClientAssetBuilder {
   }
 
   start() {
-    this.functionsBuilder.onBuild((result) => this.build(result));
+    this.functionsBuilder.onBuild((result) => {
+      this.delayer.trigger(() => {
+        return this.build(result);
+      });
+    });
     this.watcher.on('all', () => {
-      if (this.lastServerFunctionBuildResult) {
-        this.build(this.lastServerFunctionBuildResult);
-      }
+      this.delayer.trigger(async () => {
+        if (this.lastServerFunctionBuildResult) {
+          return this.build(this.lastServerFunctionBuildResult);
+        }
+      });
     });
   }
 }

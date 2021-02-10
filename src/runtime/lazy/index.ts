@@ -14,6 +14,7 @@ export function createLazy(realReact: typeof React) {
     }
 
     return function LazyComponent<P extends {}>(props: P, ...children: React.ReactChild[]) {
+      console.trace('rendering LazyComponent');
       const chunkManager = React.useContext(LazyContext);
 
       if (!chunkManager) {
@@ -37,7 +38,11 @@ export function createLazy(realReact: typeof React) {
             );
           }
 
+          console.log('register(%s, %s, %s)', factory.chunk, lazyImport, mod);
+
           lazyComponentState = register(chunkManager, factory.chunk, lazyImport, mod);
+        } else {
+          console.error('NOT FACTORY.sync', lazyImport);
         }
       }
 

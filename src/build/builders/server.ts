@@ -6,6 +6,7 @@ import type { Logger } from 'pino';
 import { DisposableStore, Emitter, ThrottledDelayer, toDisposable } from 'ts-primitives';
 import { createRequire } from '../../createRequire';
 import type { NostalgieSettings } from '../../settings';
+import type { ServerRendererBuilder } from './ssr';
 
 export interface NodeServerBuildResult {
   nodeServerPath: string;
@@ -15,6 +16,7 @@ export interface NodeServerBuilderOptions {
   logger: Logger;
   service: Service;
   settings: NostalgieSettings;
+  ssrBuilder: ServerRendererBuilder;
   throttleInterval?: number;
 }
 
@@ -25,6 +27,7 @@ export class NodeServerBuilder {
   private readonly onBuildEmitter = new Emitter<NodeServerBuildResult>();
   private readonly service: Service;
   private readonly settings: NostalgieSettings;
+  private readonly ssrBuilder: ServerRendererBuilder;
   private readonly watcher = watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
   private readonly watchedFiles = new Set<string>();
 
@@ -38,6 +41,7 @@ export class NodeServerBuilder {
     this.logger = options.logger;
     this.service = options.service;
     this.settings = options.settings;
+    this.ssrBuilder = options.ssrBuilder;
   }
 
   get onBuild() {
@@ -119,7 +123,7 @@ CMD [ "node",  "/srv/index.js" ]
     const metaFileContents = await Fs.readFile(metaPath, 'utf8');
 
     // The metadata has potentially sensitive info like local paths
-    // await Fs.unlink(clientMetaPath);
+    await Fs.unlink(metaPath);
 
     const meta: Metadata = JSON.parse(metaFileContents);
 
@@ -154,9 +158,11 @@ CMD [ "node",  "/srv/index.js" ]
   }
 
   async start() {
-    await this.delayer.trigger(() => {
-      return this.build();
-    });
+    this.ssrBuilder.onBuild(() =>
+      this.delayer.trigger(() => {
+        return this.build();
+      })
+    );
     this.watcher.on('all', () => {
       this.build();
     });

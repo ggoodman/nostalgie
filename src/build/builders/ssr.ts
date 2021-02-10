@@ -150,7 +150,7 @@ worker({
     const metaFileContents = await Fs.readFile(metaPath, 'utf8');
 
     // The metadata has potentially sensitive info like local paths
-    // await Fs.unlink(clientMetaPath);
+    await Fs.unlink(metaPath);
 
     const meta: Metadata = JSON.parse(metaFileContents);
 

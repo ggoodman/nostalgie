@@ -74,6 +74,7 @@ export class Builder {
       logger,
       service,
       settings,
+      ssrBuilder: this.serverRendererBuilder,
     });
     this.disposer.add(this.nodeServerBuilder);
   }

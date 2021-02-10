@@ -43,15 +43,11 @@ const { createLazy } = require(${JSON.stringify(lazyPath)});
 const Suspense = process.env.NOSTALGIE_BUILD_TARGET === 'browser' ? React.Suspense : (props) => React.Children.only(props.children);
 const lazy = createLazy(React);
 
-module.exports = new Proxy(React, {
-  get(target, prop, receiver) {
-    switch (prop) {
-      case 'Suspense': return Suspense;
-      case 'lazy': return lazy;
-      default: return Reflect.get(target, prop, receiver);
-    }
-  },
-});
+module.exports = {
+  ...React,
+  lazy,
+  Suspense,
+};
                 `,
           resolveDir: Path.dirname(reactPath),
         };

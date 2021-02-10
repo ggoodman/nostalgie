@@ -74,7 +74,7 @@ export class ServerFunctionsBuilder {
       },
       logLevel: 'error',
       entryPoints: [`./${Path.relative(rootDir, this.settings.functionsEntryPoint)}`],
-      external: [],
+      external: ['*'],
       format: 'esm',
       incremental: false,
       loader: this.settings.loaders,
@@ -161,7 +161,9 @@ export class ServerFunctionsBuilder {
       return this.build();
     });
     this.watcher.on('all', () => {
-      this.build();
+      this.delayer.trigger(() => {
+        return this.build();
+      });
     });
   }
 }
