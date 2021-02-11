@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Change `robots.text` from `Disallow: /` to allowing everything but `/.nostalgie` endpoints. This is a temporary measure to allow Nostalgie sites to be crawled.
+  
+  A likely future direction is to put this file totally in the hands of users via some `./public` directory feature. The `./public` directory approach seems to be the idiomatic solution in the wild. However, it's unclear if that's the _best_ solution. Nostalgie will already copy and include assets referenced by JavaScript code in builds.
 
 ## [0.69.4] - 2021-02-10
 ### Fixed

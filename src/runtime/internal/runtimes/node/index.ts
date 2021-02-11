@@ -258,8 +258,9 @@ export async function initializeServer(options: StartServerOptions): Promise<Nos
     handler() {
       return (
         `
-User-agent: *
-Disallow: /
+User-Agent: *
+Disallow:
+Disallow: /.nostalgie/
       `.trim() + '\n'
       );
     },
