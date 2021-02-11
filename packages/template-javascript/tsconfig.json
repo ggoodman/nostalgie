@@ -2,6 +2,7 @@
   "compilerOptions": {
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
+    "checkJs": true,
     "declaration": true,
     "declarationMap": true,
     "downlevelIteration": true,

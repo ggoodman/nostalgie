@@ -16,7 +16,8 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "nostalgie": "^0.68.5"
+    "nostalgie": "^0.68.5",
+    "typescript": "^4.1.5"
   },
   "dependencies": {
     "react": "^17.0.1",

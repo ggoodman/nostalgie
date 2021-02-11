@@ -14,7 +14,10 @@ const GitHubUrlFromGit = require('github-url-from-git');
 const ChildProcess = require('child_process');
 const Events = require('events');
 
-const TEMPLATE_SPEC = 'ggoodman/nostalgie/packages/template#main';
+const templates = {
+  javascript: 'ggoodman/nostalgie/packages/template-javascript#main',
+  typescript: 'ggoodman/nostalgie/packages/template-typescript#main',
+};
 
 const allowedFiles = new Set(['.gitignore']);
 const allowedDirectories = new Set(['.git']);
@@ -43,7 +46,12 @@ function init() {
         .options({
           force: {
             boolean: true,
-            description: 'Force scaffolding even if the target directory is not empty',
+            description: 'Force scaffolding even if the target directory is not empty.',
+          },
+          template: {
+            choices: Object.keys(templates),
+            description: 'Choose a starting template based on your authoring language of choice.',
+            default: 'javascript',
           },
         }),
     async (argv) => {
@@ -76,7 +84,7 @@ function init() {
           }
         }
 
-        const degit = Degit(TEMPLATE_SPEC);
+        const degit = Degit(templates[argv.template]);
 
         degit.on('info', (event) => {
           console.error(Chalk.cyan(`> ${event.message.replace('options.', '--')}`));
