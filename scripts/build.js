@@ -289,7 +289,7 @@ async function buildRuntimeTypes() {
           mergedSpec: versionSpec,
         });
 
-      if (versionSpec) {
+      if (versionSpec && !target[externalName]) {
         target[externalName] = versionSpec;
       }
     }
