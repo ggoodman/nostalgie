@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.70.0] - 2021-02-11
 ### Changed
 - Change `robots.text` from `Disallow: /` to allowing everything but `/.nostalgie` endpoints. This is a temporary measure to allow Nostalgie sites to be crawled.
   
@@ -185,7 +187,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.69.4...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.70.0...HEAD
+[0.70.0]: https://github.com/ggoodman/nostalgie/compare/v0.69.4...v0.70.0
 [0.69.4]: https://github.com/ggoodman/nostalgie/compare/v0.69.3...v0.69.4
 [0.69.3]: https://github.com/ggoodman/nostalgie/compare/v0.69.2...v0.69.3
 [0.69.2]: https://github.com/ggoodman/nostalgie/compare/v0.69.1...v0.69.2
