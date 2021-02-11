@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Reverted treating all files as externals for server functions (for now) because that seemed to break the entrypoint resolution.
+- Stopped using the serialized output from `@twind/shim/server`'s `shim()` function because this was causing browser hydration warnings due to minor changes in whitespace.
 
 ## [0.70.0] - 2021-02-11
 ### Changed

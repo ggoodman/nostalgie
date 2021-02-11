@@ -183,7 +183,7 @@ export class ServerRenderer {
     queryClient.cancelQueries();
 
     if (this.settings.enableTailwind) {
-      renderedMarkup = TwindServer.shim(renderedMarkup, {
+      TwindServer.shim(renderedMarkup, {
         tw,
         lowerCaseTagName: false,
         comment: false,
