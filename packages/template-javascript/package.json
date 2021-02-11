@@ -1,5 +1,5 @@
 {
-  "name": "nostalgie-app",
+  "name": "nostalgie-app-javascript",
   "version": "0.0.0",
   "description": "A Create Nostalgie App project",
   "main": "./build/index.js",
