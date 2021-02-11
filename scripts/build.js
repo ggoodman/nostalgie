@@ -58,8 +58,10 @@ const dependencies = {};
 const devDependencies = {};
 // We want to use the react version from the user's app (as long as it satisfies peerDep ranges)
 const peerDependencies = {
-  '@types/react': PackageJson.devDependencies['@types/react'],
-  '@types/react-dom': PackageJson.devDependencies['@types/react-dom'],
+  react: '^16.8.0 || ^17.0.0',
+  'react-dom': '^16.8.0 || ^17.0.0',
+  '@types/react': '^16.8.0 || ^17.0.0',
+  '@types/react-dom': '^16.8.0 || ^17.0.0',
 };
 
 const mergedDependencies = {

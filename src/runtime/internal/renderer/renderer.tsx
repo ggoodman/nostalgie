@@ -183,17 +183,7 @@ export class ServerRenderer {
     queryClient.cancelQueries();
 
     if (this.settings.enableTailwind) {
-      TwindServer.shim(renderedMarkup, {
-        tw,
-        lowerCaseTagName: false,
-        comment: false,
-        blockTextElements: {
-          script: true,
-          noscript: true,
-          style: true,
-          pre: true,
-        },
-      });
+      renderedMarkup = TwindServer.shim(renderedMarkup, tw);
     }
     const headTags = [];
 
