@@ -15,6 +15,7 @@
     "lib": ["DOM", "ESNext"],
     "module": "esnext",
     "moduleResolution": "node",
+    "noEmit": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "pretty": true,
