@@ -74,7 +74,6 @@ export class ServerFunctionsBuilder {
       },
       logLevel: 'error',
       entryPoints: [`./${Path.relative(rootDir, this.settings.functionsEntryPoint)}`],
-      external: ['*'],
       format: 'esm',
       incremental: false,
       loader: this.settings.loaders,

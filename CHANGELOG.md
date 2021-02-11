@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Added support for picking among first-party `create-nostalgie-app` templates. With this release, we include `javascript` and `typescript`.
-
 - Added a simple (but fun) Server Function to the default templates. This function demonstrates using the `useQueryFunction` hook with a Server Function. The hook is configured to keep the initial, server-rendered value for 5s and then cycle every 5s.
 
 ### Changed
 - Changed default `create-nostalgie-app` to use the JavaScript template.
+
+### Fixed
+- Reverted treating all files as externals for server functions (for now) because that seemed to break the entrypoint resolution.
 
 ## [0.70.0] - 2021-02-11
 ### Changed
