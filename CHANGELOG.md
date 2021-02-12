@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.73.0] - 2021-02-12
 ### Changed
 - Migrated from `@mdx-js/mdx` to `xdm` for a smaller, faster MDX runtime.
 
@@ -213,7 +215,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.72.1...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.73.0...HEAD
+[0.73.0]: https://github.com/ggoodman/nostalgie/compare/v0.72.1...v0.73.0
 [0.72.1]: https://github.com/ggoodman/nostalgie/compare/v0.72.0...v0.72.1
 [0.72.0]: https://github.com/ggoodman/nostalgie/compare/v0.71.0...v0.72.0
 [0.71.0]: https://github.com/ggoodman/nostalgie/compare/v0.70.0...v0.71.0
