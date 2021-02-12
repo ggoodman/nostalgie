@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Migrated from `@mdx-js/mdx` to `xdm` for a smaller, faster MDX runtime.
 
 ## [0.72.1] - 2021-02-11
 ### Fixed

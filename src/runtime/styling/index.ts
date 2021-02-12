@@ -1,3 +1,4 @@
+import type { MDXProviderComponents } from '@mdx-js/react';
 import * as React from 'react';
 import type { Context, CSSRules, Directive } from 'twind';
 import { css } from 'twind/css';
@@ -85,5 +86,6 @@ export const styled: StyledElements = new Proxy(Object.create(null), {
   },
 });
 
-export { MDXProvider, useMDXComponents } from '@mdx-js/react';
 export type { MDXProviderComponents } from '@mdx-js/react';
+
+export interface MDXProps extends React.PropsWithChildren<{ components: MDXProviderComponents }> {}
