@@ -1,25 +1,23 @@
 import { BUNDLED_THEMES, getHighlighter, loadTheme } from '@antfu/shiki';
-//@ts-ignore
-import mdx from '@mdx-js/mdx';
 import { htmlEscape } from 'escape-goat';
 import grayMatter from 'gray-matter';
+import type { Element, Text } from 'hast';
 import LRUCache from 'lru-cache';
 import * as Path from 'path';
 //@ts-ignore
 import remarkAutolinkHeadings from 'remark-autolink-headings';
+import remarkGfm from 'remark-gfm';
 //@ts-ignore
 import remarkSlug from 'remark-slug';
-import type { Node } from 'unist';
 import visit, { SKIP } from 'unist-util-visit';
-import { createRequire } from '../createRequire';
+import { compile } from 'xdm';
 
-const cache = new LRUCache<string, string>({
+const cache = new LRUCache<string, Element>({
   max: 1024 * 1024 * 32, // 32 mb
   length(value, key) {
-    return value.length + (key ? key.length : 0);
+    return JSON.stringify(value).length + (key ? key.length : 0);
   },
 });
-const runtimeRequire = createRequire(__filename);
 
 export default async function compileMdx([path, contents]: [path: string, contents: string]) {
   const parsed = grayMatter(contents, {
@@ -35,43 +33,25 @@ export default async function compileMdx([path, contents]: [path: string, conten
     );
   }
 
-  const mdxJsx = await mdx(parsed.content, {
-    gfm: true,
-    filepath: path,
-    remarkPlugins: [
-      [remarkCodeBlocksShiki, {}],
-      [remarkSlug, {}],
-      [remarkAutolinkHeadings, {}],
-    ],
-    skipExport: true,
-  });
+  const mdxJsx = await compile(
+    { contents: parsed.content, path },
+    {
+      jsx: true,
+      jsxRuntime: 'classic',
+      remarkPlugins: [remarkCodeBlocksShiki, remarkGfm, remarkAutolinkHeadings, remarkSlug],
+    }
+  );
 
   const transformed =
     `
-import * as React from 'react';
-import { mdx, MDXProvider } from ${JSON.stringify(
-      runtimeRequire.resolve('@mdx-js/react/dist/esm')
-    )};
+    ${mdxJsx.toString()}
 
-${mdxJsx}
-
-export const excerpt = ${JSON.stringify(parsed.excerpt || '')};
-export const frontmatter = ${JSON.stringify(parsed.data)};
-export const source = ${JSON.stringify(contents)};
-
-export default function({ components, ...props } = {}) {
-return React.createElement(MDXProvider, { components }, React.createElement(MDXContent, props));
-};
+    export const excerpt = ${JSON.stringify(parsed.excerpt || '')};
+    export const frontmatter = ${JSON.stringify(parsed.data)};
+    export const source = ${JSON.stringify(contents)};
   `.trim() + '\n';
 
   return transformed;
-}
-
-interface CodeNode extends Node {
-  type: 'code';
-  lang?: string;
-  meta: string | string[];
-  value: string;
 }
 
 const remarkCodeBlocksShiki: import('unified').Plugin = () => {
@@ -81,7 +61,7 @@ const remarkCodeBlocksShiki: import('unified').Plugin = () => {
     const highlighter = await getHighlighter({ themes: [...BUNDLED_THEMES, oneDark] });
     const themeOptionRx = /^theme:(.+)$/;
 
-    visit<CodeNode>(tree, 'code', (node) => {
+    visit(tree, 'code', (node) => {
       if (!node.lang || !node.value) {
         return;
       }
@@ -104,37 +84,74 @@ const remarkCodeBlocksShiki: import('unified').Plugin = () => {
       if (!nodeValue) {
         const fgColor = highlighter.getForegroundColor(requestedTheme).toUpperCase();
         const bgColor = highlighter.getBackgroundColor(requestedTheme).toUpperCase();
-        const tokens = highlighter.codeToThemedTokens(node.value, node.lang, requestedTheme);
-        const lines = tokens.map((lineTokens, zeroBasedLineNumber) => {
-          const renderedLine = lineTokens
-            .map((token) => {
+        const tokens = highlighter.codeToThemedTokens(
+          node.value as string,
+          node.lang as string,
+          requestedTheme
+        );
+        const children = tokens.map(
+          (lineTokens, zeroBasedLineNumber): Element => {
+            const children = lineTokens.map((token): Text | Element => {
               const color = token.color;
-              const styleString =
-                color && color !== fgColor ? ` style="color: ${htmlEscape(color)}"` : '';
+              const content: Text = {
+                type: 'text',
+                // Do not escape the _actual_ content
+                value: token.content,
+              };
 
-              return `<span${styleString}>${htmlEscape(token.content)}</span>`;
-            })
-            .join('');
+              return color && color !== fgColor
+                ? {
+                    type: 'element',
+                    tagName: 'span',
+                    properties: {
+                      style: `color: ${htmlEscape(color)}`,
+                    },
+                    children: [content],
+                  }
+                : content;
+            });
 
-          return `<span class="codeblock-line" data-line-number="${
-            zeroBasedLineNumber + 1
-          }">${renderedLine}</span>`;
-        });
+            children.push({
+              type: 'text',
+              value: '\n',
+            });
 
-        const html = lines.join('\n');
-        const styleString = ` style="color: ${htmlEscape(fgColor)};background-color: ${htmlEscape(
-          bgColor
-        )}"`;
-        nodeValue = `<pre data-lang="${htmlEscape(
-          node.lang
-        )}"${styleString}><code>${html}</code></pre>`;
+            return {
+              type: 'element',
+              tagName: 'span',
+              properties: {
+                className: 'codeblock-line',
+                dataLineNumber: zeroBasedLineNumber + 1,
+              },
+              children,
+            };
+          }
+        );
+
+        nodeValue = {
+          type: 'element',
+          tagName: 'pre',
+          properties: {
+            dataLang: htmlEscape(node.lang as string),
+            style: `color: ${htmlEscape(fgColor)};background-color: ${htmlEscape(bgColor)}`,
+          },
+          children: [
+            {
+              type: 'element',
+              tagName: 'code',
+              children,
+            },
+          ],
+        };
 
         cache.set(cacheKey, nodeValue);
       }
 
-      (node as any).type = 'html';
-      node.value = nodeValue;
-      node.children = [];
+      const data = node.data ?? (node.data = {});
+
+      node.type = 'element';
+      data.hProperties ??= {};
+      data.hChildren = [nodeValue];
 
       return SKIP;
     });

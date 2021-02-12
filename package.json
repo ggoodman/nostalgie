@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "clean": "rm -rf ./dist",
-    "dev": "SKIP_EMPTY=1 nodemon --watch src --watch scripts/build.js --ext js,jsx,ts,tsx ./scripts/build.js",
+    "dev": "SKIP_EMPTY=1 NODE_ENV=development nodemon --watch src --watch scripts/build.js --ext js,jsx,ts,tsx ./scripts/build.js",
     "build": "node ./scripts/build.js",
     "posttest": "kacl lint",
     "prepack": "npm run build",
@@ -19,6 +19,7 @@
     "@types/hapi__cookie": "^10.1.2",
     "@types/hapi__inert": "^5.2.2",
     "@types/hapi-pino": "^8.0.1",
+    "@types/hast": "^2.3.1",
     "@types/jsesc": "^2.5.1",
     "@types/lru-cache": "^5.1.0",
     "@types/mdx-js__react": "^1.5.3",
@@ -41,7 +42,8 @@
     "rollup": "^2.38.5",
     "rollup-plugin-dts": "^2.0.1",
     "tailwindcss": "^2.0.2",
-    "typescript": "^4.1.3"
+    "typescript": "^4.1.3",
+    "unified": "^9.2.0"
   },
   "repository": {
     "type": "git",
@@ -81,8 +83,6 @@
     "@hapi/hapi": "^20.0.3",
     "@hapi/inert": "^6.0.3",
     "@hapi/iron": "^6.0.0",
-    "@mdx-js/mdx": "^1.6.22",
-    "@mdx-js/react": "^1.6.22",
     "@svgr/core": "^5.5.0",
     "@svgr/plugin-jsx": "^5.5.0",
     "@svgr/plugin-svgo": "^5.5.0",
@@ -106,9 +106,10 @@
     "react-helmet-async": "^1.0.7",
     "react-query": "^3.8.3",
     "react-router-dom": "^5.2.0",
-    "remark-autolink-headings": "^5.2.2",
+    "remark-autolink-headings": "^6.0.1",
+    "remark-gfm": "^1.0.0",
     "remark-github": "^10.0.1",
-    "remark-slug": "^5.1.2",
+    "remark-slug": "^6.0.0",
     "resolve": "^1.20.0",
     "source-map-support": "^0.5.19",
     "stacktracey": "^2.0.15",
@@ -117,6 +118,7 @@
     "unist-util-visit": "^2.0.3",
     "vfile": "^4.2.1",
     "workerpool": "^6.1.0",
+    "xdm": "^1.1.0",
     "yargs": "^16.2.0"
   },
   "workspaces": [

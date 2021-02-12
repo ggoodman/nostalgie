@@ -107,8 +107,6 @@ export class ServerRenderer {
         ...(this.settings.enableTailwind ? TwindTypography() : {}),
       },
     });
-    // We need to reset the sheet _right before_ rendering even if single-use 🤷‍♂️
-    customSheet.reset();
     const model = (
       <TwindContext.Provider value={tw}>
         <LazyContext.Provider value={chunkCtx}>
@@ -145,6 +143,7 @@ export class ServerRenderer {
       // We'll give ourselves a budget for the number of async passes we're willing to undertake
       let remainingIterations = this.settings.maxIterations;
 
+      customSheet.reset();
       let html: string | undefined = renderToString(model);
 
       // Loop while we haven't exceeded our deadline or iteration budget and while we have pending queries
@@ -161,6 +160,7 @@ export class ServerRenderer {
           await Promise.race([deadlinePromise, ...queryExecutor.promises]);
 
           // Re-render the page, triggering any new queries unlocked by the new state.
+          customSheet.reset();
           html = renderToString(model);
           renderCount++;
           // await ssrPrepass(model);
@@ -170,14 +170,14 @@ export class ServerRenderer {
         }
       }
 
-      renderedMarkup = html ?? (renderCount++, renderToString(model));
+      renderedMarkup = html ?? (customSheet.reset(), renderCount++, renderToString(model));
     } catch (err) {
       // TODO: Bake error into dev builds for devex
     }
     // Any outstanding queries should be cancelled at this point since our client's lifetime
     // is limited to this request anyway.
     const queryClientData = ReactQueryHydration.dehydrate(queryClient);
-    renderedMarkup ??= (renderCount++, renderToString(model));
+    renderedMarkup ??= (customSheet.reset(), renderCount++, renderToString(model));
 
     // They didn't make it in time for the deadline so we'll cancel them
     queryClient.cancelQueries();
