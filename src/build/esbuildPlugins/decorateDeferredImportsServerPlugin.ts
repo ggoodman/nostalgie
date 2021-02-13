@@ -54,11 +54,14 @@ export function decorateDeferredImportsServerPlugin(options: {
             }
 
             const { path: resolvedPath, chunks } = chunkPathsForSpec;
+            const entryChunks = Array.from(chunks).filter(
+              (chunkName) => !Path.basename(chunkName).startsWith('chunk.')
+            );
 
-            if (!chunks.size) {
+            if (!entryChunks.length) {
               logger.warn(
                 {
-                  chunks: [...chunks],
+                  chunks: entryChunks,
                   path: resolvedPath,
                 },
                 'Found no chunks for the input path when expecting exactly 1'
@@ -66,13 +69,13 @@ export function decorateDeferredImportsServerPlugin(options: {
               return match;
             }
 
-            const chunk = [...chunks][0];
+            const chunk = entryChunks[0];
 
-            if (chunks.size > 1) {
+            if (entryChunks.length > 1) {
               logger.warn(
                 {
                   chunk,
-                  chunks: [...chunks],
+                  chunks: entryChunks,
                   path: resolvedPath,
                 },
                 'Found multiple chunks for the input path when expecting exactly 1, using the first one'

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add support for handling server-side redirects triggered by `nostalgie/router`'s `<Redirect />` component (via `react-router`).
   
   Whereas before an app without redirects would be fully functional with JavaScript disabled, one with redirects would sit idle on any route intending to trigger a redirect. This change will result in a `302` response with a `Location` header and some (very) simple markup explaining the iminent redirect.
+- Add support for reading and embedding css resources referred-to by URLs.
+  
+  For example, the following is now supported for loading a Google Font:
+  
+  ```css
+  /* The following imports the Monoton font, with _just_ the letter N */
+  @import url('https://fonts.googleapis.com/css2?family=Monoton&display=swap&text=N');
+  ```
+  
+  What is interesting about this is that the above url points to a css file, which _also_ contains a URL `@import` to the actual font file. Nostalgie will import both of these, treating the font file as a base64-encoded uri. The resulting CSS file will be a stand-alone asset that no longer needs to download the font at runtime, avoiding any risk of flash of unstyled text (FOUT).
+  
+  Of course, the trade-off here is that this increases the initial render size so it remains to be seen how this plays out.
 
 ## [0.73.0] - 2021-02-12
 ### Changed

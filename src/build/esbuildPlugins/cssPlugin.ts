@@ -1,4 +1,5 @@
 import type { Plugin, Service } from 'esbuild';
+import got from 'got';
 // import * as Url from 'url';
 import * as Path from 'path';
 import type { NostalgieSettings } from '../../settings';
@@ -11,6 +12,8 @@ export function cssBrowserPlugin(
   return {
     name: 'css',
     setup(build) {
+      const googleFontRx = /^https:\/\/(fonts\.gstatic\.com|.*\.(eot|woff|woff2|ttf)(?:#.*)?$)/;
+
       build.onLoad({ filter: /\.css$/ }, async ({ path }) => {
         const cssBundle = await service.build({
           bundle: true,
@@ -19,6 +22,59 @@ export function cssBrowserPlugin(
           minify: true,
           treeShaking: true,
           write: false,
+          plugins: [
+            {
+              name: 'font-urls',
+              setup: (build) => {
+                build.onLoad({ filter: googleFontRx }, async ({ path }) => {
+                  const res = await got.get(path, {
+                    responseType: 'buffer',
+                  });
+
+                  return {
+                    contents: res.body,
+                    loader: 'base64',
+                  };
+                });
+              },
+            },
+            {
+              name: 'font-files',
+              setup: (build) => {
+                build.onLoad(
+                  { filter: /^\.(eot|woff|woff2|ttf)(?:#.*)?$/, namespace: 'file' },
+                  async () => {
+                    return {
+                      loader: 'base64',
+                    };
+                  }
+                );
+              },
+            },
+            {
+              name: 'css-imports',
+              setup: (build) => {
+                const namespace = 'css-imports';
+                build.onResolve({ filter: /^https?:\/\// }, ({ importer, path }) => {
+                  return {
+                    namespace,
+                    path,
+                  };
+                });
+
+                build.onLoad({ filter: /.*/, namespace }, async ({ path }) => {
+                  const res = await got.get(path, {
+                    responseType: 'text',
+                  });
+
+                  return {
+                    contents: res.body,
+                    loader: 'css',
+                  };
+                });
+              },
+            },
+          ],
         });
         // We don't want to leak the full path into production bundles.
         const relPath = Path.relative(settings.rootDir, path);
