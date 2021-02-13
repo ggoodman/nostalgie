@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Added ability to gracefully recover from and log build errors in `dev` mode.
+- Add support for handling server-side redirects triggered by `nostalgie/router`'s `<Redirect />` component (via `react-router`).
+  
+  Whereas before an app without redirects would be fully functional with JavaScript disabled, one with redirects would sit idle on any route intending to trigger a redirect. This change will result in a `302` response with a `Location` header and some (very) simple markup explaining the iminent redirect.
 
 ## [0.73.0] - 2021-02-12
 ### Changed

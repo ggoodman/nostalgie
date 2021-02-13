@@ -305,7 +305,14 @@ Disallow: /.nostalgie/
     path: '/{any*}',
     options: {},
     handler: async (request, h) => {
-      const { html, latency, queries, renderCount } = await renderAppOnServer({
+      const {
+        headers = {},
+        html,
+        latency,
+        queries,
+        renderCount,
+        statusCode = 200,
+      } = await renderAppOnServer({
         auth: requestAuthToServerAuth(request.auth),
         automaticReload: options.automaticReload,
         path: request.path,
@@ -316,11 +323,18 @@ Disallow: /.nostalgie/
           latency,
           queries,
           renderCount,
+          statusCode,
         },
         'rendered app'
       );
 
-      return h.response(html).header('content-type', 'text/html');
+      const res = h.response(html).code(statusCode).header('content-type', 'text/html');
+
+      for (const header of Object.keys(headers)) {
+        res.header(header, headers[header]);
+      }
+
+      return res;
     },
   });
 

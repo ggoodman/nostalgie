@@ -1,11 +1,13 @@
 import Boom from '@hapi/boom';
 import TwindTypography from '@twind/typography';
+import { htmlEscape } from 'escape-goat';
 import jsesc from 'jsesc';
 import * as React from 'react';
 import { renderToString } from 'react-dom/server';
 import * as Helmet from 'react-helmet-async';
 import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
+import type * as ReactRouter from 'react-router';
 import * as ReactRouterDOM from 'react-router-dom';
 import { install } from 'source-map-support';
 import * as Twind from 'twind';
@@ -84,7 +86,14 @@ export class ServerRenderer {
 
   async renderAppOnServer(
     request: ServerRenderRequest
-  ): Promise<{ html: string; queries: number; renderCount: number; latency: number }> {
+  ): Promise<{
+    headers?: Record<string, string>;
+    html: string;
+    queries: number;
+    renderCount: number;
+    statusCode?: number;
+    latency: number;
+  }> {
     const start = Date.now();
     const bootstrapChunk = 'static/build/bootstrap.js';
     const helmetCtx: Helmet.ProviderProps = {};
@@ -98,6 +107,7 @@ export class ServerRenderer {
     const queryExecutor = new ServerQueryExecutorImpl({ auth: request.auth, queryClient });
     // Set up twind for parsing the result and generating markup
     const customSheet = TwindServer.virtualSheet();
+    const routerCtx: ReactRouter.StaticRouterContext = {};
     const { tw } = Twind.create({
       sheet: customSheet,
       mode: 'silent',
@@ -114,7 +124,7 @@ export class ServerRenderer {
             <ReactQueryHydration.Hydrate state={initialReactQueryState}>
               <Helmet.HelmetProvider context={helmetCtx}>
                 <AuthContext.Provider value={auth}>
-                  <ReactRouterDOM.StaticRouter location={request.path}>
+                  <ReactRouterDOM.StaticRouter location={request.path} context={routerCtx}>
                     <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
                     <this.app />
                   </ReactRouterDOM.StaticRouter>
@@ -150,7 +160,11 @@ export class ServerRenderer {
       for (
         ;
         // Condition
-        Date.now() <= deadlineAt && queryExecutor.promises.size && remainingIterations;
+        Date.now() <= deadlineAt &&
+        queryExecutor.promises.size &&
+        remainingIterations &&
+        !routerCtx.url &&
+        !routerCtx.statusCode;
         // Loop update (after loop block)
         remainingIterations--
       ) {
@@ -174,13 +188,26 @@ export class ServerRenderer {
     } catch (err) {
       // TODO: Bake error into dev builds for devex
     }
+
     // Any outstanding queries should be cancelled at this point since our client's lifetime
     // is limited to this request anyway.
+    queryClient.cancelQueries();
+
+    if (routerCtx.url) {
+      return {
+        headers: {
+          location: routerCtx.url,
+        },
+        statusCode: routerCtx.statusCode || 302,
+        html: `<p>You are being redirected to ${htmlEscape(routerCtx.url)}</p>`,
+        renderCount: renderCount,
+        queries: queryExecutor.promises.size,
+        latency: Date.now() - start,
+      };
+    }
+
     const queryClientData = ReactQueryHydration.dehydrate(queryClient);
     renderedMarkup ??= (customSheet.reset(), renderCount++, renderToString(model));
-
-    // They didn't make it in time for the deadline so we'll cancel them
-    queryClient.cancelQueries();
 
     if (this.settings.enableTailwind) {
       renderedMarkup = TwindServer.shim(renderedMarkup, tw);
