@@ -22,6 +22,7 @@ export class ServerFunctionsBuilder {
   private readonly disposer = new DisposableStore();
   private readonly logger: Logger;
   private readonly onBuildEmitter = new Emitter<ServerFunctionBuildResult>();
+  private readonly onBuildErrorEmitter = new Emitter<Error>();
   private readonly service: Service;
   private readonly settings: NostalgieSettings;
   private readonly watcher = watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
@@ -43,112 +44,122 @@ export class ServerFunctionsBuilder {
     return this.onBuildEmitter.event;
   }
 
+  get onBuildError() {
+    return this.onBuildErrorEmitter.event;
+  }
+
   async build() {
     const start = Date.now();
 
-    if (!this.settings.functionsEntryPoint) {
-      this.logger.info(
-        { latency: Date.now() - start },
-        'Server functions build skipped; no functions entrypoint found.'
-      );
+    try {
+      if (!this.settings.functionsEntryPoint) {
+        this.logger.info(
+          { latency: Date.now() - start },
+          'Server functions build skipped; no functions entrypoint found.'
+        );
 
-      return this.onBuildEmitter.fire({
-        functionNames: [],
-        serverFunctionsEntry: null,
+        return this.onBuildEmitter.fire({
+          functionNames: [],
+          serverFunctionsEntry: null,
+        });
+      }
+
+      this.logger.debug('Starting client asset build');
+      this.logger.info('Starting server functions build');
+
+      const rootDir = this.settings.rootDir;
+      const functionsMetaPath = Path.resolve(rootDir, 'build/functions/meta.json');
+      const functionsBuildPath = 'build/functions/functions.js';
+      const resolveExtensions = [...this.settings.resolveExtensions];
+
+      const buildResult = await this.service.build({
+        bundle: false,
+        define: {
+          'process.env.NODE_ENV': JSON.stringify(this.settings.buildEnvironment),
+          'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
+        },
+        logLevel: 'error',
+        entryPoints: [`./${Path.relative(rootDir, this.settings.functionsEntryPoint)}`],
+        format: 'esm',
+        incremental: false,
+        loader: this.settings.loaders,
+        metafile: functionsMetaPath,
+        minify: this.settings.buildEnvironment === 'production',
+        outbase: Path.resolve(this.settings.functionsEntryPoint, '../nostalgie'),
+        outfile: Path.resolve(rootDir, functionsBuildPath),
+        platform: 'node',
+        plugins: [],
+        publicPath: '/static/build',
+        resolveExtensions,
+        sourcemap: false,
+        splitting: false,
+        treeShaking: true,
+        write: false,
       });
-    }
 
-    this.logger.debug('Starting client asset build');
-    this.logger.info('Starting server functions build');
+      const metaFile = buildResult.outputFiles.find((file) => file.path === functionsMetaPath);
 
-    const rootDir = this.settings.rootDir;
-    const functionsMetaPath = Path.resolve(rootDir, 'build/functions/meta.json');
-    const functionsBuildPath = 'build/functions/functions.js';
-    const resolveExtensions = [...this.settings.resolveExtensions];
-
-    const buildResult = await this.service.build({
-      bundle: false,
-      define: {
-        'process.env.NODE_ENV': JSON.stringify(this.settings.buildEnvironment),
-        'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('server'),
-      },
-      logLevel: 'error',
-      entryPoints: [`./${Path.relative(rootDir, this.settings.functionsEntryPoint)}`],
-      format: 'esm',
-      incremental: false,
-      loader: this.settings.loaders,
-      metafile: functionsMetaPath,
-      minify: this.settings.buildEnvironment === 'production',
-      outbase: Path.resolve(this.settings.functionsEntryPoint, '../nostalgie'),
-      outfile: Path.resolve(rootDir, functionsBuildPath),
-      platform: 'node',
-      plugins: [],
-      publicPath: '/static/build',
-      resolveExtensions,
-      sourcemap: false,
-      splitting: false,
-      treeShaking: true,
-      write: false,
-    });
-
-    const metaFile = buildResult.outputFiles.find((file) => file.path === functionsMetaPath);
-
-    if (!metaFile) {
-      throw new Error(
-        `Invariant violation: Unable to locate the functions build result in the function build metadata for ${functionsBuildPath}`
-      );
-    }
-
-    const metaFileContents = metaFile.text;
-
-    const metaFileData: Metadata = JSON.parse(metaFileContents);
-    const functionsOutput = metaFileData.outputs[functionsBuildPath];
-
-    if (!functionsOutput) {
-      throw new Error(
-        `Invariant violation: Unable to locate the functions build result in the function build metadata for ${functionsBuildPath}`
-      );
-    }
-
-    const newInputFiles = new Set(Object.keys(metaFileData.inputs));
-
-    // Remove files no longer needed
-    for (const fileName of this.watchedFiles) {
-      if (!newInputFiles.has(fileName)) {
-        this.watcher.unwatch(fileName);
-        this.watchedFiles.delete(fileName);
+      if (!metaFile) {
+        throw new Error(
+          `Invariant violation: Unable to locate the functions build result in the function build metadata for ${functionsBuildPath}`
+        );
       }
-    }
 
-    // Add new files
-    for (const fileName of newInputFiles) {
-      if (!this.watchedFiles.has(fileName)) {
-        this.watcher.add(fileName);
-        this.watchedFiles.add(fileName);
+      const metaFileContents = metaFile.text;
+
+      const metaFileData: Metadata = JSON.parse(metaFileContents);
+      const functionsOutput = metaFileData.outputs[functionsBuildPath];
+
+      if (!functionsOutput) {
+        throw new Error(
+          `Invariant violation: Unable to locate the functions build result in the function build metadata for ${functionsBuildPath}`
+        );
       }
+
+      const newInputFiles = new Set(Object.keys(metaFileData.inputs));
+
+      // Remove files no longer needed
+      for (const fileName of this.watchedFiles) {
+        if (!newInputFiles.has(fileName)) {
+          this.watcher.unwatch(fileName);
+          this.watchedFiles.delete(fileName);
+        }
+      }
+
+      // Add new files
+      for (const fileName of newInputFiles) {
+        if (!this.watchedFiles.has(fileName)) {
+          this.watcher.add(fileName);
+          this.watchedFiles.add(fileName);
+        }
+      }
+
+      const functionsShimImports = metaFileData.inputs[Object.keys(metaFileData.inputs)[0]];
+
+      if (!functionsShimImports) {
+        throw new Error(
+          `Invariant violation: Unable to locate the functions shim metadata in the function build input metadata for ${Path.resolve(
+            rootDir,
+            functionsBuildPath
+          )}`
+        );
+      }
+
+      this.logger.info({ latency: Date.now() - start }, 'Finished server functions build');
+
+      this.onBuildEmitter.fire({
+        functionNames: functionsOutput.exports,
+        /**
+         * Absolute path to the USER's functions file
+         */
+        // serverFunctionsSourcePath: Path.resolve(rootDir, functionsShimImports.imports[0].path),
+        serverFunctionsEntry: Path.resolve(rootDir, functionsBuildPath),
+      });
+    } catch (err) {
+      this.logger.warn({ err, latency: Date.now() - start }, 'Erro building server functions');
+
+      this.onBuildErrorEmitter.fire(err);
     }
-
-    const functionsShimImports = metaFileData.inputs[Object.keys(metaFileData.inputs)[0]];
-
-    if (!functionsShimImports) {
-      throw new Error(
-        `Invariant violation: Unable to locate the functions shim metadata in the function build input metadata for ${Path.resolve(
-          rootDir,
-          functionsBuildPath
-        )}`
-      );
-    }
-
-    this.logger.info({ latency: Date.now() - start }, 'Finished server functions build');
-
-    this.onBuildEmitter.fire({
-      functionNames: functionsOutput.exports,
-      /**
-       * Absolute path to the USER's functions file
-       */
-      // serverFunctionsSourcePath: Path.resolve(rootDir, functionsShimImports.imports[0].path),
-      serverFunctionsEntry: Path.resolve(rootDir, functionsBuildPath),
-    });
   }
 
   dispose() {

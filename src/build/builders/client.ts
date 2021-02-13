@@ -41,6 +41,7 @@ export class ClientAssetBuilder {
   private lastServerFunctionBuildResult?: ServerFunctionBuildResult;
   private readonly logger: Logger;
   private readonly onBuildEmitter = new Emitter<ClientAssetBuildResult>();
+  private readonly onBuildErrorEmitter = new Emitter<Error>();
   private readonly service: Service;
   private readonly settings: NostalgieSettings;
   private readonly token: CancellationToken;
@@ -65,116 +66,127 @@ export class ClientAssetBuilder {
     return this.onBuildEmitter.event;
   }
 
+  get onBuildError() {
+    return this.onBuildErrorEmitter.event;
+  }
+
   async build(functionsBuildResult: ServerFunctionBuildResult) {
     const start = Date.now();
+
     this.logger.debug('Starting client asset build');
 
-    this.lastServerFunctionBuildResult = functionsBuildResult;
+    try {
+      this.lastServerFunctionBuildResult = functionsBuildResult;
 
-    const staticDir = this.settings.staticDir;
-    const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
-    const runtimeRequire = createRequire(Path.resolve(this.settings.buildDir, './index.js'));
-    const appRequire = createRequire(this.settings.applicationEntryPoint);
-    const nostalgieBootstrapPath = runtimeRequire.resolve('nostalgie/internal/bootstrap');
-    const resolveExtensions = [...this.settings.resolveExtensions];
-    const relativeAppEntry = `./${Path.relative(
-      this.settings.rootDir,
-      this.settings.applicationEntryPoint
-    )}`;
-    const cssMap = new Map<string, string>();
+      const staticDir = this.settings.staticDir;
+      const clientMetaPath = Path.resolve(staticDir, './clientMetadata.json');
+      const runtimeRequire = createRequire(Path.resolve(this.settings.buildDir, './index.js'));
+      const appRequire = createRequire(this.settings.applicationEntryPoint);
+      const nostalgieBootstrapPath = runtimeRequire.resolve('nostalgie/internal/bootstrap');
+      const resolveExtensions = [...this.settings.resolveExtensions];
+      const relativeAppEntry = `./${Path.relative(
+        this.settings.rootDir,
+        this.settings.applicationEntryPoint
+      )}`;
+      const cssMap = new Map<string, string>();
 
-    const plugins: Plugin[] = [
-      mdxPlugin({ token: this.token }),
-      svgPlugin(),
-      cssBrowserPlugin(this.settings, this.service, cssMap),
-      reactShimPlugin(this.settings),
-      decorateDeferredImportsBrowserPlugin({
-        rootDir: this.settings.rootDir,
-      }),
-    ];
+      const plugins: Plugin[] = [
+        mdxPlugin({ token: this.token }),
+        svgPlugin(),
+        cssBrowserPlugin(this.settings, this.service, cssMap),
+        reactShimPlugin(this.settings),
+        decorateDeferredImportsBrowserPlugin({
+          rootDir: this.settings.rootDir,
+        }),
+      ];
 
-    if (this.settings.functionsEntryPoint) {
-      plugins.push(
-        serverFunctionProxyPlugin(
-          this.settings.functionsEntryPoint,
-          functionsBuildResult.functionNames
-        )
+      if (this.settings.functionsEntryPoint) {
+        plugins.push(
+          serverFunctionProxyPlugin(
+            this.settings.functionsEntryPoint,
+            functionsBuildResult.functionNames
+          )
+        );
+      }
+
+      await this.service.build({
+        bundle: true,
+        define: {
+          'process.env.NODE_ENV': JSON.stringify(this.settings.buildEnvironment),
+          'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('browser'),
+          'process.env.NOSTALGIE_RPC_PATH': JSON.stringify('/.nostalgie/rpc'),
+          'process.env.NOSTALGIE_PUBLIC_URL': '"/"',
+        },
+        logLevel: 'error',
+        external: [],
+        format: 'esm',
+        incremental: true,
+        inject: [appRequire.resolve('nostalgie/internal/inject-react')],
+        loader: this.settings.loaders,
+        metafile: clientMetaPath,
+        minify: this.settings.buildEnvironment === 'production',
+        outbase: Path.dirname(this.settings.applicationEntryPoint),
+        outdir: Path.resolve(staticDir, './build'),
+        platform: 'browser',
+        plugins,
+        publicPath: '/static/build/',
+        resolveExtensions,
+        mainFields: ['module', 'browser', 'main'],
+        sourcemap: true,
+        splitting: true,
+        stdin: {
+          contents: `
+        import { hydrateNostalgie } from ${JSON.stringify(nostalgieBootstrapPath)};
+        import App from ${JSON.stringify(relativeAppEntry)}
+        
+        export function start(options) {
+          return hydrateNostalgie(App, options);
+        }
+              `,
+          loader: 'js',
+          resolveDir: this.settings.rootDir,
+          sourcefile: Path.resolve(this.settings.applicationEntryPoint, '../bootstrap.js'),
+        },
+        treeShaking: true,
+      });
+
+      const metaFileContents = await Fs.readFile(clientMetaPath, 'utf8');
+
+      // The metadata has potentially sensitive info like local paths
+      await Fs.unlink(clientMetaPath);
+
+      const meta: Metadata = JSON.parse(metaFileContents);
+
+      const newInputFiles = new Set(
+        Object.keys(meta.inputs).map((fileName) => Path.join(this.settings.rootDir, fileName))
       );
-    }
 
-    await this.service.build({
-      bundle: true,
-      define: {
-        'process.env.NODE_ENV': JSON.stringify(this.settings.buildEnvironment),
-        'process.env.NOSTALGIE_BUILD_TARGET': JSON.stringify('browser'),
-        'process.env.NOSTALGIE_RPC_PATH': JSON.stringify('/.nostalgie/rpc'),
-        'process.env.NOSTALGIE_PUBLIC_URL': '"/"',
-      },
-      logLevel: 'error',
-      external: [],
-      format: 'esm',
-      incremental: true,
-      inject: [appRequire.resolve('nostalgie/internal/inject-react')],
-      loader: this.settings.loaders,
-      metafile: clientMetaPath,
-      minify: this.settings.buildEnvironment === 'production',
-      outbase: Path.dirname(this.settings.applicationEntryPoint),
-      outdir: Path.resolve(staticDir, './build'),
-      platform: 'browser',
-      plugins,
-      publicPath: '/static/build/',
-      resolveExtensions,
-      mainFields: ['module', 'browser', 'main'],
-      sourcemap: true,
-      splitting: true,
-      stdin: {
-        contents: `
-  import { hydrateNostalgie } from ${JSON.stringify(nostalgieBootstrapPath)};
-  import App from ${JSON.stringify(relativeAppEntry)}
-  
-  export function start(options) {
-    return hydrateNostalgie(App, options);
-  }
-        `,
-        loader: 'js',
-        resolveDir: this.settings.rootDir,
-        sourcefile: Path.resolve(this.settings.applicationEntryPoint, '../bootstrap.js'),
-      },
-      treeShaking: true,
-    });
-
-    const metaFileContents = await Fs.readFile(clientMetaPath, 'utf8');
-
-    // The metadata has potentially sensitive info like local paths
-    await Fs.unlink(clientMetaPath);
-
-    const meta: Metadata = JSON.parse(metaFileContents);
-
-    const newInputFiles = new Set(
-      Object.keys(meta.inputs).map((fileName) => Path.join(this.settings.rootDir, fileName))
-    );
-
-    // Remove files no longer needed
-    for (const pathName of this.watchedFiles) {
-      if (!newInputFiles.has(pathName)) {
-        this.logger.trace({ build: 'client', pathName }, 'stopped watching file');
-        this.watcher.unwatch(pathName);
-        this.watchedFiles.delete(pathName);
+      // Remove files no longer needed
+      for (const pathName of this.watchedFiles) {
+        if (!newInputFiles.has(pathName)) {
+          this.logger.trace({ build: 'client', pathName }, 'stopped watching file');
+          this.watcher.unwatch(pathName);
+          this.watchedFiles.delete(pathName);
+        }
       }
-    }
 
-    // Add new files
-    for (const pathName of newInputFiles) {
-      if (!this.watchedFiles.has(pathName)) {
-        this.logger.trace({ build: 'client', pathName }, 'started watching file');
-        this.watcher.add(pathName);
-        this.watchedFiles.add(pathName);
+      // Add new files
+      for (const pathName of newInputFiles) {
+        if (!this.watchedFiles.has(pathName)) {
+          this.logger.trace({ build: 'client', pathName }, 'started watching file');
+          this.watcher.add(pathName);
+          this.watchedFiles.add(pathName);
+        }
       }
+
+      this.logger.info({ latency: Date.now() - start }, 'Finished client asset build');
+
+      this.onBuildEmitter.fire({ meta: new ClientBuildMetadata(this.settings, meta, cssMap) });
+    } catch (err) {
+      this.logger.info({ err, latency: Date.now() - start }, 'Error building client assets');
+
+      this.onBuildErrorEmitter.fire(err);
     }
-
-    this.logger.info({ latency: Date.now() - start }, 'Finished client asset build');
-
-    this.onBuildEmitter.fire({ meta: new ClientBuildMetadata(this.settings, meta, cssMap) });
   }
 
   dispose() {

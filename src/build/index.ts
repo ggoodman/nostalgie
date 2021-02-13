@@ -83,10 +83,22 @@ export class Builder {
     const start = Date.now();
     const { functionsBuilder, clientAssetBuilder, serverRendererBuilder, nodeServerBuilder } = this;
 
-    const functionsBuildPromise = Event.toPromise(functionsBuilder.onBuild);
-    const clientAssetBuildPromise = Event.toPromise(clientAssetBuilder.onBuild);
-    const serverRendererBuildPromise = Event.toPromise(serverRendererBuilder.onBuild);
-    const nodeServerBuildPromise = Event.toPromise(nodeServerBuilder.onBuild);
+    const functionsBuildPromise = Promise.race([
+      Event.toPromise(functionsBuilder.onBuildError).then((err) => Promise.reject(err)),
+      Event.toPromise(functionsBuilder.onBuild),
+    ]);
+    const clientAssetBuildPromise = Promise.race([
+      Event.toPromise(clientAssetBuilder.onBuildError).then((err) => Promise.reject(err)),
+      Event.toPromise(clientAssetBuilder.onBuild),
+    ]);
+    const serverRendererBuildPromise = Promise.race([
+      Event.toPromise(serverRendererBuilder.onBuildError).then((err) => Promise.reject(err)),
+      Event.toPromise(serverRendererBuilder.onBuild),
+    ]);
+    const nodeServerBuildPromise = Promise.race([
+      Event.toPromise(nodeServerBuilder.onBuildError).then((err) => Promise.reject(err)),
+      Event.toPromise(nodeServerBuilder.onBuild),
+    ]);
 
     await Promise.all([
       functionsBuilder.start(),
