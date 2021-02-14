@@ -146,7 +146,7 @@ Now that you've built and played with your app locally, it's time to deploy. Nos
 nostalgie build --root-dir ./example
 ```
 
-The above will produce artifacts in the `./example/build` dirctory, suitable for running the application locally via `node ./example/build` or via docker using the `./example/build/Dockerfile`. Nostalgie build artifacts have no further build steps required and do not require any `node_modules` at runtime.
+The above will produce artifacts in the `./example/build` directory, suitable for running the application locally via `node ./example/build` or via docker using the `./example/build/Dockerfile`. Nostalgie build artifacts have no further build steps required and do not require any `node_modules` at runtime.
 
 ## Vision
 
