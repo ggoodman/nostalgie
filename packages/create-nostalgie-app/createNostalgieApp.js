@@ -49,7 +49,7 @@ function init() {
             string: true,
             default: DEFAULT_TEMPLATE_SPEC,
             description:
-              'Provide custom template using Degit compatible path https://github.com/Rich-Harris/degit#usage',
+              'Provide custom template using Degit compatible specifier (see: https://github.com/Rich-Harris/degit#usage)',
           },
         }),
     async (argv) => {
