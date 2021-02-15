@@ -19,7 +19,7 @@ npx create-nostalgie-app my-app
 
 Your app will be scaffolded in the `my-app` directory and is ready to go.
 
-You can alternatively provide custom template using the Degit compatible path https://github.com/Rich-Harris/degit#usage:
+You can alternatively provide custom template using the [Degit compatible](https://github.com/Rich-Harris/degit#usage) specifier:
 
 ```sh
 npx create-nostalgie-app my-app --template account/repo/path#branch
