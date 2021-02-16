@@ -1,6 +1,7 @@
 export {};
 
 import type { MDXProviderProps } from '@mdx-js/react';
+import 'csstype';
 import 'nostalgie/auth';
 import 'nostalgie/functions';
 import 'nostalgie/helmet';

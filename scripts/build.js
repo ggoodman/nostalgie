@@ -14,7 +14,7 @@ const PackageJson = require('../package.json');
 const execAsync = Util.promisify(ChildProcess.execFile);
 
 const externalModules = [
-  '@antfu/shiki',
+  'shiki',
   // Used only for mdx files. We rely on require.resolve() to work here.
   '@mdx-js/react',
   'chokidar',

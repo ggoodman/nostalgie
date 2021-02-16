@@ -44,7 +44,7 @@ export class ClientAssetBuilder {
   private readonly onBuildErrorEmitter = new Emitter<Error>();
   private readonly service: Service;
   private readonly settings: NostalgieSettings;
-  private readonly token: CancellationToken;
+  // private readonly token: CancellationToken;
   private readonly watcher = watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
   private readonly watchedFiles = new Set<string>();
 
@@ -59,7 +59,7 @@ export class ClientAssetBuilder {
     this.logger = options.logger;
     this.service = options.service;
     this.settings = options.settings;
-    this.token = options.token;
+    // this.token = options.token;
   }
 
   get onBuild() {
@@ -91,7 +91,7 @@ export class ClientAssetBuilder {
       const cssMap = new Map<string, string>();
 
       const plugins: Plugin[] = [
-        mdxPlugin({ token: this.token }),
+        mdxPlugin(),
         svgPlugin(),
         cssBrowserPlugin(this.settings, this.service, cssMap),
         reactShimPlugin(this.settings),

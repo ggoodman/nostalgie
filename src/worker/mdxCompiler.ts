@@ -1,25 +1,30 @@
-import { BUNDLED_THEMES, getHighlighter, loadTheme } from '@antfu/shiki';
-import { htmlEscape } from 'escape-goat';
+// import { BUNDLED_THEMES, getHighlighter, loadTheme } from '@antfu/shiki';
+// import { htmlEscape } from 'escape-goat';
 import grayMatter from 'gray-matter';
-import type { Element, Text } from 'hast';
-import LRUCache from 'lru-cache';
+// import type { Element, Text } from 'hast';
+// import LRUCache from 'lru-cache';
 import * as Path from 'path';
+import * as Querystring from 'querystring';
 //@ts-ignore
 import remarkAutolinkHeadings from 'remark-autolink-headings';
 import remarkGfm from 'remark-gfm';
 //@ts-ignore
 import remarkSlug from 'remark-slug';
-import visit, { SKIP } from 'unist-util-visit';
+// import visit, { SKIP } from 'unist-util-visit';
 import { compile } from 'xdm';
+import { codeSnippetToComponent } from '../build/esbuildPlugins/snippetizer';
 
-const cache = new LRUCache<string, Element>({
-  max: 1024 * 1024 * 32, // 32 mb
-  length(value, key) {
-    return JSON.stringify(value).length + (key ? key.length : 0);
-  },
-});
+// const cache = new LRUCache<string, Element>({
+//   max: 1024 * 1024 * 32, // 32 mb
+//   length(value, key) {
+//     return JSON.stringify(value).length + (key ? key.length : 0);
+//   },
+// });
 
-export default async function compileMdx([path, contents]: [path: string, contents: string]) {
+//See: https://regex101.com/r/1XA4NO/1
+const rx = /^(?:\ {4}.+\n)+(?!)|^```(?:([^\s\n\r]+)(?:[ \t]+([^\n\r]+))?)?(?:\n|\r\n)?((?:[^`]+|`(?!``))*)(?:\n|\r\n)?```/gm;
+
+export async function compileMdx(path: string, contents: string) {
   const parsed = grayMatter(contents, {
     excerpt: true,
   });
@@ -33,12 +38,36 @@ export default async function compileMdx([path, contents]: [path: string, conten
     );
   }
 
+  const promises: Array<Promise<string>> = [];
+
+  parsed.content.replace(rx, (_: string, lang: string, meta: string, code: string): string => {
+    const options = Querystring.parse(meta, ' ', ':');
+    const theme = typeof options.theme === 'string' ? options.theme : undefined;
+
+    promises.push(
+      codeSnippetToComponent(code, {
+        basePath: path,
+        fileName: path,
+        lang: lang || undefined,
+        theme,
+      })
+    );
+
+    return _;
+  });
+
+  const replacements = await Promise.all(promises);
+
+  const withCodeBlocksReplaced = parsed.content.replace(rx, (): string => {
+    return replacements.shift()!;
+  });
+
   const mdxJsx = await compile(
-    { contents: parsed.content, path },
+    { contents: withCodeBlocksReplaced, path },
     {
       jsx: true,
       jsxRuntime: 'classic',
-      remarkPlugins: [remarkCodeBlocksShiki, remarkGfm, remarkAutolinkHeadings, remarkSlug],
+      remarkPlugins: [remarkGfm, remarkAutolinkHeadings, remarkSlug],
     }
   );
 
@@ -54,106 +83,106 @@ export default async function compileMdx([path, contents]: [path: string, conten
   return transformed;
 }
 
-const remarkCodeBlocksShiki: import('unified').Plugin = () => {
-  return async function transformer(tree) {
-    // The path is relative to the dist dir where themes will be put in a themes folder
-    const oneDark = await loadTheme(Path.resolve(__dirname, './themes/OneDark.json'));
-    const highlighter = await getHighlighter({ themes: [...BUNDLED_THEMES, oneDark] });
-    const themeOptionRx = /^theme:(.+)$/;
+// const remarkCodeBlocksShiki: import('unified').Plugin = () => {
+//   return async function transformer(tree) {
+//     // The path is relative to the dist dir where themes will be put in a themes folder
+//     const oneDark = await loadTheme(Path.resolve(__dirname, './themes/OneDark.json'));
+//     const highlighter = await getHighlighter({ themes: [...BUNDLED_THEMES, oneDark] });
+//     const themeOptionRx = /^theme:(.+)$/;
 
-    visit(tree, 'code', (node) => {
-      if (!node.lang || !node.value) {
-        return;
-      }
+//     visit(tree, 'code', (node) => {
+//       if (!node.lang || !node.value) {
+//         return;
+//       }
 
-      const meta = Array.isArray(node.meta) ? node.meta : node.meta ? [node.meta] : [];
-      const defaultTheme: string = 'One Dark Pro';
-      let requestedTheme: string = defaultTheme;
+//       const meta = Array.isArray(node.meta) ? node.meta : node.meta ? [node.meta] : [];
+//       const defaultTheme: string = 'One Dark Pro';
+//       let requestedTheme: string = defaultTheme;
 
-      for (const entry of meta) {
-        const matches = entry.match(themeOptionRx);
+//       for (const entry of meta) {
+//         const matches = entry.match(themeOptionRx);
 
-        if (matches) {
-          requestedTheme = matches[1];
-        }
-      }
+//         if (matches) {
+//           requestedTheme = matches[1];
+//         }
+//       }
 
-      const cacheKey = JSON.stringify([requestedTheme, node.lang, node.value]);
-      let nodeValue = cache.get(cacheKey);
+//       const cacheKey = JSON.stringify([requestedTheme, node.lang, node.value]);
+//       let nodeValue = cache.get(cacheKey);
 
-      if (!nodeValue) {
-        const fgColor = highlighter.getForegroundColor(requestedTheme).toUpperCase();
-        const bgColor = highlighter.getBackgroundColor(requestedTheme).toUpperCase();
-        const tokens = highlighter.codeToThemedTokens(
-          node.value as string,
-          node.lang as string,
-          requestedTheme
-        );
-        const children = tokens.map(
-          (lineTokens, zeroBasedLineNumber): Element => {
-            const children = lineTokens.map((token): Text | Element => {
-              const color = token.color;
-              const content: Text = {
-                type: 'text',
-                // Do not escape the _actual_ content
-                value: token.content,
-              };
+//       if (!nodeValue) {
+//         const fgColor = highlighter.getForegroundColor(requestedTheme).toUpperCase();
+//         const bgColor = highlighter.getBackgroundColor(requestedTheme).toUpperCase();
+//         const tokens = highlighter.codeToThemedTokens(
+//           node.value as string,
+//           node.lang as string,
+//           requestedTheme
+//         );
+//         const children = tokens.map(
+//           (lineTokens, zeroBasedLineNumber): Element => {
+//             const children = lineTokens.map((token): Text | Element => {
+//               const color = token.color;
+//               const content: Text = {
+//                 type: 'text',
+//                 // Do not escape the _actual_ content
+//                 value: token.content,
+//               };
 
-              return color && color !== fgColor
-                ? {
-                    type: 'element',
-                    tagName: 'span',
-                    properties: {
-                      style: `color: ${htmlEscape(color)}`,
-                    },
-                    children: [content],
-                  }
-                : content;
-            });
+//               return color && color !== fgColor
+//                 ? {
+//                     type: 'element',
+//                     tagName: 'span',
+//                     properties: {
+//                       style: `color: ${htmlEscape(color)}`,
+//                     },
+//                     children: [content],
+//                   }
+//                 : content;
+//             });
 
-            children.push({
-              type: 'text',
-              value: '\n',
-            });
+//             children.push({
+//               type: 'text',
+//               value: '\n',
+//             });
 
-            return {
-              type: 'element',
-              tagName: 'span',
-              properties: {
-                className: 'codeblock-line',
-                dataLineNumber: zeroBasedLineNumber + 1,
-              },
-              children,
-            };
-          }
-        );
+//             return {
+//               type: 'element',
+//               tagName: 'span',
+//               properties: {
+//                 className: 'codeblock-line',
+//                 dataLineNumber: zeroBasedLineNumber + 1,
+//               },
+//               children,
+//             };
+//           }
+//         );
 
-        nodeValue = {
-          type: 'element',
-          tagName: 'pre',
-          properties: {
-            dataLang: htmlEscape(node.lang as string),
-            style: `color: ${htmlEscape(fgColor)};background-color: ${htmlEscape(bgColor)}`,
-          },
-          children: [
-            {
-              type: 'element',
-              tagName: 'code',
-              children,
-            },
-          ],
-        };
+//         nodeValue = {
+//           type: 'element',
+//           tagName: 'pre',
+//           properties: {
+//             dataLang: htmlEscape(node.lang as string),
+//             style: `color: ${htmlEscape(fgColor)};background-color: ${htmlEscape(bgColor)}`,
+//           },
+//           children: [
+//             {
+//               type: 'element',
+//               tagName: 'code',
+//               children,
+//             },
+//           ],
+//         };
 
-        cache.set(cacheKey, nodeValue);
-      }
+//         cache.set(cacheKey, nodeValue);
+//       }
 
-      const data = node.data ?? (node.data = {});
+//       const data = node.data ?? (node.data = {});
 
-      node.type = 'element';
-      data.hProperties ??= {};
-      data.hChildren = [nodeValue];
+//       node.type = 'element';
+//       data.hProperties ??= {};
+//       data.hChildren = [nodeValue];
 
-      return SKIP;
-    });
-  };
-};
+//       return SKIP;
+//     });
+//   };
+// };
