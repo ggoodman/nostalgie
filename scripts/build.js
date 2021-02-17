@@ -41,6 +41,7 @@ const runtimeModuleNames = [
   'internal/node-browser-apis',
   'internal/renderer',
   'internal/runtimes/node',
+  'internal/snippets',
 ];
 
 const typesPath = Path.resolve(__dirname, '../src/runtime/types.d.ts');

@@ -12,7 +12,7 @@ import remarkGfm from 'remark-gfm';
 import remarkSlug from 'remark-slug';
 // import visit, { SKIP } from 'unist-util-visit';
 import { compile } from 'xdm';
-import { codeSnippetToComponent } from '../build/esbuildPlugins/snippetizer';
+import { createSnippetData, CreateSnippetDataResult } from '../runtime/internal/snippets/parser';
 
 // const cache = new LRUCache<string, Element>({
 //   max: 1024 * 1024 * 32, // 32 mb
@@ -38,16 +38,15 @@ export async function compileMdx(path: string, contents: string) {
     );
   }
 
-  const promises: Array<Promise<string>> = [];
+  const promises: Array<Promise<CreateSnippetDataResult>> = [];
 
   parsed.content.replace(rx, (_: string, lang: string, meta: string, code: string): string => {
     const options = Querystring.parse(meta, ' ', ':');
     const theme = typeof options.theme === 'string' ? options.theme : undefined;
 
     promises.push(
-      codeSnippetToComponent(code, {
-        basePath: path,
-        fileName: path,
+      createSnippetData(code, {
+        fromPath: path,
         lang: lang || undefined,
         theme,
       })
@@ -56,11 +55,43 @@ export async function compileMdx(path: string, contents: string) {
     return _;
   });
 
-  const replacements = await Promise.all(promises);
+  let withCodeBlocksReplaced = parsed.content;
 
-  const withCodeBlocksReplaced = parsed.content.replace(rx, (): string => {
-    return replacements.shift()!;
-  });
+  if (promises.length) {
+    const replacements = await Promise.all(promises);
+
+    const withReplacedSnippets = parsed.content.replace(rx, (...[, , meta]): string => {
+      const options = Querystring.parse(meta, ' ', ':');
+      let emphasizeRanges: Array<[fromLine: number, toLine: number]> | undefined;
+
+      console.log('OPTIONS', options);
+
+      if (options.emphasize) {
+        const rawRanges = Array.isArray(options.emphasize)
+          ? options.emphasize
+          : [options.emphasize];
+
+        emphasizeRanges = rawRanges.map((range) => {
+          const [start, end] = range.split('-', 2);
+
+          return [parseInt(start, 10), end ? parseInt(end, 10) : parseInt(start, 10) + 1];
+        });
+
+        console.log('EMPHASIZE', emphasizeRanges);
+      }
+
+      return `<CodeSnippet parseResult={JSON.parse(${JSON.stringify(
+        JSON.stringify(replacements.shift()!)
+      )})} emphasizeRanges={${JSON.stringify(emphasizeRanges)}} />`;
+    });
+
+    withCodeBlocksReplaced =
+      `
+import { CodeSnippet } from 'nostalgie/internal/snippets';
+
+${withReplacedSnippets}
+      `.trim() + '\n';
+  }
 
   const mdxJsx = await compile(
     { contents: withCodeBlocksReplaced, path },
@@ -82,107 +113,3 @@ export async function compileMdx(path: string, contents: string) {
 
   return transformed;
 }
-
-// const remarkCodeBlocksShiki: import('unified').Plugin = () => {
-//   return async function transformer(tree) {
-//     // The path is relative to the dist dir where themes will be put in a themes folder
-//     const oneDark = await loadTheme(Path.resolve(__dirname, './themes/OneDark.json'));
-//     const highlighter = await getHighlighter({ themes: [...BUNDLED_THEMES, oneDark] });
-//     const themeOptionRx = /^theme:(.+)$/;
-
-//     visit(tree, 'code', (node) => {
-//       if (!node.lang || !node.value) {
-//         return;
-//       }
-
-//       const meta = Array.isArray(node.meta) ? node.meta : node.meta ? [node.meta] : [];
-//       const defaultTheme: string = 'One Dark Pro';
-//       let requestedTheme: string = defaultTheme;
-
-//       for (const entry of meta) {
-//         const matches = entry.match(themeOptionRx);
-
-//         if (matches) {
-//           requestedTheme = matches[1];
-//         }
-//       }
-
-//       const cacheKey = JSON.stringify([requestedTheme, node.lang, node.value]);
-//       let nodeValue = cache.get(cacheKey);
-
-//       if (!nodeValue) {
-//         const fgColor = highlighter.getForegroundColor(requestedTheme).toUpperCase();
-//         const bgColor = highlighter.getBackgroundColor(requestedTheme).toUpperCase();
-//         const tokens = highlighter.codeToThemedTokens(
-//           node.value as string,
-//           node.lang as string,
-//           requestedTheme
-//         );
-//         const children = tokens.map(
-//           (lineTokens, zeroBasedLineNumber): Element => {
-//             const children = lineTokens.map((token): Text | Element => {
-//               const color = token.color;
-//               const content: Text = {
-//                 type: 'text',
-//                 // Do not escape the _actual_ content
-//                 value: token.content,
-//               };
-
-//               return color && color !== fgColor
-//                 ? {
-//                     type: 'element',
-//                     tagName: 'span',
-//                     properties: {
-//                       style: `color: ${htmlEscape(color)}`,
-//                     },
-//                     children: [content],
-//                   }
-//                 : content;
-//             });
-
-//             children.push({
-//               type: 'text',
-//               value: '\n',
-//             });
-
-//             return {
-//               type: 'element',
-//               tagName: 'span',
-//               properties: {
-//                 className: 'codeblock-line',
-//                 dataLineNumber: zeroBasedLineNumber + 1,
-//               },
-//               children,
-//             };
-//           }
-//         );
-
-//         nodeValue = {
-//           type: 'element',
-//           tagName: 'pre',
-//           properties: {
-//             dataLang: htmlEscape(node.lang as string),
-//             style: `color: ${htmlEscape(fgColor)};background-color: ${htmlEscape(bgColor)}`,
-//           },
-//           children: [
-//             {
-//               type: 'element',
-//               tagName: 'code',
-//               children,
-//             },
-//           ],
-//         };
-
-//         cache.set(cacheKey, nodeValue);
-//       }
-
-//       const data = node.data ?? (node.data = {});
-
-//       node.type = 'element';
-//       data.hProperties ??= {};
-//       data.hChildren = [nodeValue];
-
-//       return SKIP;
-//     });
-//   };
-// };

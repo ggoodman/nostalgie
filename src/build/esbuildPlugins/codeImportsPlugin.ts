@@ -2,9 +2,9 @@ import type { Plugin } from 'esbuild';
 import { promises as Fs } from 'fs';
 import * as Path from 'path';
 import * as Querystring from 'querystring';
+import { createSnippetData, fileNameToLanguage } from '../../runtime/internal/snippets/parser';
 import type { NostalgieSettings } from '../../settings';
 import { resolveAsync } from '../resolve';
-import { codeSnippetToComponent } from './snippetizer';
 
 interface CodeImportsPluginOptions {
   settings: NostalgieSettings;
@@ -42,10 +42,9 @@ export function codeImportsPlugin(options: CodeImportsPluginOptions): Plugin {
         const defaultTheme = 'github-dark';
 
         const code = await Fs.readFile(path, 'utf8');
-        const compiledCode = await codeSnippetToComponent(code, {
-          basePath: pluginData.importer as string,
-          fileName: path,
-          jsxFactory: 'React.createElement',
+        const compiledCode = await createSnippetData(code, {
+          fromPath: pluginData.importer as string,
+          lang: fileNameToLanguage(path),
           theme: pluginData?.theme || defaultTheme,
         });
 
