@@ -24,6 +24,10 @@ import { createSnippetData, CreateSnippetDataResult } from '../runtime/internal/
 //See: https://regex101.com/r/1XA4NO/1
 const rx = /^(?:\ {4}.+\n)+(?!)|^```(?:([^\s\n\r]+)(?:[ \t]+([^\n\r]+))?)?(?:\n|\r\n)?((?:[^`]+|`(?!``))*)(?:\n|\r\n)?```/gm;
 
+export default function handleWorkerRequest([path, contents]: [string, string]) {
+  return compileMdx(path, contents);
+}
+
 export async function compileMdx(path: string, contents: string) {
   const parsed = grayMatter(contents, {
     excerpt: true,
@@ -64,8 +68,6 @@ export async function compileMdx(path: string, contents: string) {
       const options = Querystring.parse(meta, ' ', ':');
       let emphasizeRanges: Array<[fromLine: number, toLine: number]> | undefined;
 
-      console.log('OPTIONS', options);
-
       if (options.emphasize) {
         const rawRanges = Array.isArray(options.emphasize)
           ? options.emphasize
@@ -76,8 +78,6 @@ export async function compileMdx(path: string, contents: string) {
 
           return [parseInt(start, 10), end ? parseInt(end, 10) : parseInt(start, 10) + 1];
         });
-
-        console.log('EMPHASIZE', emphasizeRanges);
       }
 
       return `<CodeSnippet parseResult={JSON.parse(${JSON.stringify(

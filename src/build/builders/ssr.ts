@@ -43,7 +43,7 @@ export class ServerRendererBuilder {
   private readonly onBuildErrorEmitter = new Emitter<Error>();
   private readonly service: Service;
   private readonly settings: NostalgieSettings;
-  // private readonly token: CancellationToken;
+  private readonly token: CancellationToken;
   private readonly watcher = watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
   private readonly watchedFiles = new Set<string>();
 
@@ -58,7 +58,7 @@ export class ServerRendererBuilder {
     this.logger = options.logger;
     this.service = options.service;
     this.settings = options.settings;
-    // this.token = options.token;
+    this.token = options.token;
   }
 
   get onBuild() {
@@ -115,7 +115,7 @@ export class ServerRendererBuilder {
         publicPath: '/static/build',
         platform: 'node',
         plugins: [
-          mdxPlugin(),
+          mdxPlugin({ token: this.token }),
           svgPlugin(),
           reactShimPlugin(this.settings),
           decorateDeferredImportsServerPlugin({

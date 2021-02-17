@@ -31,7 +31,7 @@ export async function createSnippetData(
   const highlighter = await loadHighlighterForTheme(theme);
   const fgColor = highlighter.getForegroundColor().toUpperCase();
   const bgColor = highlighter.getBackgroundColor(theme.name!).toUpperCase();
-  const themedTokens = highlighter.codeToThemedTokens(code, options.lang, theme.name!);
+  const themedTokens = highlighter.codeToThemedTokens(code.trim(), options.lang, theme.name!);
   const tokensByLine: Token[][] = themedTokens.map((lineTokens) =>
     lineTokens.map((themedToken) => {
       return themedToken.color && themedToken.color !== fgColor
