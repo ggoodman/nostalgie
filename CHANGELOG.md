@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Fixed support for the `styled` function and custom components.
+  
+  You can now do the following:
+  
+  ```js
+  import { styled } from 'nostalgie/styling';
+  
+  function MyComponent() {
+    return <h1>Hello world</h1>;
+  }
+  
+  // Template string api
+  export const MyComponentRed = styled(MyComponent)`
+    color: red;
+  `;
+  
+  // Object style api
+  export const MyComponentBlue = styled(MyComponent){
+    color: 'blue',
+  };
+  ```
 
 ## [0.74.0] - 2021-02-13
 ### Added
