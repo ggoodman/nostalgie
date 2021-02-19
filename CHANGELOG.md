@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.75.1] - 2021-02-19
 ### Fixed
 - Fixes a bug in the server renderer wherein a superfluous comma could get inserted in the initial server markup.
 
@@ -334,7 +336,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.75.0...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.75.1...HEAD
+[0.75.1]: https://github.com/ggoodman/nostalgie/compare/v0.75.0...v0.75.1
 [0.75.0]: https://github.com/ggoodman/nostalgie/compare/v0.74.0...v0.75.0
 [0.74.0]: https://github.com/ggoodman/nostalgie/compare/v0.73.0...v0.74.0
 [0.73.0]: https://github.com/ggoodman/nostalgie/compare/v0.72.1...v0.73.0
