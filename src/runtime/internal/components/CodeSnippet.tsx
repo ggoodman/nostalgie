@@ -8,6 +8,10 @@ export function createSnippetComponent(parseResult: CreateSnippetDataResult) {
   };
 }
 
+export interface BoundCodeSnippet {
+  (props: Omit<CodeSnippetProps, 'parseResult'>): JSX.Element;
+}
+
 export interface CodeSnippetProps {
   className?: string;
   parseResult: CreateSnippetDataResult;

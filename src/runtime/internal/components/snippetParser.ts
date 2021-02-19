@@ -33,7 +33,7 @@ export async function createSnippetData(
 
   let tokensByLine: Token[][] = [];
 
-  if (options.lang) {
+  if (options.lang && Shiki.BUNDLED_LANGUAGES.some((lang) => lang.id === options.lang)) {
     const highlighter = await loadHighlighterForTheme(theme);
     const themedTokens = highlighter.codeToThemedTokens(code.trim(), options.lang, theme.name!);
 
@@ -79,8 +79,11 @@ export function fileNameToLanguage(filename: string): Shiki.Lang | undefined {
       return 'markdown';
   }
 
-  if (Shiki.BUNDLED_LANGUAGES.some((lang) => lang.id === extName.slice(1))) {
-    return extName.slice(1) as Shiki.Lang;
+  const shikiLang = Shiki.BUNDLED_LANGUAGES.find((lang) => lang.id === extName.slice(1));
+
+  if (shikiLang) {
+    console.log('found language', extName, shikiLang);
+    return shikiLang.id as Shiki.Lang;
   }
 
   return undefined;

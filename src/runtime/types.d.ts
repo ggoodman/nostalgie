@@ -8,6 +8,7 @@ import 'nostalgie/helmet';
 import 'nostalgie/lazy';
 import 'nostalgie/routing';
 import type * as React from 'react';
+import type { BoundCodeSnippet } from './internal/components';
 
 declare module '*.css' {
   const url: void;
@@ -18,6 +19,11 @@ declare module '*.css' {
 }
 
 declare global {
+  declare module 'code:*' {
+    const Component: BoundCodeSnippet;
+    export default Component;
+  }
+
   declare module '*.md' {
     export interface MDXComponentProps extends Partial<MDXProviderProps> {}
     const Component: React.ComponentType<MDXComponentProps>;

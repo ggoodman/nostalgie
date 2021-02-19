@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Adds the `code:<import_specifier>` import syntax to import an instance of the `<CodeSnippet />` component, wired up with the source code of the file to which the `<import_specifier>` resolves.
+  
+  This is expected to be useful in documentation and tutorials so that such documents can refer directly to concrete examples instead of having to duplicate the code.
+  
+  Example:
+  
+  ```mdx
+  import Changelog from 'code:./CHANGELOG.md';
+  
+  Here are the first 6 lines of our changelog, with the emphasis put on the 5th and 6th lines.
+  
+  <Changelog toLine={6} emphasizeLines={[[5,6]]} />
+  ```
+
 ### Changed
 - Fixed support for the `styled` function and custom components.
   
@@ -39,7 +54,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   }
   ```
   ````
-
+  
   Produces:
   
   ```ts theme:nord
@@ -47,9 +62,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     return 'hello world';
   }
   ```
-
+  
   This feature also supports loading themes from relative (to the `.md` or `.mdx` file) or absolute paths. For example:
-
+  
   ````md
   ```ts theme:./themes/OneDark.json
   function helloWorkd() {
@@ -57,9 +72,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   }
   ```
   ````
-
+  
   Produces:
-
+  
   ```ts theme:./themes/OneDark.json
   function helloWorkd() {
     return 'hello world';

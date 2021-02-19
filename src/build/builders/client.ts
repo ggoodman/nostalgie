@@ -12,6 +12,7 @@ import {
 } from 'ts-primitives';
 import { createRequire } from '../../createRequire';
 import type { NostalgieSettings } from '../../settings';
+import { codeImportsPlugin } from '../esbuildPlugins/codeImportsPlugin';
 import { cssBrowserPlugin } from '../esbuildPlugins/cssPlugin';
 import { decorateDeferredImportsBrowserPlugin } from '../esbuildPlugins/decorateDeferredImportsBrowserPlugin';
 import { mdxPlugin } from '../esbuildPlugins/mdxPlugin';
@@ -91,6 +92,7 @@ export class ClientAssetBuilder {
       const cssMap = new Map<string, string>();
 
       const plugins: Plugin[] = [
+        codeImportsPlugin({ settings: this.settings }),
         mdxPlugin({ token: this.token }),
         svgPlugin(),
         cssBrowserPlugin(this.settings, this.service, cssMap),
