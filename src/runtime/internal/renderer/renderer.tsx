@@ -263,9 +263,9 @@ export class ServerRenderer {
 ${helmet.title.toString()}
 ${helmet.meta.toString()}
 <link rel="modulepreload" href="${publicUrl}static/build/bootstrap.js" />
-${chunkCtx.chunks.map(
-  ({ chunk }) => `<link rel="modulepreload" href="${publicUrl}${encodeURI(chunk)}" />`
-)}
+${chunkCtx.chunks
+  .map(({ chunk }) => `<link rel="modulepreload" href="${publicUrl}${encodeURI(chunk)}" />`)
+  .join('\n')}
 ${helmet.link.toString()}
 ${headTags.join('\n')}
 ${helmet.noscript.toString()}
