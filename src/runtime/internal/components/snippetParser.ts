@@ -18,6 +18,13 @@ export interface CreateSnippetDataResult {
 
 export type Token = string | [value: string, fgColor: string];
 
+// Set up mdx using markdown
+const mdLang = Shiki.BUNDLED_LANGUAGES.find((lang) => lang.id === 'markdown');
+if (mdLang) {
+  mdLang.aliases ??= [];
+  mdLang.aliases.push('mdx');
+}
+
 export async function createSnippetData(
   code: string,
   options: CreateSnippetDataOptions
@@ -33,7 +40,14 @@ export async function createSnippetData(
 
   let tokensByLine: Token[][] = [];
 
-  if (options.lang && Shiki.BUNDLED_LANGUAGES.some((lang) => lang.id === options.lang)) {
+  if (
+    options.lang &&
+    Shiki.BUNDLED_LANGUAGES.some(
+      (lang) =>
+        lang.id === options.lang ||
+        (Array.isArray(lang.aliases) && lang.aliases.includes(options.lang!))
+    )
+  ) {
     const highlighter = await loadHighlighterForTheme(theme);
     const themedTokens = highlighter.codeToThemedTokens(code.trim(), options.lang, theme.name!);
 
