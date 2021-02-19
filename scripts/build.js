@@ -14,7 +14,7 @@ const PackageJson = require('../package.json');
 const execAsync = Util.promisify(ChildProcess.execFile);
 
 const externalModules = [
-  '@antfu/shiki',
+  'shiki',
   // Used only for mdx files. We rely on require.resolve() to work here.
   '@mdx-js/react',
   'chokidar',
@@ -37,6 +37,7 @@ const runtimeModuleNames = [
   'styling',
   'routing',
   'internal/bootstrap',
+  'internal/components',
   'internal/inject-react',
   'internal/node-browser-apis',
   'internal/renderer',
@@ -131,7 +132,7 @@ async function buildMdxCompilerWorker(service) {
     logLevel: 'error',
     metafile: metaPaths.mdxCompilerWorker,
     outfile: Path.resolve(__dirname, '../dist/mdxCompilerWorker.js'),
-    minify: true,
+    minify: process.env.NODE_ENV !== 'development',
     platform: 'node',
     target: 'node12.16',
     sourcemap: process.env.NODE_ENV === 'development',
@@ -155,7 +156,7 @@ async function buildPiscinaWorker(service) {
     format: 'cjs',
     logLevel: 'error',
     metafile: metaPaths.piscinaWorker,
-    minify: true,
+    minify: process.env.NODE_ENV !== 'development',
     outfile: Path.resolve(__dirname, '../dist/worker.js'),
     platform: 'node',
     target: 'node12.16',
@@ -298,15 +299,7 @@ async function buildRuntimeTypes() {
       exportMap[`./${runtimeModuleName}`] = `./${runtimeModuleName}/index.js`;
     }
 
-    const promises = [
-      (async () => {
-        await Fs.mkdir(Path.resolve(__dirname, '../dist/themes'), { recursive: true });
-        await Fs.copyFile(
-          Path.resolve(__dirname, '../src/themes/OneDark.json'),
-          Path.resolve(__dirname, '../dist/themes/OneDark.json')
-        );
-      })(),
-    ];
+    const promises = [];
 
     promises.push(
       Fs.writeFile(

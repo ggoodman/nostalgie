@@ -13,6 +13,7 @@ import {
 import { createRequire } from '../../createRequire';
 import type { ServerRendererOptions } from '../../runtime/internal/renderer';
 import type { NostalgieSettings } from '../../settings';
+import { codeImportsPlugin } from '../esbuildPlugins/codeImportsPlugin';
 import { decorateDeferredImportsServerPlugin } from '../esbuildPlugins/decorateDeferredImportsServerPlugin';
 import { mdxPlugin } from '../esbuildPlugins/mdxPlugin';
 import { reactShimPlugin } from '../esbuildPlugins/reactShimPlugin';
@@ -115,6 +116,7 @@ export class ServerRendererBuilder {
         publicPath: '/static/build',
         platform: 'node',
         plugins: [
+          codeImportsPlugin({ settings: this.settings }),
           mdxPlugin({ token: this.token }),
           svgPlugin(),
           reactShimPlugin(this.settings),

@@ -1,7 +1,7 @@
 import Module from 'module';
 import * as Url from 'url';
 
-export function createRequire(urlOrPath: string) {
+export function createRequire(urlOrPath: string): NodeRequire {
   if (typeof (Module as any).createRequireFromUrl === 'function') {
     return (Module as any).createRequireFromUrl(urlOrPath);
   }

@@ -6,6 +6,102 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Adds the `code:<import_specifier>` import syntax to import an instance of the `<CodeSnippet />` component, wired up with the source code of the file to which the `<import_specifier>` resolves.
+  
+  This is expected to be useful in documentation and tutorials so that such documents can refer directly to concrete examples instead of having to duplicate the code.
+  
+  Example:
+  
+  ```mdx
+  import Changelog from 'code:./CHANGELOG.md';
+  
+  Here are the first 6 lines of our changelog, with the emphasis put on the 5th and 6th lines.
+  
+  <Changelog toLine={6} emphasizeLines={[[5,6]]} />
+  ```
+
+### Changed
+- Fixed support for the `styled` function and custom components.
+  
+  You can now do the following:
+  
+  ```js
+  import { styled } from 'nostalgie/styling';
+  
+  function MyComponent() {
+    return <h1>Hello world</h1>;
+  }
+  
+  // Template string api
+  export const MyComponentRed = styled(MyComponent)`
+    color: red;
+  `;
+  
+  // Object style api
+  export const MyComponentBlue = styled(MyComponent){
+    color: 'blue',
+  };
+  ```
+- Refactored how code blocks are rendered in `.md` and `.mdx` to use a new, internal `<CodeSnippet />` component. This new component supports emphasizing certain lines. Instead of each code snippet having static react components created at build time, this approach compiles a json representation of the snippet and styling information that a shared `<CodeSnippet />` component consumes at runtime.
+  
+  Code blocks now support chosing different themes for each code block. Themes can either be chosen from one of the themes built into [shiki](npm.im/shiki) ([see here](https://github.com/shikijs/shiki/blob/master/docs/themes.md) for a list of built-in themes). For example:
+  
+  ````md
+  ```ts theme:nord
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+  ````
+  
+  Produces:
+  
+  ```ts theme:nord
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+  
+  This feature also supports loading themes from relative (to the `.md` or `.mdx` file) or absolute paths. For example:
+  
+  ````md
+  ```ts theme:./themes/OneDark.json
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+  ````
+  
+  Produces:
+  
+  ```ts theme:./themes/OneDark.json
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+  
+  Additionally, ranges of lines can be emphasized by using the `emphasize` meta option on code blocks. Multiple instances of the `emphasize` option can be used to highlight several ranges. For example:
+  
+  ````md
+  ```ts emphasize:2-4
+  function helloWorld() {
+    // For some reason,
+    // we decided to emphasize this comment
+    // and split it across 3 lines!?
+  }
+  ```
+  ````
+  
+  Produces:
+  
+  ```ts emphasize:2-4
+  function helloWorld() {
+    // For some reason,
+    // we decided to emphasize this comment
+    // and split it across 3 lines!?
+  }
+  ```
 
 ## [0.74.0] - 2021-02-13
 ### Added

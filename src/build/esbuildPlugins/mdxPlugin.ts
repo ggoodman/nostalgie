@@ -51,7 +51,7 @@ export function mdxPlugin(options: { token: CancellationToken }): Plugin {
           filename: Path.resolve(__dirname, './mdxCompilerWorker.js'),
         });
 
-        const transformed = await workerPool.runTask([path, contents]);
+        const transformed = await workerPool.runTask([path, contents.trim()]);
 
         cache.set(path, transformed!);
         watcher.add(path);
