@@ -16,7 +16,7 @@ export interface CreateSnippetDataResult {
   tokensByLine: Token[][];
 }
 
-export type Token = [value: string, fgColor?: string];
+export type Token = string | [value: string, fgColor: string];
 
 export async function createSnippetData(
   code: string,
@@ -28,17 +28,29 @@ export async function createSnippetData(
     theme.name = options.theme;
   }
 
-  const highlighter = await loadHighlighterForTheme(theme);
-  const fgColor = highlighter.getForegroundColor().toUpperCase();
-  const bgColor = highlighter.getBackgroundColor(theme.name!).toUpperCase();
-  const themedTokens = highlighter.codeToThemedTokens(code.trim(), options.lang, theme.name!);
-  const tokensByLine: Token[][] = themedTokens.map((lineTokens) =>
-    lineTokens.map((themedToken) => {
-      return themedToken.color && themedToken.color !== fgColor
-        ? [themedToken.content, themedToken.color]
-        : [themedToken.content];
-    })
-  );
+  const fgColor = theme.fg.toUpperCase();
+  const bgColor = theme.bg.toUpperCase();
+
+  let tokensByLine: Token[][] = [];
+
+  if (options.lang) {
+    const highlighter = await loadHighlighterForTheme(theme);
+    const themedTokens = highlighter.codeToThemedTokens(code.trim(), options.lang, theme.name!);
+
+    tokensByLine = themedTokens.map((lineTokens) =>
+      lineTokens.map((themedToken) => {
+        return themedToken.color && themedToken.color !== fgColor
+          ? [themedToken.content, themedToken.color]
+          : themedToken.content;
+      })
+    );
+  } else {
+    tokensByLine = code.split(/\n|\r\n/).map((line) => {
+      const token: Token = line;
+
+      return [token];
+    });
+  }
 
   return {
     bgColor,
@@ -63,18 +75,26 @@ export function fileNameToLanguage(filename: string): Shiki.Lang | undefined {
       return 'tsx';
     case '.json':
       return 'json';
+    case 'mdx':
+      return 'markdown';
   }
 
-  // Fall back to 'best effort' of extension.
-  return extName.slice(1) as any;
+  if (Shiki.BUNDLED_LANGUAGES.some((lang) => lang.id === extName.slice(1))) {
+    return extName.slice(1) as Shiki.Lang;
+  }
+
+  return undefined;
 }
 
-const highlighterCache = new Map<string, Shiki.Highlighter | Promise<Shiki.Highlighter>>();
+const highlighterCache = new Map<
+  Shiki.IShikiTheme,
+  Shiki.Highlighter | Promise<Shiki.Highlighter>
+>();
 
 function loadHighlighterForTheme(
   theme: Shiki.IShikiTheme
 ): Shiki.Highlighter | Promise<Shiki.Highlighter> {
-  const cached = highlighterCache.get(theme.name!);
+  const cached = highlighterCache.get(theme);
 
   if (cached) {
     return cached;
@@ -82,37 +102,45 @@ function loadHighlighterForTheme(
 
   const promise = Shiki.getHighlighter({
     langs: Shiki.BUNDLED_LANGUAGES,
-    theme: theme.name,
+    theme: theme,
   });
 
-  highlighterCache.set(theme.name!, promise);
+  highlighterCache.set(theme, promise);
 
   promise.then(
     (highlighter) => {
-      highlighterCache.set(theme.name!, highlighter);
+      highlighterCache.set(theme, highlighter);
     },
     () => {
-      highlighterCache.delete(theme.name!);
+      highlighterCache.delete(theme);
     }
   );
 
   return promise;
 }
 
-function loadTheme(
+let nextCustomThemeSuffix = 0;
+
+async function loadTheme(
   theme: Shiki.Theme | (string & {}),
   relPath?: string
 ): Promise<Shiki.IShikiTheme> {
+  let loadedTheme: Shiki.IShikiTheme;
+
   if (Shiki.BUNDLED_THEMES.includes(theme)) {
     const require = createRequire(__filename);
     const themePath = require.resolve(`shiki/themes/${theme}.json`);
 
-    return Shiki.loadTheme(themePath);
+    loadedTheme = await Shiki.loadTheme(themePath);
+  } else {
+    loadedTheme = await Shiki.loadTheme(
+      Path.resolve(process.cwd(), relPath ? Path.dirname(relPath) : '.', theme)
+    );
   }
 
-  if (Path.isAbsolute(theme)) {
-    return Shiki.loadTheme(theme);
+  if (!loadedTheme.name) {
+    loadedTheme.name = `NostalgieCustomTheme${nextCustomThemeSuffix++}`;
   }
 
-  return Shiki.loadTheme(Path.resolve(relPath || '.', theme));
+  return loadedTheme;
 }

@@ -28,6 +28,65 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     color: 'blue',
   };
   ```
+- Refactored how code blocks are rendered in `.md` and `.mdx` to use a new, internal `<CodeSnippet />` component. This new component supports emphasizing certain lines. Instead of each code snippet having static react components created at build time, this approach compiles a json representation of the snippet and styling information that a shared `<CodeSnippet />` component consumes at runtime.
+  
+  Code blocks now support chosing different themes for each code block. Themes can either be chosen from one of the themes built into [shiki](npm.im/shiki) ([see here](https://github.com/shikijs/shiki/blob/master/docs/themes.md) for a list of built-in themes). For example:
+  
+  ````md
+  ```ts theme:nord
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+  ````
+
+  Produces:
+  
+  ```ts theme:nord
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+
+  This feature also supports loading themes from relative (to the `.md` or `.mdx` file) or absolute paths. For example:
+
+  ````md
+  ```ts theme:./themes/OneDark.json
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+  ````
+
+  Produces:
+
+  ```ts theme:./themes/OneDark.json
+  function helloWorkd() {
+    return 'hello world';
+  }
+  ```
+  
+  Additionally, ranges of lines can be emphasized by using the `emphasize` meta option on code blocks. Multiple instances of the `emphasize` option can be used to highlight several ranges. For example:
+  
+  ````md
+  ```ts emphasize:2-4
+  function helloWorld() {
+    // For some reason,
+    // we decided to emphasize this comment
+    // and split it across 3 lines!?
+  }
+  ```
+  ````
+  
+  Produces:
+  
+  ```ts emphasize:2-4
+  function helloWorld() {
+    // For some reason,
+    // we decided to emphasize this comment
+    // and split it across 3 lines!?
+  }
+  ```
 
 ## [0.74.0] - 2021-02-13
 ### Added
