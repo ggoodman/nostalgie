@@ -87,10 +87,11 @@ function CodeSnippetComponent(props: CodeSnippetProps) {
 }
 
 export const CodeSnippet = styled(CodeSnippetComponent)`
-  & {
+  pre&[data-lang] {
     position: relative;
     overflow: auto;
-    padding: 0;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   & > code {
