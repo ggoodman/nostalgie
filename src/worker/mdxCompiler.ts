@@ -103,6 +103,7 @@ const remarkSnippets: unified.Plugin = () => {
       await Promise.all(
         codeNodes.map(async (node) => {
           const options = Querystring.parse((node.meta as string) || '', ' ', ':');
+          const flags = new Set(((node.meta as string) || '').split(/\s+/));
           const theme = typeof options.theme === 'string' ? options.theme : undefined;
           const snippetData = await createSnippetData(node.value as string, {
             fromPath: file.path,
@@ -153,6 +154,19 @@ const remarkSnippets: unified.Plugin = () => {
               },
             });
           }
+
+          if (flags.has('lines')) {
+            (node.attributes as any[]).push({
+              name: 'lineNumbers',
+              type: 'mdxJsxAttribute',
+              value: {
+                type: 'mdxJsxAttributeValueExpression',
+                data: {
+                  estree: createBooleanAST(true),
+                },
+              },
+            });
+          }
         })
       );
     }
@@ -182,6 +196,24 @@ function createImportAst() {
           type: 'Literal',
           value: 'nostalgie/internal/components',
           raw: "'nostalgie/internal/components'",
+        },
+      },
+    ],
+    sourceType: 'module',
+    comments: [],
+  };
+}
+
+function createBooleanAST(value: boolean) {
+  return {
+    type: 'Program',
+    body: [
+      {
+        type: 'ExpressionStatement',
+        expression: {
+          type: 'Literal',
+          value: value,
+          raw: JSON.stringify(value),
         },
       },
     ],

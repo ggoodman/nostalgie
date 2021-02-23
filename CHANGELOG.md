@@ -8,6 +8,37 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Improved typing and behaviour of the `styled` helper function.
+- Changed the `CodeSnippets` component to hide line numbers by default but to show them with an MDX annotation of `lines` or an boolean prop `lineNumbers`.
+  
+  Also made various improvements to overflow and highlighting of lines in the `CodeSnippets` component.
+  
+  For example, the following:
+  
+  ````md
+  ```js
+  console.log('hello world');
+  ```
+  ````
+  
+  Results in:
+  
+  ```js
+  console.log('hello world');
+  ```
+  
+  And the following:
+  
+  ````md
+  ```js lines
+  console.log('hello world');
+  ```
+  ````
+  
+  Results in:
+  
+  ```js lines
+  console.log('hello world');
+  ```
 
 ## [0.75.1] - 2021-02-19
 ### Fixed

@@ -14,6 +14,7 @@ export interface BoundCodeSnippet {
 
 export interface CodeSnippetProps {
   className?: string;
+  lineNumbers?: boolean;
   parseResult: CreateSnippetDataResult;
   fromLine?: number;
   toLine?: number;
@@ -41,7 +42,11 @@ function CodeSnippetComponent(props: CodeSnippetProps) {
   );
   const bgHex = hexToRgb(bgColor);
   const fgHex = hexToRgb(fgColor);
-  const classNames = [props.className, emphasizeLines.size ? 'has-emphasis' : undefined]
+  const classNames = [
+    props.className,
+    props.lineNumbers ? 'line-numbers' : undefined,
+    emphasizeLines.size ? 'has-emphasis' : undefined,
+  ]
     .filter(Boolean)
     .join(' ');
 
@@ -88,6 +93,7 @@ function CodeSnippetComponent(props: CodeSnippetProps) {
 
 export const CodeSnippet = styled(CodeSnippetComponent)`
   pre&[data-lang] {
+    background-color: rgb(var(--bgColor, transparent));
     position: relative;
     overflow: auto;
     padding-left: 0;
@@ -97,30 +103,24 @@ export const CodeSnippet = styled(CodeSnippetComponent)`
   & > code {
     padding: 0.857143em 0;
     display: block;
-    min-width: 100%;
-  }
-
-  &::before {
-    content: attr(data-lang);
-    margin-right: 0;
-    text-align: right;
-    position: sticky;
-    right: 1.14286rem;
-    top: 0.857143rem;
-    opacity: 80%;
-    text-shadow: black 0 0 4px;
-    display: block;
-    float: right;
-    background-color: var(--bgColor, transparent);
-    z-index: 1;
+    min-width: max-content;
   }
 
   & span[data-lineno] {
+    background-color: rgb(var(--bgColor, transparent));
     display: block;
     transition: filter 0.2s ease-in-out;
+    width: 100%;
+    padding-left: 1.6em;
+    padding-right: 1.6em;
+    position: relative;
   }
 
-  & span[data-lineno]::before {
+  &.line-numbers span[data-lineno] {
+    padding-left: 0;
+  }
+
+  &.line-numbers span[data-lineno]::before {
     display: inline-block;
     position: sticky;
     left: 0;
@@ -134,30 +134,45 @@ export const CodeSnippet = styled(CodeSnippetComponent)`
     width: 4rem;
   }
 
-  span[data-lineno].has-emphasis::before {
+  /* Emphasis border with line numbers */
+  &.line-numbers span[data-lineno].has-emphasis::before {
     border-left: 0.3rem solid rgba(var(--fgColor), 0.8);
+  }
+
+  /* Emphasis border without line numbers */
+  & span[data-lineno].has-emphasis::after {
+    border-left: 0.3rem solid rgba(var(--fgColor), 0.8);
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: ' ';
   }
 
   &.has-emphasis {
     span[data-lineno]:not(.has-emphasis) {
-      filter: saturate(0.75) brightness(0.8);
+      filter: contrast(0.6) brightness(0.6);
     }
 
     &:hover {
       span[data-lineno] {
-        filter: saturate(1) brightness(1);
+        filter: contrast(1) brightness(1);
 
+        /* Emphasis border with line numbers while block hovered */
         &.has-emphasis::before {
           border-left: 0.3rem solid rgba(var(--fgColor), 0.9);
+        }
+
+        /* Emphasis border without line numbers while block hovered */
+        &.has-emphasis::after {
+          border-left-color: rgba(var(--fgColor), 0.9);
         }
       }
     }
   }
 
   &.has-emphasis span[data-lineno].has-emphasis {
-    opacity: 1;
     background-color: rgb(var(--bgColor, transparent));
-    filter: contrast(1.2);
   }
 `;
 
