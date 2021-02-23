@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.76.0] - 2021-02-23
 ### Added
 - Improved typing and behaviour of the `styled` helper function.
 - Changed the `CodeSnippets` component to hide line numbers by default but to show them with an MDX annotation of `lines` or an boolean prop `lineNumbers`.
@@ -369,7 +371,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.75.1...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.76.0...HEAD
+[0.76.0]: https://github.com/ggoodman/nostalgie/compare/v0.75.1...v0.76.0
 [0.75.1]: https://github.com/ggoodman/nostalgie/compare/v0.75.0...v0.75.1
 [0.75.0]: https://github.com/ggoodman/nostalgie/compare/v0.74.0...v0.75.0
 [0.74.0]: https://github.com/ggoodman/nostalgie/compare/v0.73.0...v0.74.0
