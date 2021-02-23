@@ -4,6 +4,11 @@ import type { Context, CSSRules, Directive } from 'twind';
 import { css } from 'twind/css';
 import { TwindContext } from './internal';
 
+export type { MDXProviderComponents } from '@mdx-js/react';
+export { theme } from 'twind';
+
+export type CSSProperties = CSSRules[string];
+
 export type StyledIntrinsicFactories = {
   [TIntrinsic in keyof React.ReactHTML]: StyledHTML<TIntrinsic>;
 };
@@ -16,26 +21,24 @@ export interface StyledElements extends StyledIntrinsicFactories {
   <T extends keyof React.ReactHTML>(
     elementType: T,
     strings: TemplateStringsArray,
-    ...interpolations: readonly MaybeThunk<
-      MaybeArray<React.CSSProperties | string | number | Falsy>
-    >[]
+    ...interpolations: readonly MaybeThunk<MaybeArray<CSSProperties | string | number | Falsy>>[]
   ): React.ReactHTML[T];
   <T extends keyof React.ReactHTML>(
     elementType: T,
-    tokens: MaybeThunk<MaybeArray<React.CSSProperties | Falsy>>
+    tokens: MaybeThunk<MaybeArray<CSSProperties | Falsy>>
   ): React.ReactHTML[T];
   <T extends keyof React.ReactHTML>(
     elementType: T,
-    ...tokens: readonly MaybeThunk<React.CSSProperties | Falsy>[]
+    ...tokens: readonly MaybeThunk<CSSProperties | Falsy>[]
   ): React.ReactHTML[T];
 
   // styled(Component)`...`
-  <P extends {} = {}>(component: (props: P) => JSX.Element): StyledComponent<P>;
+  <P extends {} = {}>(component: (props: P) => JSX.Element | null): StyledComponent<P>;
   // styled(Component, {...}) || styled(Component, '...')
   <P extends {} = {}>(
-    component: (props: P) => JSX.Element,
-    ...tokens: readonly MaybeThunk<React.CSSProperties | Falsy>[]
-  ): (props: P) => JSX.Element;
+    component: (props: P) => JSX.Element | null,
+    ...tokens: readonly MaybeThunk<CSSProperties | Falsy>[]
+  ): (props: P) => JSX.Element | null;
 }
 
 type Falsy = '' | 0 | -0 | false | null | undefined | void;
@@ -45,23 +48,19 @@ type MaybeThunk<T> = T | ((context: Context) => T);
 interface StyledComponent<P extends {} = {}> {
   (
     strings: TemplateStringsArray,
-    ...interpolations: readonly MaybeThunk<
-      MaybeArray<React.CSSProperties | string | number | Falsy>
-    >[]
-  ): (props: P) => JSX.Element;
-  (tokens: MaybeThunk<MaybeArray<React.CSSProperties | Falsy>>): (props: P) => JSX.Element;
-  (...tokens: readonly MaybeThunk<React.CSSProperties | Falsy>[]): (props: P) => JSX.Element;
+    ...interpolations: readonly MaybeThunk<MaybeArray<CSSProperties | string | number | Falsy>>[]
+  ): (props: P) => JSX.Element | null;
+  (tokens: MaybeThunk<MaybeArray<CSSProperties | Falsy>>): (props: P) => JSX.Element | null;
+  (...tokens: readonly MaybeThunk<CSSProperties | Falsy>[]): (props: P) => JSX.Element | null;
 }
 
 interface StyledHTML<T extends keyof React.ReactHTML> {
   (
     strings: TemplateStringsArray,
-    ...interpolations: readonly MaybeThunk<
-      MaybeArray<React.CSSProperties | string | number | Falsy>
-    >[]
+    ...interpolations: readonly MaybeThunk<MaybeArray<CSSProperties | string | number | Falsy>>[]
   ): React.ReactHTML[T];
-  (tokens: MaybeThunk<MaybeArray<React.CSSProperties | Falsy>>): React.ReactHTML[T];
-  (...tokens: readonly MaybeThunk<React.CSSProperties | Falsy>[]): React.ReactHTML[T];
+  (tokens: MaybeThunk<MaybeArray<CSSProperties | Falsy>>): React.ReactHTML[T];
+  (...tokens: readonly MaybeThunk<CSSProperties | Falsy>[]): React.ReactHTML[T];
 }
 
 function styledComponent<P extends {} = {}>(
@@ -127,7 +126,5 @@ export const styled: StyledElements = new Proxy(renderStyled, {
     return styledHtml(elementType);
   },
 });
-
-export type { MDXProviderComponents } from '@mdx-js/react';
 
 export interface MDXProps extends React.PropsWithChildren<{ components: MDXProviderComponents }> {}
