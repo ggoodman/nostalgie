@@ -1,6 +1,6 @@
 {
   "name": "nostalgie",
-  "version": "0.76.0",
+  "version": "0.77.0",
   "private": true,
   "description": "Nostalgie is an opinionated, full-stack, runtime-agnostic framework for building web apps and web pages using",
   "main": "index.js",
