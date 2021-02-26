@@ -4,7 +4,7 @@ import { htmlEscape } from 'escape-goat';
 import jsesc from 'jsesc';
 import * as React from 'react';
 import { renderToString } from 'react-dom/server';
-import * as Helmet from 'react-helmet-async';
+import * as Markup from 'react-helmet-async';
 import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
 import type * as ReactRouter from 'react-router';
@@ -17,9 +17,9 @@ import type { ClientAuth } from '../../auth';
 import { AuthContext, ServerAuth } from '../../auth/server';
 import { ServerQueryContextProvider, ServerQueryExecutorImpl } from '../../functions/server';
 import type { ServerFunction, ServerFunctionContext } from '../../functions/types';
-import { defaultHelmetProps } from '../../helmet';
 import { LazyContext } from '../../lazy/context';
 import type { ChunkManager } from '../../lazy/types';
+import { defaultMarkupProps } from '../../markup';
 import { TwindContext } from '../../styling/internal';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
 
@@ -96,7 +96,7 @@ export class ServerRenderer {
   }> {
     const start = Date.now();
     const bootstrapChunk = 'static/build/bootstrap.js';
-    const helmetCtx: Helmet.ProviderProps = {};
+    const markupCtx: Markup.ProviderProps = {};
     const chunkCtx: ChunkManager = {
       chunks: [],
       lazyComponentState: new Map(),
@@ -122,14 +122,14 @@ export class ServerRenderer {
         <LazyContext.Provider value={chunkCtx}>
           <ServerQueryContextProvider queryExecutor={queryExecutor}>
             <ReactQueryHydration.Hydrate state={initialReactQueryState}>
-              <Helmet.HelmetProvider context={helmetCtx}>
+              <Markup.HelmetProvider context={markupCtx}>
                 <AuthContext.Provider value={auth}>
                   <ReactRouterDOM.StaticRouter location={request.path} context={routerCtx}>
-                    <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
+                    <Markup.Helmet {...defaultMarkupProps}></Markup.Helmet>
                     <this.app />
                   </ReactRouterDOM.StaticRouter>
                 </AuthContext.Provider>
-              </Helmet.HelmetProvider>
+              </Markup.HelmetProvider>
             </ReactQueryHydration.Hydrate>
           </ServerQueryContextProvider>
         </LazyContext.Provider>
@@ -214,7 +214,7 @@ export class ServerRenderer {
     }
     const headTags = [];
 
-    const { helmet } = helmetCtx as Helmet.FilledContext;
+    const { helmet } = markupCtx as Markup.FilledContext;
     const requiredChunks = [bootstrapChunk, ...chunkCtx.chunks.map((chunk) => chunk.chunk)];
     const seenChunks = new Set();
 

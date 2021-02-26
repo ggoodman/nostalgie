@@ -1,4 +1,4 @@
-import { Helmet } from 'nostalgie/helmet';
+import { Markup } from 'nostalgie/markup';
 import { Link, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import './red.css';
@@ -7,13 +7,13 @@ import './shared.css';
 export default function () {
   return (
     <>
-      <Helmet>
+      <Markup>
         <title>CSS loading and code-splitting example · Nostalgie</title>
         <meta
           name="description"
           content="A simple example of using Nostalgie to load .css files such that they're correctly split between page loads while being included in the initial render if needed."
         />
-      </Helmet>
+      </Markup>
       <main className="prose container mx-auto">
         <h1>Hello Red</h1>
         <p>

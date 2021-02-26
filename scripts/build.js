@@ -32,7 +32,7 @@ const typeDependencyNames = ['@types/mdx-js__react', '@types/react-router-dom'];
 const runtimeModuleNames = [
   'auth',
   'functions',
-  'helmet',
+  'markup',
   'lazy',
   'styling',
   'routing',

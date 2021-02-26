@@ -1,12 +1,12 @@
-import { Helmet } from 'nostalgie/helmet';
+import { Markup } from 'nostalgie/markup';
 import * as React from 'react';
 
 export default function NotFoundPage() {
   return (
     <>
-      <Helmet>
+      <Markup>
         <title>Nostalgie - Not Found</title>
-      </Helmet>
+      </Markup>
 
       <h1>Page not found</h1>
     </>

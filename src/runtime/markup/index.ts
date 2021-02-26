@@ -1,18 +1,18 @@
-export { Helmet } from 'react-helmet-async';
+export { Helmet as Markup } from 'react-helmet-async';
 export type {
   BodyProps,
   FilledContext,
-  HelmetProps,
-  HelmetTags,
+  HelmetProps as MarkupProps,
+  HelmetTags as MarkupTags,
   HtmlProps,
   LinkProps,
   MetaProps,
   OtherElementAttributes,
 } from 'react-helmet-async';
 
-import type { HelmetProps } from 'react-helmet-async';
+import type { HelmetProps as MarkupProps } from 'react-helmet-async';
 
-export const defaultHelmetProps: HelmetProps = {
+export const defaultMarkupProps: MarkupProps = {
   htmlAttributes: {
     lang: 'en',
   },
