@@ -2,16 +2,16 @@
 import TwindTypography from '@twind/typography';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as Helmet from 'react-helmet-async';
+import * as Markup from 'react-helmet-async';
 import * as ReactQuery from 'react-query';
 import * as ReactQueryHydration from 'react-query/hydration';
 import * as ReactRouterDOM from 'react-router-dom';
 import type { ClientAuth } from '../../auth';
 import { AuthContext } from '../../auth/server';
-import { defaultHelmetProps } from '../../helmet';
 import { LazyContext } from '../../lazy/context';
 import { register } from '../../lazy/register';
 import type { ChunkManager } from '../../lazy/types';
+import { defaultMarkupProps } from '../../markup';
 
 interface LazyComponent {
   chunk: string;
@@ -138,14 +138,14 @@ export async function hydrateNostalgie(App: React.ComponentType, options: Bootst
     <LazyContext.Provider value={chunkCtx}>
       <ReactQuery.QueryClientProvider client={queryClient}>
         <ReactQueryHydration.Hydrate state={options.reactQueryState}>
-          <Helmet.HelmetProvider>
+          <Markup.HelmetProvider>
             <AuthContext.Provider value={options.auth}>
               <ReactRouterDOM.BrowserRouter>
-                <Helmet.Helmet {...defaultHelmetProps}></Helmet.Helmet>
+                <Markup.Helmet {...defaultMarkupProps}></Markup.Helmet>
                 <App />
               </ReactRouterDOM.BrowserRouter>
             </AuthContext.Provider>
-          </Helmet.HelmetProvider>
+          </Markup.HelmetProvider>
         </ReactQueryHydration.Hydrate>
       </ReactQuery.QueryClientProvider>
     </LazyContext.Provider>,

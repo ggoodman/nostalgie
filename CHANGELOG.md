@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **BREAKING** Renamed the `nostalgie/helmet` runtime module to `nostalgie/markup` to better reflect its purpose: affecting the generated markup. The `Helmet`, `HelmetProps` and `HelmetTags` have been renamed to `Markup`, `MarkupProps` and `MarkupTags`, respectively.
+  
+  As a reminder, the `nostalgie/markup` module is your one-stop shop to set the page title, meta tags or other markup-related features:
+  
+  ```tsx
+  import { Markup } from "nostalgie/markup";
+  
+  export function MyPage() {
+    return (
+      <>
+        <Markup>
+          <title>My page title</title>
+        </Markup>
+        <h1>My page</h1>
+      </>
+    );
+  }
+  ```
 
 ## [0.76.0] - 2021-02-23
 ### Added

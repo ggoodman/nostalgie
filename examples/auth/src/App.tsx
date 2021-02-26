@@ -5,7 +5,7 @@ import {
   withAuthenticationRequired,
 } from 'nostalgie/auth';
 import { createQueryFunction } from 'nostalgie/functions';
-import { Helmet } from 'nostalgie/helmet';
+import { Markup } from 'nostalgie/markup';
 import { Link, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import { hello } from './functions';
@@ -17,7 +17,7 @@ export default function App() {
 
   return (
     <>
-      <Helmet
+      <Markup
         bodyAttributes={{
           className: 'h-screen w-screen overflow-auto',
         }}
@@ -27,7 +27,7 @@ export default function App() {
           name="description"
           content="A simple example of using Nostalgie authentication in both the front- and back-end"
         />
-      </Helmet>
+      </Markup>
       <div className="flex flex-col items-center justify-center max-w-none">
         <Switch>
           <Route path="/authenticated" component={AuthenticatedComponent}></Route>

@@ -1,4 +1,4 @@
-import { Helmet } from 'nostalgie/helmet';
+import { Markup } from 'nostalgie/markup';
 import { NavLink, Route, Switch } from 'nostalgie/routing';
 import * as React from 'react';
 import PlunkerImg from './assets/Nostalgie.svg';
@@ -39,9 +39,9 @@ function Loading() {
 export default function App() {
   return (
     <>
-      <Helmet>
+      <Markup>
         <link rel="icon" href={Favicon} />
-      </Helmet>
+      </Markup>
       <div className="flex flex-col">
         <header className="bg-blue-600 text-gray-50">
           <nav className="flex flex-row flex-nowrap space-x-4 items-end container px-2 mx-auto text-xl h-12">
