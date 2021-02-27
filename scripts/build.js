@@ -172,9 +172,9 @@ async function buildPiscinaWorker(service) {
  */
 async function buildRuntimeModules(service) {
   await service.build({
-    assetNames: 'internal/[name]-[hash]',
+    // assetNames: '[name]-[hash]',
     bundle: true,
-    chunkNames: 'internal/[name]-[hash]',
+    // chunkNames: '[name]-[hash]',
     external: externalModules,
     define: {
       // 'process.env.NODE_ENV': JSON.stringify('production'),

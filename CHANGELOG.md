@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Revert chunk paths in nostalgie build while a bug in their resolution is investigated.
 
 ## [0.77.1] - 2021-02-27
 ### Changed

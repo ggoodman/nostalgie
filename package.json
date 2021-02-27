@@ -89,7 +89,7 @@
     "abort-controller": "^3.0.0",
     "blob-polyfill": "^5.0.20210201",
     "chokidar": "^3.5.1",
-    "esbuild": "^0.8.50",
+    "esbuild": "^0.8.52",
     "escape-goat": "^3.0.0",
     "escape-string-regexp": "^4.0.0",
     "got": "^11.8.1",
