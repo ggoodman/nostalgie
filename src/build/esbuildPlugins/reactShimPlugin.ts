@@ -38,10 +38,9 @@ export function reactShimPlugin(settings: NostalgieSettings): Plugin {
         return {
           contents: `
 const React = require('react');
-const { createLazy } = require(${JSON.stringify(lazyPath)});
+const { lazy } = require(${JSON.stringify(lazyPath)});
 
 const Suspense = process.env.NOSTALGIE_BUILD_TARGET === 'browser' ? React.Suspense : (props) => React.Children.only(props.children);
-const lazy = createLazy(React);
 
 module.exports = {
   ...React,

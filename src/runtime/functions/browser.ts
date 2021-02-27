@@ -12,19 +12,6 @@ import type {
   ServerFunction,
 } from './types';
 
-export function foo<T extends ServerFunction>(fn: T, factoryOptions?: FunctionQueryOptions) {
-  return function useBoundFunctionQuery(
-    args: NonContextFunctionArgs<T>,
-    options: FunctionQueryOptions
-  ) {
-    return useQueryFunctionBrowser(
-      fn,
-      args,
-      Object.assign(Object.create(null), options, factoryOptions)
-    );
-  };
-}
-
 export function useQueryFunctionBrowser<T extends ServerFunction>(
   fn: T,
   args: NonContextFunctionArgs<T>,

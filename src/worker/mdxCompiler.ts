@@ -1,3 +1,4 @@
+import type { OnLoadResult } from 'esbuild';
 import grayMatter from 'gray-matter';
 import * as Path from 'path';
 import * as Querystring from 'querystring';
@@ -11,6 +12,8 @@ import type unist from 'unist';
 import visit from 'unist-util-visit';
 import { compile } from 'xdm';
 import { createSnippetData } from '../runtime/internal/components/snippetParser';
+
+const eol = /\r\n|\r|\n|\u2028|\u2029/g;
 
 interface FlowElementAttributeExpression {
   type: 'mdxJsxAttributeValueExpression';
@@ -31,7 +34,10 @@ export default function handleWorkerRequest([path, contents]: [string, string]) 
   return compileMdx(path, contents);
 }
 
-export async function compileMdx(path: string, contents: string) {
+export async function compileMdx(
+  path: string,
+  contents: string
+): Promise<Required<Pick<OnLoadResult, 'contents' | 'warnings' | 'errors'>>> {
   const parsed = grayMatter(contents, {
     excerpt: true,
   });
@@ -52,25 +58,88 @@ export async function compileMdx(path: string, contents: string) {
     remarkSlug,
   ];
 
-  const mdxJsx = await compile(
-    { contents: parsed.content, path },
-    {
-      jsx: true,
-      jsxRuntime: 'classic',
-      remarkPlugins,
+  let transformedContents = contents;
+  var messages: any[] = [];
+  var errors: any[] = [];
+  var warnings: any[] = [];
+  var message;
+  var start;
+  var end;
+  var list;
+  var length;
+  var lineStart;
+  var lineEnd;
+  var match;
+  var line;
+  var column;
+
+  try {
+    const vfile = await compile(
+      { contents: parsed.content, path },
+      {
+        jsx: true,
+        jsxRuntime: 'classic',
+        remarkPlugins,
+      }
+    );
+
+    transformedContents =
+      `
+${vfile.toString()}
+
+export const excerpt = ${JSON.stringify(parsed.excerpt || '')};
+export const frontmatter = ${JSON.stringify(parsed.data)};
+export const source = ${JSON.stringify(contents)};
+      `.trim() + '\n';
+
+    messages = vfile.messages;
+  } catch (err) {
+    err.fatal = true;
+    messages.push(err);
+  }
+
+  for (message of messages) {
+    start = message.location.start;
+    end = message.location.end;
+    list = message.fatal ? errors : warnings;
+    length = 0;
+    lineStart = 0;
+    line = undefined;
+    column = undefined;
+
+    if (start.line != null && start.column != null && start.offset != null) {
+      line = start.line;
+      column = start.column - 1;
+      lineStart = start.offset - column;
+      length = 1;
+
+      if (end.line != null && end.column != null && end.offset != null) {
+        length = end.offset - start.offset;
+      }
     }
-  );
 
-  const transformed =
-    `
-    ${mdxJsx.toString()}
+    eol.lastIndex = lineStart;
+    match = eol.exec(contents);
+    lineEnd = match ? match.index : contents.length;
 
-    export const excerpt = ${JSON.stringify(parsed.excerpt || '')};
-    export const frontmatter = ${JSON.stringify(parsed.data)};
-    export const source = ${JSON.stringify(contents)};
-  `.trim() + '\n';
+    list.push({
+      text: message.reason,
+      location: {
+        file: path,
+        line,
+        column,
+        length: Math.min(length, lineEnd),
+        lineText: contents.slice(lineStart, lineEnd),
+      },
+      detail: message,
+    });
+  }
 
-  return transformed;
+  return {
+    contents: transformedContents,
+    errors,
+    warnings,
+  };
 }
 
 /**
