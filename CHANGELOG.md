@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.77.1] - 2021-02-27
 ### Changed
 - Moved MDX building into the main CLI process (for now) in an attempt to simplify some of the diagnostics via esbuild.
 
@@ -394,7 +396,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.77.0...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.77.1...HEAD
+[0.77.1]: https://github.com/ggoodman/nostalgie/compare/v0.77.0...v0.77.1
 [0.77.0]: https://github.com/ggoodman/nostalgie/compare/v0.76.0...v0.77.0
 [0.76.0]: https://github.com/ggoodman/nostalgie/compare/v0.75.1...v0.76.0
 [0.75.1]: https://github.com/ggoodman/nostalgie/compare/v0.75.0...v0.75.1
