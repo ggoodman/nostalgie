@@ -96,7 +96,6 @@ export function fileNameToLanguage(filename: string): Shiki.Lang | undefined {
   const shikiLang = Shiki.BUNDLED_LANGUAGES.find((lang) => lang.id === extName.slice(1));
 
   if (shikiLang) {
-    console.log('found language', extName, shikiLang);
     return shikiLang.id as Shiki.Lang;
   }
 

@@ -187,6 +187,9 @@ export class ServerRenderer {
       renderedMarkup = html ?? (customSheet.reset(), renderCount++, renderToString(model));
     } catch (err) {
       // TODO: Bake error into dev builds for devex
+      if (process.env.NODE_ENV === 'development') {
+        console.error(err);
+      }
     }
 
     // Any outstanding queries should be cancelled at this point since our client's lifetime

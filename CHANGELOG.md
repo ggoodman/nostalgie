@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Reinstated the worker pool for `.md` / `.mdx` compilation. This attempts to spread the the work of transpiling mdx across multiple workers.
+
 ### Fixed
 - Fixed invocation of server functions that do not return `Promise` instances by calling them in the handler of a resolved promise.
 

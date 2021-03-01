@@ -1,8 +1,10 @@
-import type { Plugin } from 'esbuild';
+import { watch } from 'chokidar';
+import type { OnLoadResult, Plugin } from 'esbuild';
 import { promises as Fs } from 'fs';
 import LRUCache from 'lru-cache';
+import * as Path from 'path';
+import Piscina from 'piscina';
 import type { CancellationToken } from 'ts-primitives';
-import { compileMdx } from '../../worker/mdxCompiler';
 
 const cache = new LRUCache<string, string>({
   max: 1024 * 1024 * 32, // 32 mb
@@ -10,8 +12,17 @@ const cache = new LRUCache<string, string>({
     return value.length + (key ? key.length : 0);
   },
 });
+let workerPool: Piscina | undefined;
+let watcher: ReturnType<typeof watch> | undefined;
 
-export function mdxPlugin(_options: { token: CancellationToken }): Plugin {
+export function mdxPlugin(options: { token: CancellationToken }): Plugin {
+  options.token.onCancellationRequested(() => {
+    workerPool?.destroy();
+    workerPool = undefined;
+
+    watcher?.close();
+    watcher = undefined;
+  });
   return {
     name: 'mdx',
     setup(build) {
@@ -27,30 +38,33 @@ export function mdxPlugin(_options: { token: CancellationToken }): Plugin {
 
         const contents = await Fs.readFile(path, 'utf8');
 
-        // watcher ??= watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
-        // watcher.on('all', (_eventType, path) => {
-        //   if (typeof path === 'string') {
-        //     cache.del(path);
-        //     watcher?.unwatch(path);
-        //   }
-        // });
+        watcher ??= watch([], { ignoreInitial: true, usePolling: true, interval: 16 });
+        watcher.on('all', (_eventType, path) => {
+          if (typeof path === 'string') {
+            cache.del(path);
+            watcher?.unwatch(path);
+          }
+        });
 
-        // workerPool ??= new Piscina({
-        //   filename: Path.resolve(__dirname, './mdxCompilerWorker.js'),
-        // });
+        workerPool ??= new Piscina({
+          filename: Path.resolve(__dirname, './mdxCompilerWorker.js'),
+        });
 
-        // const transformed = await workerPool.runTask([path, contents.trim()]);
-        const { contents: transformed, errors, warnings } = await compileMdx(path, contents);
+        const { contents: transformed, errors, warnings } = await workerPool.runTask([
+          path,
+          contents.trim(),
+        ]);
+        // const { contents: transformed, errors, warnings } = await compileMdx(path, contents);
 
         cache.set(path, transformed as string);
-        // watcher.add(path);
+        watcher.add(path);
 
         return {
           contents: transformed,
           errors,
           warnings,
           loader: 'jsx',
-        };
+        } as OnLoadResult;
       });
     },
   };
