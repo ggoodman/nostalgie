@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.77.3] - 2021-03-01
 ### Changed
 - Reinstated the worker pool for `.md` / `.mdx` compilation. This attempts to spread the the work of transpiling mdx across multiple workers.
 
@@ -405,7 +407,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Introduced [`kacl`](https://npm.im/@brightcove/kacl) as a mechanism to lint and manage the changelog.
 - Introduced [`gh-release`](https://npm.im/gh-release) to produce releases on GitHub.
 
-[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.77.2...HEAD
+[Unreleased]: https://github.com/ggoodman/nostalgie/compare/v0.77.3...HEAD
+[0.77.3]: https://github.com/ggoodman/nostalgie/compare/v0.77.2...v0.77.3
 [0.77.2]: https://github.com/ggoodman/nostalgie/compare/v0.77.1...v0.77.2
 [0.77.1]: https://github.com/ggoodman/nostalgie/compare/v0.77.0...v0.77.1
 [0.77.0]: https://github.com/ggoodman/nostalgie/compare/v0.76.0...v0.77.0
