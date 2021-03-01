@@ -41,6 +41,8 @@ export interface ServerQueryExecutorImplOptions {
   queryClient: QueryClient;
 }
 
+const resolvedPromise = Promise.resolve();
+
 export class ServerQueryExecutorImpl implements ServerQueryExecutor {
   readonly auth: ServerAuth;
   readonly promises = new Set<Promise<unknown>>();
@@ -60,9 +62,8 @@ export class ServerQueryExecutorImpl implements ServerQueryExecutor {
     const state = this.queryClient.getQueryState(queryKey);
     const queryFn = () => {
       const abortController = new AbortController() as import('abort-controller').AbortController;
-      const resultPromise = fn(
-        { signal: abortController.signal, auth: this.auth },
-        ...args
+      const resultPromise = resolvedPromise.then(() =>
+        fn({ signal: abortController.signal, auth: this.auth }, ...args)
       ) as Promise<FunctionReturnType<T>>;
 
       return Object.assign(resultPromise, {
