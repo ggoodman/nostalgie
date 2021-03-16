@@ -3,7 +3,7 @@ import { parseHTML } from 'linkedom';
 import React from 'react';
 import { suite } from 'uvu';
 import assert from 'uvu/assert';
-import { ServerRenderer } from './handleRequest';
+import { ServerRenderer } from './serverRenderer';
 
 const HandleRequest = suite('handleRequest');
 
