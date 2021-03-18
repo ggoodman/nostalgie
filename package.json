@@ -18,10 +18,10 @@
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^11.1.1",
+    "@types/hapi-pino": "^8.0.1",
     "@types/hapi__call": "^8.0.2",
     "@types/hapi__cookie": "^10.1.2",
     "@types/hapi__inert": "^5.2.2",
-    "@types/hapi-pino": "^8.0.1",
     "@types/hast": "^2.3.1",
     "@types/jsesc": "^2.5.1",
     "@types/lru-cache": "^5.1.0",
@@ -50,7 +50,8 @@
     "typescript": "^4.1.3",
     "unified": "^9.2.0",
     "uvu": "^0.5.1",
-    "watchlist": "^0.2.3"
+    "watchlist": "^0.2.3",
+    "with-defer": "^1.0.0"
   },
   "repository": {
     "type": "git",

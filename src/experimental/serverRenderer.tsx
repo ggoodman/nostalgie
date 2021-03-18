@@ -227,7 +227,7 @@ ${helmet.style.toString()}
 </head>
 <body ${bodyAttrs}>
 <div id="root">${renderedMarkup}</div>
-<script async type="module">
+<script id="bootstrap" async type="module">
 import { start } from "${publicUrl}static/build/bootstrap.js";
 start(${jsesc(bootstrapOptions, { es6: true, isScriptContext: true, minimal: true })});
 </script>
