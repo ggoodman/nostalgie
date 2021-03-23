@@ -1,5 +1,7 @@
 import type { MarkupProps } from '../runtime/markup';
 
+export const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html><html><head></head><body></body></html>`;
+
 export const DEFAULT_MARKUP_PROPS: MarkupProps = {
   htmlAttributes: {
     lang: 'en',
