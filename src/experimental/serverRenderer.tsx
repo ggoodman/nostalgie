@@ -114,7 +114,7 @@ export class ServerRenderer {
     await pluginHost.cancelPendingOperations();
 
     // Create a cloned document from our serialized template
-    const document = (parseJSON(this.htmlTemplateData) as any) as HTMLDocument;
+    const document = (parseJSON(this.htmlTemplateData) as unknown) as HTMLDocument;
 
     // Create and inject the root div to which our app will be mounted
     const rootDiv = document.createElement('div');

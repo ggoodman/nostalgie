@@ -3,7 +3,7 @@ import { parseHTML } from 'linkedom';
 import * as React from 'react';
 import { suite, Test } from 'uvu';
 import assert from 'uvu/assert';
-import { helmetPlugin } from './plugins/helmetPlugin';
+import { markupPlugin } from './markup/plugin';
 import { ServerRenderer } from './serverRenderer';
 
 describe('handleRequest', (it) => {
@@ -12,7 +12,7 @@ describe('handleRequest', (it) => {
       appRoot: () => <h1>Hello world</h1>,
       chunkDependencies: {},
       isDevelopmentMode: true,
-      plugins: [helmetPlugin()],
+      plugins: [markupPlugin()],
     });
 
     const { response, stats } = await r.render({

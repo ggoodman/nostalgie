@@ -23,9 +23,9 @@ import { defaultMarkupProps } from '../../markup';
 import { TwindContext } from '../../styling/internal';
 import type { BootstrapOptions } from '../bootstrap/bootstrap';
 
-declare global {
-  var __nostalgie_css: (buildPath: string, css: string) => void;
-}
+// declare global {
+//   var __nostalgie_css: (buildPath: string, css: string) => void;
+// }
 
 // const injectedCss = new Map<string, string>();
 // global.__nostalgie_css = (buildPath: string, css: string) => {
