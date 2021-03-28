@@ -18,8 +18,6 @@ export function markupPlugin(defaultMarkupProps: MarkupState = {}): Plugin<Marku
       const state = ctx.state.state;
 
       applyState(document, state);
-
-      console.log(document.toString());
     },
     // TODO: How will I allow Plugins to tweak the generated HTML markup?
   };

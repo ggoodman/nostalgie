@@ -40,6 +40,7 @@ describe('handleRequest', (it) => {
         </div>
       ),
       chunkDependencies: {},
+      entrypointUrl: '/entry.js',
       isDevelopmentMode: true,
       plugins: [markupPlugin()],
     });

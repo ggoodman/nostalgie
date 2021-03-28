@@ -1,5 +1,7 @@
 import { Headers } from 'headers-utils/lib';
-import { parseHTML, parseJSON } from 'linkedom';
+import jsesc from 'jsesc';
+import { parseHTML, parseJSON, toJSON } from 'linkedom';
+import type { jsdonValue } from 'linkedom/types/shared/parse-json';
 import * as React from 'react';
 import { renderToString } from 'react-dom/server';
 import type { ChunkDependencies } from '../build/types';
@@ -21,7 +23,9 @@ export interface RenderStats {
 
 export interface ServerRendererOptions extends RenderOptions {
   appRoot: RootComponent;
+  baseUrl?: string;
   chunkDependencies: ChunkDependencies;
+  entrypointUrl: string;
   htmlTemplate?: string;
   isDevelopmentMode?: boolean;
   plugins?: Plugin[];
@@ -29,20 +33,25 @@ export interface ServerRendererOptions extends RenderOptions {
 
 export class ServerRenderer {
   private readonly appRoot: RootComponent;
+  private readonly baseUrl: string;
   private readonly defaultRenderDeadline: number;
   private readonly defaultMaxRenderIterations: number;
-  private readonly htmlTemplateData: ReadonlyArray<unknown>;
+  private readonly entrypointUrl: string;
+  private readonly htmlTemplateData: jsdonValue[];
   private readonly isDevelopmentMode: boolean;
   private readonly plugins: Plugin[];
 
   constructor(options: ServerRendererOptions) {
     this.appRoot = options.appRoot;
+    this.baseUrl = ensureTrailingSlash(options.baseUrl ?? '/');
     this.defaultMaxRenderIterations = options.maxIterations ?? 3;
     this.defaultRenderDeadline = options.deadline ?? 500;
+    this.entrypointUrl = options.entrypointUrl;
     this.isDevelopmentMode = options.isDevelopmentMode ?? false;
     this.plugins = options.plugins ?? [];
-    this.htmlTemplateData = (parseHTML(options.htmlTemplate ?? DEFAULT_HTML_TEMPLATE)
-      .document as any).toJSON() as ReadonlyArray<unknown>;
+    this.htmlTemplateData = toJSON(
+      parseHTML(options.htmlTemplate ?? DEFAULT_HTML_TEMPLATE).document
+    );
   }
 
   async render(
@@ -124,6 +133,41 @@ export class ServerRenderer {
 
     pluginHost.renderHtml(document);
 
+    const pluginBootstrapData = pluginHost.getBootstrapData();
+    const bootstrapScript = `
+const baseUrl = new URL(
+  ${jsesc(this.baseUrl, {
+    isScriptContext: true,
+    json: true,
+  })},
+  window.location.href
+);
+const entrypointUrl = new URL(
+  ${jsesc(this.entrypointUrl, {
+    isScriptContext: true,
+    json: true,
+  })},
+  baseUrl
+);
+import(entrpointUrl.href)
+  .then((clientRenderer) => {
+    clientRenderer.render({
+      pluginBootstrapData: ${jsesc(pluginBootstrapData, {
+        isScriptContext: true,
+      })},
+    });
+  }, (err: unknown) => {
+    // TODO: Handle error
+    console.error(err);
+  });
+    `;
+    const bootstrapScriptEl = document.createElement('script');
+    bootstrapScriptEl.appendChild(document.createTextNode(bootstrapScript));
+    bootstrapScriptEl.async = true;
+    bootstrapScriptEl.defer = true;
+    bootstrapScriptEl.type = 'module';
+    document.body.appendChild(bootstrapScriptEl);
+
     const headers = new Headers();
     const body = document.toString();
 
@@ -140,4 +184,8 @@ export class ServerRenderer {
       },
     };
   }
+}
+
+function ensureTrailingSlash(str: string): string {
+  return str.endsWith('/') ? str : `${str}/`;
 }

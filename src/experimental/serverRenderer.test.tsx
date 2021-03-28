@@ -3,16 +3,17 @@ import { parseHTML } from 'linkedom';
 import * as React from 'react';
 import { suite, Test } from 'uvu';
 import assert from 'uvu/assert';
-import { markupPlugin } from './markup/plugin';
+import { htmlPlugin } from './html/plugin';
 import { ServerRenderer } from './serverRenderer';
 
 describe('handleRequest', (it) => {
   it('it handles a request', async () => {
     const r = new ServerRenderer({
       appRoot: () => <h1>Hello world</h1>,
+      entrypointUrl: 'foo.bar',
       chunkDependencies: {},
       isDevelopmentMode: true,
-      plugins: [markupPlugin()],
+      plugins: [htmlPlugin()],
     });
 
     const { response, stats } = await r.render({

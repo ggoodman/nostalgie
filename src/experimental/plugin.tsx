@@ -23,6 +23,7 @@ export interface Plugin<TPluginState = unknown> {
   getPendingOperations?(ctx: PluginContext<TPluginState>): PromiseLike<unknown>[];
   cancelPendingOperations?(ctx: PluginContext<TPluginState>): PromiseLike<void>;
   renderHtml?(ctx: PluginContext<TPluginState>, document: Document): void;
+  getBootstrapData?(ctx: PluginContext<TPluginState>): unknown;
 }
 
 export class RendererPluginHost {
@@ -142,5 +143,20 @@ export class RendererPluginHost {
         );
       }
     }
+  }
+
+  getBootstrapData(): Record<string, unknown> {
+    const bootstrapData: Record<string, unknown> = {};
+
+    for (const { plugin, state } of this.pluginsWithState) {
+      if (typeof plugin.getBootstrapData === 'function') {
+        bootstrapData[plugin.name] = plugin.getBootstrapData({
+          ...this.ctx,
+          state,
+        });
+      }
+    }
+
+    return bootstrapData;
   }
 }

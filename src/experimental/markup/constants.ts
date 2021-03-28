@@ -34,3 +34,22 @@ export enum TAG_NAMES {
 export const VALID_TAG_NAMES = new Set(Object.values(TAG_NAMES));
 
 export const MARKUP_ATTR = 'ns-markup';
+
+// Copyright Facebook, MIT: https://github.com/facebook/react/blob/f227e7f26b81cb1eba0c837ab2acd7fa7f91404f/LICENSE
+// See: https://github.com/facebook/react/blob/f227e7f26b81cb1eba0c837ab2acd7fa7f91404f/packages/react-dom/src/shared/DOMProperty.js
+export const RESERVED_PROPS = new Set([
+  'children',
+  'dangerouslySetInnerHTML',
+  'defaultValue',
+  'defaultChecked',
+  'innerHTML',
+  'suppressContentEditableWarning',
+  'suppressHydrationWarning',
+  'style',
+]);
+export const PROP_TO_ATTR = {
+  acceptCharset: 'accept-charset',
+  className: 'class',
+  htmlFor: 'for',
+  httpEquiv: 'http-equiv',
+};
