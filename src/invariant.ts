@@ -1,8 +1,5 @@
-export function invariant<T>(
-  value: T,
-  message: string
-): asserts value is Exclude<T, null | undefined | false | '' | 0> {
-  if (!value) {
+export function invariant(check: unknown, message: string): asserts check {
+  if (!check) {
     throw new Error(`Invariant violation: ${message}`);
   }
 }

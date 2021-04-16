@@ -1,0 +1,8 @@
+{
+  "exports": {
+    ".": {
+      "import": "./dist/plugin.esm.js",
+      "require": "./dist/plugin.cjs.js"
+    }
+  }
+}

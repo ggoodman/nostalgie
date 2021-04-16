@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true,
+    "outDir": "dist",
+    "jsx": "react",
+    "paths": {
+      "nostalgie/plugins/*": ["../../src/runtime/plugins/*"]
+    }
+  },
+  "include": ["src"]
+}

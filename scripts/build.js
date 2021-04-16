@@ -1,7 +1,7 @@
 //@ts-check
 
 const ChildProcess = require('child_process');
-const { startService } = require('esbuild');
+const { build } = require('esbuild');
 const Fs = require('fs').promises;
 const { builtinModules } = require('module');
 const { rollup } = require('rollup');
@@ -43,6 +43,8 @@ const runtimeModuleNames = [
   'internal/renderer',
   'internal/runtimes/node',
 ];
+
+const plugins = [Path.resolve(__dirname, '../src/runtime/plugins/')];
 
 const typesPath = Path.resolve(__dirname, '../src/runtime/types.d.ts');
 const nostalgieBinPath = Path.resolve(__dirname, '../src/cli/bin/nostalgie');
@@ -91,37 +93,37 @@ for (const typeDependencyName of typeDependencyNames) {
   dependencies[typeDependencyName] = range;
 }
 
-/**
- *
- * @param {import('esbuild').Service} service
- */
-async function buildCli(service) {
-  await service.build({
+async function buildCli() {
+  await build({
     bundle: true,
     external: externalModules,
+    // conditions: ['require', 'node'],
     define: {
       // 'process.env.NODE_ENV': JSON.stringify('production'),
+      'import.meta.url': 'import_meta_url',
     },
     entryPoints: [Path.resolve(__dirname, '../src/cli/index.ts')],
     format: 'cjs',
+    inject: [Path.resolve(__dirname, './inject.js')],
+    loader: {
+      '.node': 'binary',
+    },
     logLevel: 'error',
-    metafile: metaPaths.cli,
-    minify: true,
+    // mainFields: ['main'],
+    minify: false,
     outfile: Path.resolve(__dirname, '../dist/cli.js'),
     platform: 'node',
-    target: 'node12.16',
+    plugins: [],
+    target: 'node10.16',
     splitting: false,
     sourcemap: process.env.NODE_ENV === 'development',
+    treeShaking: true,
     write: true,
   });
 }
 
-/**
- *
- * @param {import('esbuild').Service} service
- */
-async function buildMdxCompilerWorker(service) {
-  await service.build({
+async function buildMdxCompilerWorker() {
+  await build({
     bundle: true,
     external: externalModules,
     define: {
@@ -130,7 +132,6 @@ async function buildMdxCompilerWorker(service) {
     entryPoints: [Path.resolve(__dirname, '../src/worker/mdxCompiler.ts')],
     format: 'cjs',
     logLevel: 'error',
-    metafile: metaPaths.mdxCompilerWorker,
     outfile: Path.resolve(__dirname, '../dist/mdxCompilerWorker.js'),
     minify: process.env.NODE_ENV !== 'development',
     platform: 'node',
@@ -141,12 +142,8 @@ async function buildMdxCompilerWorker(service) {
   });
 }
 
-/**
- *
- * @param {import('esbuild').Service} service
- */
-async function buildPiscinaWorker(service) {
-  await service.build({
+async function buildPiscinaWorker() {
+  await build({
     bundle: true,
     external: externalModules,
     define: {
@@ -155,7 +152,6 @@ async function buildPiscinaWorker(service) {
     entryPoints: [Path.resolve(require.resolve('piscina'), '../worker.js')],
     format: 'cjs',
     logLevel: 'error',
-    metafile: metaPaths.piscinaWorker,
     minify: process.env.NODE_ENV !== 'development',
     outfile: Path.resolve(__dirname, '../dist/worker.js'),
     platform: 'node',
@@ -166,27 +162,27 @@ async function buildPiscinaWorker(service) {
   });
 }
 
-/**
- *
- * @param {import('esbuild').Service} service
- */
-async function buildRuntimeModules(service) {
-  await service.build({
-    // assetNames: '[name]-[hash]',
+async function buildRuntimeModules() {
+  /** @type {Record<string, string>} */
+  const entryPoints = {};
+
+  for (const spec in PackageJson.exports) {
+    entryPoints[spec.slice(2)] = PackageJson.exports[spec];
+  }
+
+  await build({
+    assetNames: 'assets/[name]-[hash]',
     bundle: true,
-    // chunkNames: '[name]-[hash]',
+    chunkNames: 'chunks/[name]-[hash]',
+    conditions: ['import'],
     external: externalModules,
     define: {
-      // 'process.env.NODE_ENV': JSON.stringify('production'),
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
     },
-    entryPoints: runtimeModuleNames.map((n) =>
-      Path.resolve(__dirname, `../src/runtime/${n}/index.ts`)
-    ),
+    entryPoints,
     format: 'esm',
     logLevel: 'error',
     mainFields: ['module', 'main'],
-    metafile: metaPaths.runtimeModules,
-    outbase: Path.resolve(__dirname, '../src/runtime/'),
     outdir: Path.resolve(__dirname, '../dist'),
     platform: 'neutral',
     plugins: [
@@ -254,7 +250,7 @@ async function buildRuntimeTypes() {
     process.exit(1);
   }
 
-  const service = await startService();
+  // const service = await startService();
   try {
     if (!process.env.SKIP_EMPTY) {
       await Fs.rmdir(Path.resolve(__dirname, '../dist'), { recursive: true });
@@ -263,107 +259,106 @@ async function buildRuntimeTypes() {
     await Fs.mkdir(Path.resolve(__dirname, '../dist/bin'), { recursive: true });
 
     const buildPromises = [
-      buildCli(service),
-      buildMdxCompilerWorker(service),
-      buildPiscinaWorker(service),
-      buildRuntimeModules(service),
-      Fs.copyFile(typesPath, Path.resolve(__dirname, '../dist/index.d.ts')),
+      buildCli(),
+      // buildMdxCompilerWorker(service),
+      // buildPiscinaWorker(service),
+      buildRuntimeModules(),
+      // Fs.copyFile(typesPath, Path.resolve(__dirname, '../dist/index.d.ts')),
       Fs.copyFile(nostalgieBinPath, Path.resolve(__dirname, '../dist/bin/nostalgie')),
       Fs.copyFile(nostalgieCmdPath, Path.resolve(__dirname, '../dist/bin/nostalgie.cmd')),
       Fs.copyFile(readmePath, Path.resolve(__dirname, '../dist/README.md')),
       Fs.copyFile(licensePath, Path.resolve(__dirname, '../dist/LICENSE')),
     ];
 
-    if (!process.env.SKIP_TYPES_BUILD) {
-      buildPromises.push(buildRuntimeTypes());
-    }
+    // if (!process.env.SKIP_TYPES_BUILD) {
+    //   buildPromises.push(buildRuntimeTypes());
+    // }
 
     await Promise.all(buildPromises);
 
-    for (const externalName of externalModules) {
-      const target =
-        externalName === 'react' || externalName === 'react-dom' ? peerDependencies : dependencies;
-      const versionSpec = mergedDependencies[externalName];
-      if (externalName.includes('react-router'))
-        console.debug({
-          externalName,
-          mergedDependencies,
-          target: target === peerDependencies ? 'peerDependencies' : 'dependencies',
-          mergedSpec: versionSpec,
-        });
+    // for (const externalName of externalModules) {
+    //   const target =
+    //     externalName === 'react' || externalName === 'react-dom' ? peerDependencies : dependencies;
+    //   const versionSpec = mergedDependencies[externalName];
+    //   if (externalName.includes('react-router'))
+    //     console.debug({
+    //       externalName,
+    //       mergedDependencies,
+    //       target: target === peerDependencies ? 'peerDependencies' : 'dependencies',
+    //       mergedSpec: versionSpec,
+    //     });
 
-      if (versionSpec && !target[externalName]) {
-        target[externalName] = versionSpec;
-      }
-    }
+    //   if (versionSpec && !target[externalName]) {
+    //     target[externalName] = versionSpec;
+    //   }
+    // }
 
-    for (const runtimeModuleName of runtimeModuleNames) {
-      exportMap[`./${runtimeModuleName}`] = `./${runtimeModuleName}/index.js`;
-    }
+    // for (const runtimeModuleName of runtimeModuleNames) {
+    //   exportMap[`./${runtimeModuleName}`] = `./${runtimeModuleName}/index.js`;
+    // }
 
-    const promises = [];
+    // const promises = [];
 
-    promises.push(
-      Fs.writeFile(
-        Path.resolve(__dirname, '../dist/package.json'),
-        JSON.stringify(
-          {
-            name: PackageJson.name,
-            version: PackageJson.version,
-            description: PackageJson.description,
-            types: './index.d.ts',
-            exports: exportMap,
-            bin: {
-              nostalgie: './bin/nostalgie',
-            },
-            dependencies,
-            devDependencies,
-            peerDependencies,
-            repository: PackageJson.repository,
-            keywords: PackageJson.keywords,
-            author: PackageJson.author,
-            license: PackageJson.license,
-            bugs: PackageJson.bugs,
-            homepage: PackageJson.homepage,
-            engines: PackageJson.engines,
-            engineStrict: PackageJson.engineStrict,
-          },
-          null,
-          2
-        )
-      )
-    );
+    // promises.push(
+    //   Fs.writeFile(
+    //     Path.resolve(__dirname, '../dist/package.json'),
+    //     JSON.stringify(
+    //       {
+    //         name: PackageJson.name,
+    //         version: PackageJson.version,
+    //         description: PackageJson.description,
+    //         types: './index.d.ts',
+    //         exports: exportMap,
+    //         bin: {
+    //           nostalgie: './bin/nostalgie',
+    //         },
+    //         dependencies,
+    //         devDependencies,
+    //         peerDependencies,
+    //         repository: PackageJson.repository,
+    //         keywords: PackageJson.keywords,
+    //         author: PackageJson.author,
+    //         license: PackageJson.license,
+    //         bugs: PackageJson.bugs,
+    //         homepage: PackageJson.homepage,
+    //         engines: PackageJson.engines,
+    //         engineStrict: PackageJson.engineStrict,
+    //       },
+    //       null,
+    //       2
+    //     )
+    //   )
+    // );
 
-    promises.push(Fs.writeFile(Path.resolve(__dirname, '../dist/.npmignore'), '.types\n'));
+    // promises.push(Fs.writeFile(Path.resolve(__dirname, '../dist/.npmignore'), '.types\n'));
 
-    for (const runtimeModuleName of runtimeModuleNames) {
-      const packageJsonPath = Path.resolve(__dirname, `../dist/${runtimeModuleName}/package.json`);
+    // for (const runtimeModuleName of runtimeModuleNames) {
+    //   const packageJsonPath = Path.resolve(__dirname, `../dist/${runtimeModuleName}/package.json`);
 
-      promises.push(
-        Fs.writeFile(
-          packageJsonPath,
-          JSON.stringify(
-            {
-              name: `nostalgie-${runtimeModuleName}`,
-              version: PackageJson.version,
-              private: true,
-              type: 'module',
-              main: './index.js',
-              module: './index.js',
-              types: './index.d.ts',
-              license: PackageJson.license,
-            },
-            null,
-            2
-          )
-        )
-      );
-    }
+    //   promises.push(
+    //     Fs.writeFile(
+    //       packageJsonPath,
+    //       JSON.stringify(
+    //         {
+    //           name: `nostalgie-${runtimeModuleName}`,
+    //           version: PackageJson.version,
+    //           private: true,
+    //           type: 'module',
+    //           main: './index.js',
+    //           module: './index.js',
+    //           types: './index.d.ts',
+    //           license: PackageJson.license,
+    //         },
+    //         null,
+    //         2
+    //       )
+    //     )
+    //   );
+    // }
 
-    await Promise.all(promises);
+    // await Promise.all(promises);
   } finally {
-    service.stop();
-
+    // service.stop();
     // await Fs.rmdir('../dist/meta', { recursive: true });
   }
 })().catch((err) => {

@@ -1,20 +1,19 @@
 //@ts-ignore
 // const logPromise = import('why-is-node-running');
 
-import { startService } from 'esbuild';
-import Module from 'module';
+import Debug from 'debug';
 import * as Path from 'path';
-import type { Logger } from 'pino';
-import { CancellationTokenSource } from 'ts-primitives';
 import Yargs from 'yargs';
-import PackageJson from '../../package.json';
-import { wireAbortController, withCleanup } from '../lifecycle';
+import { hideBin } from 'yargs/helpers';
+import { readConfigs } from '../config';
+import { Background } from '../context';
+import { runDevServer } from '../dev';
 import { createDefaultLogger } from '../logging';
-import { readNormalizedSettings } from '../settings';
 
-const builtinModules = Module.builtinModules;
+const debug = Debug.debug('nostalgie:cli');
 
-Yargs.help()
+Yargs(hideBin(process.argv))
+  .help()
   .demandCommand()
   .recommendCommands()
   .strict()
@@ -41,35 +40,29 @@ Yargs.help()
           },
         } as const),
     async (argv) => {
-      const logger = createDefaultLogger({ level: argv['log-level'] });
+      const logger = createDefaultLogger();
+      const { cancel, context } = Background.withCancel();
+      const exitSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
 
-      versionCheck('build', logger);
+      for (const signal of exitSignals) {
+        process.once(signal, (signal) => {
+          logger.onExitSignalReceived(signal);
+          cancel();
+        });
+      }
 
-      const { abort, signal } = wireAbortController(logger);
-      const cwd = process.cwd();
-      const settings = await readNormalizedSettings({
-        rootDir: Path.resolve(cwd, argv.project_root ?? './'),
-        buildEnvironment: argv.env,
-      });
+      const configReader = readConfigs(
+        context,
+        logger,
+        Path.resolve(process.cwd(), argv.project_root || '.'),
+        { watch: false }
+      )[Symbol.asyncIterator]();
 
-      await withCleanup(async (defer) => {
-        // ESBuild works based on CWD :|
-        const cwd = process.cwd();
-        process.chdir(settings.rootDir);
-        const service = await startService();
-        process.chdir(cwd);
-        defer(() => service.stop());
-        signal.onabort = () => service.stop();
-        defer(() => abort());
+      const { context: configContext, config } = await configReader.next();
 
-        const tokenSource = new CancellationTokenSource();
-        signal.onabort = () => tokenSource.dispose(true);
+      configReader.return?.();
 
-        const { Builder } = await import('../build');
-        const builder = new Builder({ logger, service, settings, token: tokenSource.token });
-        await builder.build();
-        process.exit(0);
-      });
+      cancel();
     }
   )
   .command(
@@ -109,50 +102,40 @@ Yargs.help()
           },
         } as const),
     async (argv) => {
-      const logger = createDefaultLogger({ level: argv['log-level'] });
+      const logger = createDefaultLogger();
+      const { cancel, context } = Background.withCancel();
+      const exitSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
 
-      versionCheck('dev', logger);
-
-      const { signal } = wireAbortController(logger);
-      const cwd = process.cwd();
-      const settings = await readNormalizedSettings({
-        rootDir: Path.resolve(cwd, argv.project_root ?? './'),
-        buildEnvironment: argv.env,
-      });
-
-      await withCleanup(async (defer) => {
-        // ESBuild works based on CWD :|
-        const cwd = process.cwd();
-        process.chdir(settings.rootDir);
-        const service = await startService();
-        process.chdir(cwd);
-        defer(() => service.stop());
-
-        const tokenSource = new CancellationTokenSource();
-        signal.onabort = () => tokenSource.dispose(true);
-
-        const { Builder } = await import('../build');
-        const builder = new Builder({ logger, service, settings, token: tokenSource.token });
-        await builder.watch({
-          automaticReload: argv['disable-hot-reload'] !== false,
-          host: argv.host,
-          port: argv.port,
-          signal,
+      for (const signal of exitSignals) {
+        process.once(signal, (signal) => {
+          debug('signal received: %s', signal);
+          logger.onExitSignalReceived(signal);
+          cancel();
         });
-      });
+      }
+
+      // 1. Resolve the config file
+      // 2. Validate the config file and set defaults
+      // 3. Set-up config watcher and on each change:
+      //   a. Validate the config file and set defaults
+      //   b. (Re)start the dev server with the updated list of plugins
+      let runCount = 0;
+
+      for await (const { context: configContext, config } of await readConfigs(
+        context,
+        logger,
+        Path.resolve(process.cwd(), argv.project_root || '.'),
+        { watch: true }
+      )) {
+        try {
+          debug('obtained config %d', runCount);
+          await runDevServer(configContext, logger, ++runCount, config);
+        } catch (err) {
+          console.error(err);
+          debug('runDevServer error: %O', err);
+
+          await new Promise(configContext.onDidCancel.bind(configContext));
+        }
+      }
     }
   ).argv;
-
-function versionCheck(cmd: string, logger: Logger) {
-  if (!builtinModules.includes('worker_threads')) {
-    logger.fatal(
-      `The ${JSON.stringify(cmd)} command requires Node version ${JSON.stringify(
-        PackageJson.engines.node
-      )}, with support for "require('worker_threads')". Please check your version, you appear to be running ${JSON.stringify(
-        process.version
-      )}.`
-    );
-
-    process.exit(1);
-  }
-}
