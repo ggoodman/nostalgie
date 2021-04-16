@@ -5,8 +5,6 @@ const { promises: Fs } = require('fs');
 const Path = require('path');
 
 const Chalk = require('chalk');
-/** @type {import('degit').default} */
-//@ts-ignore
 const Degit = require('degit');
 const Yargs = require('yargs');
 const GitRemoteOriginUrl = require('git-remote-origin-url');
@@ -140,12 +138,19 @@ function init() {
         // Now that the project is scaffolded, let's install dependencies
         const child = ChildProcess.spawn('npm', ['install', '--no-fund', '--no-audit'], {
           cwd: dest,
+          env: {
+            ...process.env,
+            npm_config_loglevel: 'warn',
+            npm_config_progress: 'false',
+          },
           stdio: ['ignore', 2, 'inherit'],
         });
 
         await Events.once(child, 'exit');
 
-        console.error(Chalk.green('- Your Nostalgie project is now ready'));
+        console.error(Chalk.greenBright('- Your Nostalgie project is now ready! To get started:'));
+        console.error(Chalk.green(`  $ ${Chalk.bold(`cd ${destName}`)}`));
+        console.error(Chalk.green(`  $ ${Chalk.bold(`npm run dev`)}`));
       } catch (err) {
         console.error(Chalk.red(`! ${err.message.replace('options.', '--')}`));
         process.exit(1);
