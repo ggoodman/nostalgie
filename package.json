@@ -126,5 +126,9 @@
     "./packages/create-nostalgie-app",
     "./packages/template-javascript",
     "./packages/template-typescript"
-  ]
+  ],
+  "volta": {
+    "node": "14.16.1",
+    "npm": "7.10.0"
+  }
 }
