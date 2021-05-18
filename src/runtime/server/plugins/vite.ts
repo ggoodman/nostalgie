@@ -1,3 +1,4 @@
+///<reference lib="dom" />
 import type { ServerPlugin } from '../plugin';
 
 export function vitePlugin(): ServerPlugin {

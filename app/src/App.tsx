@@ -1,6 +1,14 @@
+import { createLazy } from 'nostalgie/lazy';
 import * as React from 'react';
-import Test from './Test';
+
+const useLazy = createLazy(() => import('./Test'));
 
 export default function App() {
-  return <Test />;
+  const state = useLazy();
+
+  if (state.isSuccess) {
+    return <state.component />;
+  }
+
+  return <p>Loading...</p>;
 }

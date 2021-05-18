@@ -1,20 +1,16 @@
-import { Server } from '@hapi/hapi';
 import reactRefreshPlugin from '@vitejs/plugin-react-refresh';
-import Debug from 'debug';
-import { Headers } from 'headers-utils/lib';
 import jsesc from 'jsesc';
 import * as Path from 'path';
-import { createServer } from 'vite';
+import { build, InlineConfig, LibraryOptions } from 'vite';
 import type { NostalgieConfig } from './config';
 import type { Context } from './context';
 import type { Logger } from './logging';
 
-const debug = Debug.debug('nostalgie:dev');
+// const debug = Debug.debug('nostalgie:dev');
 
-export async function runDevServer(
+export async function buildProject(
   ctx: Context,
   logger: Logger,
-  runCount: number,
   config: NostalgieConfig
 ) {
   logger.onValidConfiguration(config);
@@ -78,23 +74,30 @@ export async function runDevServer(
     }
   }
 
-  const vite = await createServer({
+  const viteConfig: InlineConfig = {
     root: config.rootDir,
     configFile: false,
-    server: {
-      middlewareMode: true,
-      hmr: true,
-    },
     build: {
       rollupOptions: {
         input: [entrypointUrl],
       },
+      lib: {
+        entry: entrypointUrl,
+        formats: ['es'],
+      },
+      emptyOutDir: true,
+      cssCodeSplit: true,
+      minify: false,
+      ssrManifest: true,
+      outDir: './out/static',
+      target: 'esnext',
+      write: true,
     },
     clearScreen: false,
     logLevel: 'info',
-    // optimizeDeps: {
-    //   entries: [entrypointUrl, config.settings.appEntrypoint!],
-    // },
+    optimizeDeps: {
+      entries: [entrypointUrl, config.settings.appEntrypoint!],
+    },
     plugins: [
       {
         name: 'nostalgie',
@@ -167,94 +170,19 @@ export function render(request) {
       reactRefreshPlugin(),
       ...(config.settings.plugins || []),
     ],
-  });
+  };
 
-  ctx.onDidCancel(() => {
-    debug('dev server context cancelled');
-    vite.close();
-  });
-
-  const server = new Server({
-    host: 'localhost',
-    port: 3000,
-  });
-
-  server.route({
-    method: 'get',
-    path: '/{any*}',
-    handler: async (request, reply) => {
-      try {
-        const { render } = (await vite.ssrLoadModule(entrypointUrl)) as {
-          render: import('./runtime/server/renderer').ServerRenderer['render'];
-        };
-
-        const res = await new Promise((resolve, reject) => {
-          vite.middlewares(request.raw.req, request.raw.res, (err: Error) => {
-            if (err) {
-              return reject(err);
-            }
-
-            return render({
-              body: '',
-              headers: new Headers(request.headers as any),
-              method: request.method,
-              path: request.url.pathname,
-            }).then(({ response }) => {
-              const html = response.body as string;
-              const res = reply.response(html).code(response.status);
-
-              response.headers.forEach((value, key) => {
-                res.header(key, value);
-              });
-
-              return resolve(res);
-            }, reject);
-          });
-        }).catch((err) => {
-          console.error(err);
-
-          throw err;
-        });
-
-        return res;
-      } catch (err) {
-        console.error(err);
-        throw err;
-      }
+  await build(viteConfig);
+  await build({
+    ...viteConfig,
+    build: {
+      ...viteConfig.build,
+      lib: {
+        entry: entrypointUrl,
+        formats: ['cjs'],
+      } as LibraryOptions,
+      outDir: './out/ssr',
+      ssr: true,
     },
   });
-
-  // server.route({
-  //   method: 'get',
-  //   path: '/{any*}',
-  //   handler: async (request, reply) => {
-  //     const { response } = await renderer.render({
-  //       body: '',
-  //       headers: new Headers(request.headers as any),
-  //       method: request.method,
-  //       path: request.url.pathname,
-  //     });
-  //     const html = response.body as string;
-  //     const res = reply.response(html).code(response.status);
-
-  //     response.headers.forEach((value, key) => {
-  //       res.header(key, value);
-  //     });
-
-  //     return res;
-  //   },
-  // });
-
-  await server.start();
-
-  logger.onServerListening(server.info.uri);
-
-  ctx.onDidCancel(() => server.stop());
-
-  await new Promise<void>((resolve) =>
-    server.ext('onPostStop', () => {
-      debug('hapi server onPostStop');
-      return resolve();
-    })
-  );
 }

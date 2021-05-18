@@ -35,7 +35,7 @@ export interface ServerRendererOptions extends RenderOptions {
 export class ServerRenderer {
   private readonly appRoot: RootComponent;
   // private readonly appRootUrl: string;
-  private readonly baseUrl: string;
+  // private readonly baseUrl: string;
   private readonly defaultRenderDeadline: number;
   private readonly defaultMaxRenderIterations: number;
   private readonly entrypointUrl: string;
@@ -46,7 +46,7 @@ export class ServerRenderer {
   constructor(options: ServerRendererOptions) {
     this.appRoot = options.appRoot;
     // this.appRootUrl = options.appRootUrl;
-    this.baseUrl = ensureTrailingSlash(options.baseUrl ?? '/');
+    // this.baseUrl = ensureTrailingSlash(options.baseUrl ?? '/');
     this.defaultMaxRenderIterations = options.maxIterations ?? 3;
     this.defaultRenderDeadline = options.deadline ?? 500;
     this.entrypointUrl = options.entrypointUrl;
@@ -139,13 +139,15 @@ export class ServerRenderer {
 
     pluginHost.renderHtml(document);
 
+    const clientBootstrapData = pluginHost.getClientBootstrapData();
+
     const bootstrapScript = `
 import { render } from ${jsesc(this.entrypointUrl, {
       isScriptContext: true,
       json: true,
     })};
 
-render();
+render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     `;
     const bootstrapScriptEl = document.createElement('script');
     bootstrapScriptEl.appendChild(document.createTextNode(bootstrapScript));
@@ -172,6 +174,6 @@ render();
   }
 }
 
-function ensureTrailingSlash(str: string): string {
-  return str.endsWith('/') ? str : `${str}/`;
-}
+// function ensureTrailingSlash(str: string): string {
+//   return str.endsWith('/') ? str : `${str}/`;
+// }

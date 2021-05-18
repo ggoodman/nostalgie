@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { invariant } from '../../invariant';
-import type { ClientPlugin } from './plugin';
+import { ClientPlugin, RendererPluginHost } from './plugin';
 
 export type RootComponent = (props: any) => React.ReactElement;
 
@@ -15,37 +15,37 @@ export interface ClientRendererOptions {
 export class ClientRenderer {
   private readonly appRoot: RootComponent;
   // private readonly lazyComponents: LazyComponent[];
-  private readonly publicUrl: string;
+  // private readonly publicUrl: string;
   private readonly plugins: ClientPlugin[];
 
   constructor(options: ClientRendererOptions) {
     this.appRoot = options.appRoot;
     // this.lazyComponents = options.lazyComponents;
-    this.publicUrl = options.publicUrl;
+    // this.publicUrl = options.publicUrl;
     this.plugins = options.plugins ?? [];
   }
 
-  async render() {
-    const rootEl = document.getElementById('root');
+  async render(pluginBootstrapData: Record<string, unknown> = {}) {
+    try {
+      const rootElement = document.getElementById('root');
+      invariant(rootElement, 'Missing the #root element.');
 
-    invariant(rootEl, 'Missing the #root element.');
+      // This is the request-specific instance that will run all our plugins for us
+      const pluginHost = new RendererPluginHost(this.plugins, {
+        rootElement,
+        serverData: pluginBootstrapData,
+      });
+      const appRoot = pluginHost.decorateApp(this.appRoot);
+      const maybeBeforeRenderPromise = pluginHost.onBeforeRender(appRoot);
 
-    for (const plugin of this.plugins) {
-      if (typeof plugin.onBeforeRender === 'function') {
-        plugin.onBeforeRender({
-          rootElement: rootEl,
-        });
+      if (maybeBeforeRenderPromise) {
+        await maybeBeforeRenderPromise;
       }
+
+      ReactDOM.hydrate(React.createElement(appRoot), rootElement);
+    } catch (err) {
+      debugger;
+      throw err;
     }
-
-    // const promises = this.lazyComponents.map(({ chunk, lazyImport }) => {
-    //   return import(`${this.publicUrl}${chunk}`).then((m) => {
-    //     // register(chunkCtx, chunk, lazyImport, m);
-    //   });
-    // });
-
-    // await Promise.all(promises);
-
-    ReactDOM.hydrate(React.createElement(this.appRoot), rootEl);
   }
 }

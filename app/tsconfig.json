@@ -1,12 +1,16 @@
 {
   "compilerOptions": {
+    "composite": true,
     "allowJs": true,
     "noEmit": true,
     "outDir": "dist",
     "jsx": "react",
+    // "rootDir": "../",
+    "baseUrl": ".",
     "paths": {
-      "nostalgie/plugins/*": ["../../src/runtime/plugins/*"]
+      "nostalgie/plugins/*": ["../src/runtime/plugins/*/plugin.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["nostalgie.config.js", "src"],
+  "references": [{"path": "../"}]
 }

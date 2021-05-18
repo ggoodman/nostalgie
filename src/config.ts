@@ -22,66 +22,72 @@ export function readConfigs(
   rootDir: string,
   options: Readonly<ReadConfigOptions> = {}
 ): AsyncIterable<{ config: NostalgieConfig; context: Context }> {
-  return makeAsyncIterableIteratorFromSink<{ config: NostalgieConfig; context: Context }>(
-    (sink) => {
-      let childCtx = ctx.withCancel();
+  return makeAsyncIterableIteratorFromSink<{
+    config: NostalgieConfig;
+    context: Context;
+  }>((sink) => {
+    let childCtx = ctx.withCancel();
 
-      ctx.onDidCancel(() => sink.complete());
+    ctx.onDidCancel(() => sink.complete());
 
-      const onBuildResult = (buildResult: BuildResult) => {
-        const config = instantiateConfig(logger, rootDir, buildResult);
+    const onBuildResult = (buildResult: BuildResult) => {
+      const config = instantiateConfig(logger, rootDir, buildResult);
 
-        if (config) {
-          childCtx.cancel();
-          childCtx = ctx.withCancel();
+      if (config) {
+        childCtx.cancel();
+        childCtx = ctx.withCancel();
 
-          sink.next({ config, context: childCtx.context });
-        }
-      };
+        sink.next({ config, context: childCtx.context });
+      }
+    };
 
-      build({
-        absWorkingDir: rootDir,
-        bundle: true,
-        define: {
-          'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
-        },
-        entryPoints: {
-          config: './nostalgie.config',
-        },
-        format: 'cjs',
-        metafile: true,
-        platform: 'node',
-        target: `node${process.version.slice(1)}`,
-        treeShaking: true,
-        watch: options.watch
-          ? {
-              onRebuild: (err, result) => {
-                if (ctx.cancellationReason) {
-                  return;
-                }
-                if (err) {
-                  logger.onConfigLoadError(err);
-                } else if (result) {
-                  onBuildResult(result);
-                }
-              },
-            }
-          : undefined,
-        write: false,
-      }).then(
-        (buildResult) => {
-          onBuildResult(buildResult);
-        },
-        (err) => {
-          // Initial build failed. Nothing to watch so let's throw.
-          logger.onConfigLoadError(err);
-          sink.error(err);
-        }
-      );
+    build({
+      absWorkingDir: rootDir,
+      bundle: true,
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(
+          process.env.NODE_ENV ?? 'production'
+        ),
+      },
+      conditions: ['require'],
+      mainFields: ['main'],
+      entryPoints: {
+        config: './nostalgie.config',
+      },
+      external: ['esbuild'],
+      format: 'cjs',
+      metafile: true,
+      platform: 'node',
+      target: `node${process.version.slice(1)}`,
+      treeShaking: true,
+      watch: options.watch
+        ? {
+            onRebuild: (err, result) => {
+              if (ctx.cancellationReason) {
+                return;
+              }
+              if (err) {
+                logger.onConfigLoadError(err);
+              } else if (result) {
+                onBuildResult(result);
+              }
+            },
+          }
+        : undefined,
+      write: false,
+    }).then(
+      (buildResult) => {
+        onBuildResult(buildResult);
+      },
+      (err) => {
+        // Initial build failed. Nothing to watch so let's throw.
+        logger.onConfigLoadError(err);
+        sink.error(err);
+      }
+    );
 
-      return () => childCtx.cancel();
-    }
-  );
+    return () => childCtx.cancel();
+  });
 }
 
 function instantiateConfig(
@@ -90,7 +96,10 @@ function instantiateConfig(
   buildResult: BuildResult
 ): NostalgieConfig | undefined {
   invariant(buildResult.outputFiles, 'Build results must have output files.');
-  invariant(buildResult.outputFiles.length === 1, 'Build results must have a single output file.');
+  invariant(
+    buildResult.outputFiles.length === 1,
+    'Build results must have a single output file.'
+  );
 
   try {
     const mod = { exports: {} };
@@ -106,7 +115,10 @@ function instantiateConfig(
     const userSettings = (mod.exports as any).default;
 
     const validationResult = validateSettings(userSettings);
-    const fileName = Path.resolve(rootDir, buildResult.metafile!.outputs['config.js'].entryPoint!);
+    const fileName = Path.resolve(
+      rootDir,
+      buildResult.metafile!.outputs['config.js'].entryPoint!
+    );
 
     if (validationResult.success) {
       return {

@@ -1,5 +1,5 @@
-import type * as React from 'react';
 import type { Request } from './request';
+import type { Response } from './response';
 
 export type RootComponent = (props: any) => React.ReactElement;
 
@@ -15,7 +15,8 @@ interface RendererPluginHostOptions {
   start: number;
 }
 
-interface ServerPluginContext<TPluginState = unknown> extends RendererPluginHostOptions {
+interface ServerPluginContext<TPluginState = unknown>
+  extends RendererPluginHostOptions {
   state: TPluginState;
 }
 
@@ -43,7 +44,10 @@ export interface ServerPlugin<TPluginState = unknown> {
    * }
    * ```
    */
-  decorateApp?(ctx: ServerPluginContext<TPluginState>, app: RootComponent): RootComponent;
+  decorateApp?(
+    ctx: ServerPluginContext<TPluginState>,
+    app: RootComponent
+  ): RootComponent;
 
   /**
    * Called at each tick of the server render loop to see if circumstances are such that no further
@@ -60,13 +64,17 @@ export interface ServerPlugin<TPluginState = unknown> {
    * served without waiting for these to complete. This might happen if the render deadline
    * passes or if another plugin signals that rendering should abort via `shouldAbortRendering`.
    */
-  getPendingOperations?(ctx: ServerPluginContext<TPluginState>): PromiseLike<unknown>[];
+  getPendingOperations?(
+    ctx: ServerPluginContext<TPluginState>
+  ): PromiseLike<unknown>[];
 
   /**
    * Called after the server render loop is exited, giving plugins an opportunity to stop any
    * pending work.
    */
-  cancelPendingOperations?(ctx: ServerPluginContext<TPluginState>): PromiseLike<void>;
+  cancelPendingOperations?(
+    ctx: ServerPluginContext<TPluginState>
+  ): PromiseLike<void>;
 
   /**
    * Called with an [linkedom](https://npm.im/linkedom) `Document` instance, giving plugins
@@ -78,20 +86,38 @@ export interface ServerPlugin<TPluginState = unknown> {
   renderHtml?(ctx: ServerPluginContext<TPluginState>, document: Document): void;
 
   /**
-   * Get a reference to a client plugin that should be injected.
+   * Get bootstrap data that the server-side plugin wishes to pass to the client-side plugin.
    *
-   * This gives server plugins the ability to add client plugins. Client plugins are useful
-   * because they run in the context of the initial client-side render whereas server plugins
-   * only ever run during server rendering.
+   * This gives server plugins the ability to pass data to their client-side counterparts. A
+   * server-side plugin might, for example, accumulate some state in an object returned by the
+   * `createState` hook.
    */
-  getClientPlugin?(ctx: ServerPluginContext<TPluginState>): ClientPluginReference | undefined;
+  getClientBootstrapData?(ctx: ServerPluginContext<TPluginState>): unknown;
+
+  /**
+   * Decorate or replace the pending Response.
+   *
+   * This gives server plugins the ability to modify or replace the Response object that is about
+   * to be served back to the caller. This is useful for server plugins that might want to inject
+   * custom http headers or even replace the response with a redirect.
+   */
+  decorateResponse?(
+    ctx: ServerPluginContext<TPluginState>,
+    response: Response
+  ): Response | undefined | null;
 }
 
 export class RendererPluginHost {
-  private readonly pluginsWithState: Array<{ plugin: Readonly<ServerPlugin>; state: unknown }> = [];
+  private readonly pluginsWithState: Array<{
+    readonly plugin: Readonly<ServerPlugin>;
+    readonly state: unknown;
+  }> = [];
   private readonly ctx: Readonly<RendererPluginHostOptions>;
 
-  constructor(plugins: ReadonlyArray<Readonly<ServerPlugin>>, options: RendererPluginHostOptions) {
+  constructor(
+    plugins: ReadonlyArray<Readonly<ServerPlugin>>,
+    options: RendererPluginHostOptions
+  ) {
     this.ctx = options;
 
     for (const plugin of plugins) {
@@ -191,22 +217,22 @@ export class RendererPluginHost {
     }
   }
 
-  getClientRenderPlugins(): ClientPluginReference[] {
-    const specs: ClientPluginReference[] = [];
+  getClientBootstrapData(): Record<string, unknown> {
+    const bootstrapData: Record<string, unknown> = {};
 
     for (const { plugin, state } of this.pluginsWithState) {
-      if (typeof plugin.getClientPlugin === 'function') {
-        const clientPluginReference = plugin.getClientPlugin({
+      if (typeof plugin.getClientBootstrapData === 'function') {
+        const clientBootstrapData = plugin.getClientBootstrapData({
           ...this.ctx,
           state,
         });
 
-        if (clientPluginReference) {
-          specs.push(clientPluginReference);
+        if (clientBootstrapData) {
+          bootstrapData[plugin.name] = clientBootstrapData;
         }
       }
     }
 
-    return specs;
+    return bootstrapData;
   }
 }

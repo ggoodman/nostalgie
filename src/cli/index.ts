@@ -5,6 +5,7 @@ import Debug from 'debug';
 import * as Path from 'path';
 import Yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { buildProject } from '../build';
 import { readConfigs } from '../config';
 import { Background } from '../context';
 import { runDevServer } from '../dev';
@@ -46,23 +47,29 @@ Yargs(hideBin(process.argv))
 
       for (const signal of exitSignals) {
         process.once(signal, (signal) => {
+          debug('signal received: %s', signal);
           logger.onExitSignalReceived(signal);
           cancel();
         });
       }
 
-      const configReader = readConfigs(
+      for await (const {
+        context: configContext,
+        config,
+      } of await readConfigs(
         context,
         logger,
         Path.resolve(process.cwd(), argv.project_root || '.'),
         { watch: false }
-      )[Symbol.asyncIterator]();
-
-      const { context: configContext, config } = await configReader.next();
-
-      configReader.return?.();
-
-      cancel();
+      )) {
+        try {
+          await buildProject(configContext, logger, config);
+        } catch (err) {
+          debug('build error: %O', err);
+        } finally {
+          cancel();
+        }
+      }
     }
   )
   .command(
@@ -89,7 +96,8 @@ Yargs(hideBin(process.argv))
           },
           port: {
             number: true,
-            description: 'The port on which you want the nostalgie dev server to run.',
+            description:
+              'The port on which you want the nostalgie dev server to run.',
             default: 8080,
           },
           'log-level': {
@@ -98,7 +106,8 @@ Yargs(hideBin(process.argv))
           },
           'disable-hot-reload': {
             boolean: true,
-            description: 'Disable the automatic reload behaviour when running in development mode.',
+            description:
+              'Disable the automatic reload behaviour when running in development mode.',
           },
         } as const),
     async (argv) => {
@@ -121,7 +130,10 @@ Yargs(hideBin(process.argv))
       //   b. (Re)start the dev server with the updated list of plugins
       let runCount = 0;
 
-      for await (const { context: configContext, config } of await readConfigs(
+      for await (const {
+        context: configContext,
+        config,
+      } of await readConfigs(
         context,
         logger,
         Path.resolve(process.cwd(), argv.project_root || '.'),
@@ -131,7 +143,6 @@ Yargs(hideBin(process.argv))
           debug('obtained config %d', runCount);
           await runDevServer(configContext, logger, ++runCount, config);
         } catch (err) {
-          console.error(err);
           debug('runDevServer error: %O', err);
 
           await new Promise(configContext.onDidCancel.bind(configContext));
