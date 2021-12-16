@@ -1,4 +1,5 @@
 import Debug from 'debug';
+import jsesc from 'jsesc';
 import MagicString from 'magic-string';
 import * as Path from 'path';
 import type { InputOptions } from 'rollup';
@@ -7,6 +8,7 @@ import { invariant } from '../../../invariant';
 import type { Plugin } from '../../../plugin';
 
 const debug = Debug.debug('nostalgie:plugin:lazy');
+const preloadMethod = `__vitePreload`
 
 export function lazyPlugin(): Plugin {
   let resolvedConfig: ResolvedConfig | undefined = undefined;
@@ -15,7 +17,7 @@ export function lazyPlugin(): Plugin {
 
   return {
     name: 'lazy-plugin',
-    enforce: 'pre',
+    enforce: 'post',
     getClientRendererPlugins() {
       return {
         config: {},
@@ -36,15 +38,6 @@ export function lazyPlugin(): Plugin {
       resolvedInputOptions = inputOptions;
       return null;
     },
-
-    // renderDynamicImport(options) {
-    //   return {
-    //     left: `Object.defineProperty(require(`,
-    //     right: `), Symbol.for('nostalgie.id'), { chunkId: ${JSON.stringify(
-    //       options.targetModuleId
-    //     )}, sync: true }))`,
-    //   };
-    // },
 
     async transform(code, id, ssr) {
       if (id.includes('/node_modules/')) {
@@ -86,34 +79,44 @@ export function lazyPlugin(): Plugin {
           continue;
         }
 
-        const chunkId = JSON.stringify(
-          resolvedConfig.command === 'build'
-            ? `__VITE_ASSET__${this.emitFile({
-                type: 'chunk',
-                id: target.id,
-                importer: id,
-              })}__`
-            : `/${Path.relative(resolvedConfig.root, target.id)}`
-        );
+        let moduleId = target.id;
+
+        if (resolvedConfig.command === 'build') {
+          const fileReferenceId = this.emitFile({
+            type: 'chunk',
+            id: target.id,
+            importer: id,
+          });
+          moduleId = `import.meta.ROLLUP_FILE_URL_${fileReferenceId}`;
+        }
+
+        const rootRelativePath = Path.relative(resolvedConfig.root, target.id);
+        const importerRelativePath = Path.relative(Path.dirname(id), target.id);
 
         debug('Overwriting deferred import %s in %s', match, id);
 
         s.prependLeft(ss, 'Object.defineProperty(');
         s.appendRight(
           se,
-          `, Symbol.for('nostalgie.id'), { configurable: true, value: { chunkId: ${chunkId}, sync: ${JSON.stringify(
-            ssr
-          )} }})`
+          `, Symbol.for('nostalgie.id'), { configurable: true, value: { chunkId: ${jsesc(
+            `/${rootRelativePath}`,
+            { isScriptContext: true, json: true }
+          )}, sync: ${JSON.stringify(ssr)} }})`
         );
 
         const symbolName = `__nostalgie_lazy_${counter++}`;
 
         if (ssr) {
           // Convert a dynamic import into a synchronous require
-          s.prepend(`import ${symbolName} from ${JSON.stringify(spec)};\n`);
+          s.prepend(
+            `import ${symbolName} from ${jsesc(`./${importerRelativePath}`, {
+              isScriptContext: true,
+              json: true,
+            })};\n`
+          );
           s.overwrite(ss, se, `() => ({ default: ${symbolName} })`);
         } else if (resolvedConfig.command === 'build') {
-          s.overwrite(ss, se, `() => import(${JSON.stringify(chunkId)})`);
+          s.overwrite(ss, se, `() => import(${moduleId})`);
         }
       }
 
@@ -121,219 +124,10 @@ export function lazyPlugin(): Plugin {
         return null;
       }
 
-      // code.replace(
-      //   deferredImportRx,
-      //   (match: string, _quote: string, spec: string) => {
-      //     debug('transform(%s, %j): %s', id, ssr, match);
-      //     return match;
-      //   }
-      // );
-
-      // const transformed = await transform(code, {
-      //   format: 'esm',
-      //   sourcemap: true,
-      //   target: 'es2020',
-      // });
-
-      // await Lexer.init;
-
-      // const [imports] = Lexer.parse(code, id);
-
-      // const dynamicImports = imports.filter((i) => i.d >= 0);
-
-      // if (!dynamicImports.length) {
-      //   return null;
-      // }
-
-      // invariant(resolvedConfig, `Resolved config not available`);
-      // invariant(resolvedInputOptions, `Resolved input options not available`);
-
-      // debug('Identified imports', dynamicImports);
-
-      // for (const importRecord of dynamicImports) {
-      //   if (!importRecord.n) {
-      //     this.warn(
-      //       `Unable to annotate lazy imports for dynamic resources`,
-      //       importRecord.s
-      //     );
-      //     continue;
-      //   }
-
-      //   const ss = importRecord.ss;
-      //   const se = importRecord.se || importRecord.e;
-
-      //   const target = await this.resolve(importRecord.n, id, {
-      //     skipSelf: true,
-      //   });
-      //   if (!target) {
-      //     this.warn(
-      //       `Error resolving the target of the dynamic import ${JSON.stringify(
-      //         importRecord.n
-      //       )} while trying to annotate it`,
-      //       importRecord.s
-      //     );
-      //     continue;
-      //   }
-
-      //   const chunkId = JSON.stringify(
-      //     resolvedConfig.command === 'build'
-      //       ? `__VITE_ASSET__${this.emitFile({
-      //           type: 'chunk',
-      //           id: target.id,
-      //           importer: id,
-      //         })}__`
-      //       : `${target.id}`
-      //   );
-
-      //   s.prependLeft(ss, 'Object.defineProperty(');
-      //   s.appendRight(
-      //     se + 1,
-      //     `, Symbol.for('nostalgie.id'), { value: { chunkId: ${chunkId}, sync: ${JSON.stringify(
-      //       ssr
-      //     )} }})`
-      //   );
-
-      //   if (ssr) {
-      //     // Convert a dynamic import into a synchronous require
-      //     s.prepend(
-      //       `import Module from 'module'; const require = Module.createRequire(import.meta.url);\n`
-      //     );
-      //     s.overwrite(ss, se + 1, `require(${JSON.stringify(importRecord.n)})`);
-      //   } else if (resolvedConfig.command === 'build') {
-      //     // s.overwrite(importRecord.s, importRecord.e, `${chunkId}`);
-      //   }
-      // }
-
-      // console.log(s.toString());
-      // console.log({ ssr, command: resolvedConfig.command });
-
       return {
         code: s.toString(),
         map: s.generateMap({ hires: true }),
       };
     },
   };
-  //       buildStart: async () => {
-  //         await Lexer.init;
-  //       },
-  //       async transform(code, id, ssr) {
-  //         debug('transform(%s, %j)', id, ssr);
-
-  //         if (!code.includes('react') || id.endsWith('?lazyShim')) {
-  //           return null;
-  //         }
-
-  //         const [imports] = Lexer.parse(code, id);
-  //         const s = new MagicString(code, {
-  //           filename: id,
-  //           indentExclusionRanges: [],
-  //         });
-
-  //         for (const importRecord of imports) {
-  //           if (importRecord.n === 'react') {
-  //             s.overwrite(importRecord.s, importRecord.e, `react?lazyShim`);
-  //             debug('overriding react in %s', id);
-  //           }
-  //         }
-
-  //         return {
-  //           code: s.toString(),
-  //           map: s.generateMap({ hires: true }),
-  //         };
-  //       },
-  //       async resolveId(source, importer, options, ssr) {
-  //         if (importer && source.endsWith('?lazyShim')) {
-  //           debug('resolveId(%s, %s, %j)', source, importer, ssr);
-  //           if (!reactExports.length) {
-  //             const require = createRequire(importer);
-  //             const react = require('react');
-  //             const nostalgieLazy = await this.resolve(
-  //               'nostalgie/lazy',
-  //               importer,
-  //               {
-  //                 skipSelf: true,
-  //               }
-  //             );
-
-  //             invariant(react, 'Failed to resolve react');
-  //             invariant(nostalgieLazy, 'Failed to resolve nostalgie/lazy');
-
-  //             reactExports.push(...Object.keys(react));
-
-  //             // lazyPath = nostalgieLazy.id;
-  //           }
-
-  //           return {
-  //             id: source,
-  //           };
-  //         }
-  //       },
-  //     },
-  //     {
-  //       name: 'lazy-plugin-runtime',
-  //       enforce: 'pre',
-  //       async load(id, ssr) {
-  //         debug('load(%s, %j)', id, ssr);
-
-  //         if (id.endsWith('?lazyShim')) {
-  //           const reactShims: Record<string, string> = {
-  //             Suspense: ssr
-  //               ? '({children}) => React.createElement(React.Fragment, {children})'
-  //               : 'React.Suspense',
-  //             lazy: 'nostalgieLazy',
-  //           };
-
-  //           for (const exportName of reactExports) {
-  //             if (!(exportName in reactShims)) {
-  //               reactShims[exportName] = `React.${exportName}`;
-  //             }
-  //           }
-
-  //           const reExports = Object.keys(reactShims)
-  //             .map(
-  //               (exportName) =>
-  //                 `export const ${exportName} = ${reactShims[exportName]};`
-  //             )
-  //             .join('\n');
-
-  //           return {
-  //             code: `
-  // import * as React from "react";
-
-  // function nostalgieLazy(factory) {
-  //   return function LazyComponent(props) {
-  //     return null;
-  //     const [settledValue, setSettledValue] = React.useState({type: "idle", value: factory});
-  //     console.log(settledValue);
-  //     React.useEffect(() => {
-  //       if (settledValue.type === "idle") {
-  //         debugger;
-  //         const promise = settledValue.value();
-  //         promise.then((result) => {
-  //           debugger;
-  //           setSettledValue({type: "resolved", value: result.default});
-  //         }, (value) => {
-  //           setSettledValue({type: "rejected", value});
-  //         });
-  //         setSettledValue({type: "pending", value: promise});
-  //       }
-  //     }, [settledValue]);
-  //     switch (settledValue.type) {
-  //       case "idle":
-  //         return null;
-  //       case "pending":
-  //         throw settledValue.value;
-  //       case "rejected":
-  //         throw settledValue.value;
-  //       case "resolved":
-  //         return React.createElement(settledValue.value, props);
-  //     }
-  //   };
-  // }
-
-  // ${reExports}`,
-  //           };
-  //         }
-  //       },
-  //     },
 }

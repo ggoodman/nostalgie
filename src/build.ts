@@ -81,10 +81,10 @@ export async function buildProject(
       rollupOptions: {
         input: [entrypointUrl],
       },
-      lib: {
-        entry: entrypointUrl,
-        formats: ['es'],
-      },
+      // lib: {
+      //   entry: entrypointUrl,
+      //   formats: ['es'],
+      // },
       emptyOutDir: true,
       cssCodeSplit: true,
       minify: false,

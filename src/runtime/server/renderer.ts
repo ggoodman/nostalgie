@@ -137,10 +137,11 @@ export class ServerRenderer {
     rootDiv.innerHTML = renderedMarkup;
     document.body.appendChild(rootDiv);
 
+    // Run the plugin lifecycle hooks for rendering to the Document.
     pluginHost.renderHtml(document);
 
+    // Create and inject our bootstrap script
     const clientBootstrapData = pluginHost.getClientBootstrapData();
-
     const bootstrapScript = `
 import { render } from ${jsesc(this.entrypointUrl, {
       isScriptContext: true,
@@ -155,6 +156,12 @@ render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     bootstrapScriptEl.setAttribute('defer', '');
     bootstrapScriptEl.setAttribute('type', 'module');
     document.body.appendChild(bootstrapScriptEl);
+
+    // Inject a modulepreload for our entrypoint
+    const preloadEntrypoint = document.createElement('link');
+    preloadEntrypoint.setAttribute('rel', 'modulepreload');
+    preloadEntrypoint.setAttribute('href', this.entrypointUrl);
+    document.head.prepend(preloadEntrypoint);
 
     const body = document.toString();
     const headers = new Headers({ 'content-type': 'text/html' });

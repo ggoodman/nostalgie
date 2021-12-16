@@ -31,5 +31,6 @@
     "target": "ESNext",
     "types": []
   },
-  "include": ["./package.json", "./src"]
+  "include": ["./package.json", "./src"],
+  "exclude": ["./src/old"]
 }
