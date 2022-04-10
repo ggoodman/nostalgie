@@ -1,4 +1,4 @@
-import { build, ImportKind } from 'esbuild-wasm';
+import { build, ImportKind } from 'esbuild';
 import * as Fs from 'fs';
 import * as Path from 'path';
 import resolve from 'resolve';
@@ -8,7 +8,11 @@ class Node {
   constructor(readonly id: string) {}
 
   ensureEdge(toSpec: string, toId: string, kind: ImportKind): boolean {
-    if (!this.edges.some((e) => e.kind === kind && e.toSpec === toSpec && e.toId === toId)) {
+    if (
+      !this.edges.some(
+        (e) => e.kind === kind && e.toSpec === toSpec && e.toId === toId
+      )
+    ) {
       this.edges.push(new Edge(this.id, toSpec, toId, kind));
       return true;
     }
@@ -35,16 +39,22 @@ async function main() {
   while (queue.length) {
     const [fromNode, next] = queue.shift()!;
 
-    const resolvedAbs = await new Promise<string | undefined>((promiseResolve, promiseReject) => {
-      resolve(next, { basedir: Path.dirname(fromNode.id) }, (err, resolved) => {
-        if (err) {
-          console.error(fromNode, next);
-          return promiseReject(err);
-        }
+    const resolvedAbs = await new Promise<string | undefined>(
+      (promiseResolve, promiseReject) => {
+        resolve(
+          next,
+          { basedir: Path.dirname(fromNode.id) },
+          (err, resolved) => {
+            if (err) {
+              console.error(fromNode, next);
+              return promiseReject(err);
+            }
 
-        return promiseResolve(resolved);
-      });
-    });
+            return promiseResolve(resolved);
+          }
+        );
+      }
+    );
 
     // console.debug('%s ===> %s', fromNode, resolvedAbs);
 
@@ -74,14 +84,17 @@ async function main() {
         {
           name: 'externalize',
           setup(build) {
-            build.onResolve({ filter: /.*/ }, async ({ importer, path, kind }) => {
-              if (importer === resolvedAbs) {
-                queue.push([node, path]);
-                return {
-                  external: true,
-                };
+            build.onResolve(
+              { filter: /.*/ },
+              async ({ importer, path, kind }) => {
+                if (importer === resolvedAbs) {
+                  queue.push([node, path]);
+                  return {
+                    external: true,
+                  };
+                }
               }
-            });
+            );
           },
         },
       ],
@@ -99,7 +112,9 @@ if (require.main === module) {
 
 const SPEC_RX = /^((@[^/]+\/[^/@]+|[^./@][^/@]*)(?:@([^/]+))?)(.*)?$/;
 
-type _BareModuleSpec<T = ReturnType<typeof parseBareModuleSpec>> = T extends null | undefined
+type _BareModuleSpec<T = ReturnType<typeof parseBareModuleSpec>> = T extends
+  | null
+  | undefined
   ? never
   : T;
 export type BareModuleSpec = _BareModuleSpec;

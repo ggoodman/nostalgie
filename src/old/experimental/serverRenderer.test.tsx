@@ -11,9 +11,9 @@ describe('handleRequest', (it) => {
     const r = new ServerRenderer({
       appRoot: () => <h1>Hello world</h1>,
       entrypointUrl: 'foo.bar',
-      chunkDependencies: {},
       isDevelopmentMode: true,
       plugins: [htmlPlugin()],
+      appRootUrl: 'http://localhost:3000',
     });
 
     const { response, stats } = await r.render({

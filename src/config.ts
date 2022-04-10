@@ -129,7 +129,7 @@ function instantiateConfig(
     }
 
     logger.onConfigValidationError(fileName, validationResult);
-  } catch (err) {
+  } catch (err: any) {
     logger.onConfigLoadError(err);
   }
 }

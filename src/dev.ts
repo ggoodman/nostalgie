@@ -92,9 +92,9 @@ export async function runDevServer(
     },
     clearScreen: false,
     logLevel: 'info',
-    // optimizeDeps: {
-    //   entries: [entrypointUrl, config.settings.appEntrypoint!],
-    // },
+    optimizeDeps: {
+      entries: [entrypointUrl, config.settings.appEntrypoint!],
+    },
     plugins: [
       {
         name: 'nostalgie',
