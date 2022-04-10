@@ -8,7 +8,7 @@ import { invariant } from '../../../invariant';
 import type { Plugin } from '../../../plugin';
 
 const debug = Debug.debug('nostalgie:plugin:lazy');
-const preloadMethod = `__vitePreload`
+// const preloadMethod = `__vitePreload`
 
 export function lazyPlugin(): Plugin {
   let resolvedConfig: ResolvedConfig | undefined = undefined;

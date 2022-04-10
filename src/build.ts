@@ -101,7 +101,7 @@ export async function buildProject(
     plugins: [
       {
         name: 'nostalgie',
-        resolveId(source, importer, options, ssr) {
+        resolveId(source, importer, options) {
           if (source === entrypointUrl) {
             return {
               id: syntheticEntrypointPath,

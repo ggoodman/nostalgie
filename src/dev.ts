@@ -98,20 +98,22 @@ export async function runDevServer(
     plugins: [
       {
         name: 'nostalgie',
-        resolveId(source, importer, options, ssr) {
+        resolveId(source, importer, options) {
           if (source === entrypointUrl) {
             return {
               id: syntheticEntrypointPath,
             };
           }
+
+          return undefined;
         },
-        load(id, ssr) {
+        load(id, options) {
           if (id === syntheticEntrypointPath) {
             const entrypointPath = Path.resolve(
               config.rootDir,
               config.settings.appEntrypoint!
             );
-            const code = ssr
+            const code = options?.ssr
               ? `
 import App from ${jsesc(entrypointPath, {
                   isScriptContext: true,
