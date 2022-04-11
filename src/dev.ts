@@ -1,5 +1,5 @@
 import { Server } from '@hapi/hapi';
-import reactRefreshPlugin from '@vitejs/plugin-react-refresh';
+import reactRefreshPlugin from '@vitejs/plugin-react';
 import Debug from 'debug';
 import { Headers } from 'headers-utils/lib';
 import jsesc from 'jsesc';
@@ -85,6 +85,9 @@ export async function runDevServer(
       middlewareMode: true,
       hmr: true,
     },
+    esbuild: {
+      exclude: ['esbuild'],
+    },
     build: {
       rollupOptions: {
         input: [entrypointUrl],
@@ -166,7 +169,10 @@ export function render(request) {
           }
         },
       },
-      reactRefreshPlugin(),
+      reactRefreshPlugin({
+        fastRefresh: true,
+        jsxRuntime: 'automatic',
+      }),
       ...(config.settings.plugins || []),
     ],
   });

@@ -10,8 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "react": "^16.8.0",
-    "react-dom": "^16.8.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
     "nostalgie": "file:../dist"
   }
 }

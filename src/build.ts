@@ -1,4 +1,4 @@
-import reactRefreshPlugin from '@vitejs/plugin-react-refresh';
+import reactRefreshPlugin from '@vitejs/plugin-react';
 import jsesc from 'jsesc';
 import * as Path from 'path';
 import { build, InlineConfig, LibraryOptions } from 'vite';

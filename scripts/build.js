@@ -1,7 +1,7 @@
 //@ts-check
 
 const ChildProcess = require('child_process');
-const { build } = require('esbuild');
+const { build } = require('esbuild-wasm');
 const Fs = require('fs').promises;
 const { builtinModules } = require('module');
 const { rollup } = require('rollup');
@@ -14,39 +14,16 @@ const PackageJson = require('../package.json');
 const execAsync = Util.promisify(ChildProcess.execFile);
 
 const externalModules = [
-  'shiki',
-  // Used only for mdx files. We rely on require.resolve() to work here.
-  '@mdx-js/react',
-  'chokidar',
-  'esbuild',
   // We don't want to bundle this so that applications can choose versions
   'react',
   // We don't want to bundle this so that applications can choose versions
   'react-dom',
-  // Used by the builder. We rely on require.resolve() to work here.
-  'workerpool',
+  'esbuild',
+  'esbuild-wasm',
   ...builtinModules,
 ];
 // Type definition modules for the 'externalModules'
-const typeDependencyNames = ['@types/mdx-js__react', '@types/react-router-dom'];
-// const runtimeModuleNames = [
-//   'auth',
-//   'functions',
-//   'markup',
-//   'lazy',
-//   'styling',
-//   'routing',
-//   'internal/bootstrap',
-//   'internal/components',
-//   'internal/inject-react',
-//   'internal/node-browser-apis',
-//   'internal/renderer',
-//   'internal/runtimes/node',
-// ];
-
-const plugins = [Path.resolve(__dirname, '../src/runtime/plugins/')];
-
-const typesPath = Path.resolve(__dirname, '../src/runtime/types.d.ts');
+const typeDependencyNames = [];
 const nostalgieBinPath = Path.resolve(__dirname, '../src/cli/bin/nostalgie');
 const nostalgieCmdPath = Path.resolve(
   __dirname,
@@ -54,33 +31,7 @@ const nostalgieCmdPath = Path.resolve(
 );
 const readmePath = Path.resolve(__dirname, '../README.md');
 const licensePath = Path.resolve(__dirname, '../LICENSE');
-
-// Fields we'll build up to produce our package.json
-const exportMap = {
-  // Explicitly export the package.json to simplify life for tooling authors
-  './package.json': './package.json',
-};
 const dependencies = {};
-const devDependencies = {};
-// We want to use the react version from the user's app (as long as it satisfies peerDep ranges)
-const peerDependencies = {
-  react: '^16.8.0 || ^17.0.0',
-  'react-dom': '^16.8.0 || ^17.0.0',
-  '@types/react': '^16.8.0 || ^17.0.0',
-  '@types/react-dom': '^16.8.0 || ^17.0.0',
-};
-
-const mergedDependencies = {
-  ...(PackageJson.dependencies || {}),
-  ...(PackageJson.devDependencies || {}),
-};
-
-// const metaPaths = {
-//   cli: '../dist/meta/cli.json',
-//   mdxCompilerWorker: '../dist/meta/mdxCompilerWorker.json',
-//   piscinaWorker: '../dist/meta/piscinaWorker.json',
-//   runtimeModules: '../dist/meta/runtimeModules.json',
-// };
 
 // All type definitions relied upon at runtime should be marked as "dependencies"
 // per the TypeScript handbook: https://www.typescriptlang.org/docs/handbook/declaration-files/publishing.html#dependencies
@@ -125,46 +76,6 @@ async function buildCli() {
   });
 
   console.error(`✅ Built CLI`);
-}
-
-async function buildMdxCompilerWorker() {
-  await build({
-    bundle: true,
-    external: externalModules,
-    define: {
-      'process.env.NODE_ENV': JSON.stringify('production'),
-    },
-    entryPoints: [Path.resolve(__dirname, '../src/worker/mdxCompiler.ts')],
-    format: 'cjs',
-    logLevel: 'error',
-    outfile: Path.resolve(__dirname, '../dist/mdxCompilerWorker.js'),
-    minify: process.env.NODE_ENV !== 'development',
-    platform: 'node',
-    target: 'node12.16',
-    sourcemap: process.env.NODE_ENV === 'development',
-    splitting: false,
-    write: true,
-  });
-}
-
-async function buildPiscinaWorker() {
-  await build({
-    bundle: true,
-    external: externalModules,
-    define: {
-      'process.env.NODE_ENV': JSON.stringify('production'),
-    },
-    entryPoints: [Path.resolve(require.resolve('piscina'), '../worker.js')],
-    format: 'cjs',
-    logLevel: 'error',
-    minify: process.env.NODE_ENV !== 'development',
-    outfile: Path.resolve(__dirname, '../dist/worker.js'),
-    platform: 'node',
-    target: 'node12.16',
-    sourcemap: process.env.NODE_ENV === 'development',
-    splitting: false,
-    write: true,
-  });
 }
 
 async function buildRuntimeModules() {

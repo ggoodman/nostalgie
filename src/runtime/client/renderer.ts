@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import * as ReactDOM from 'react-dom/client';
 import { invariant } from '../../invariant';
 import { ClientPlugin, RendererPluginHost } from './plugin';
 
@@ -42,7 +42,7 @@ export class ClientRenderer {
         await maybeBeforeRenderPromise;
       }
 
-      ReactDOM.hydrate(React.createElement(appRoot), rootElement);
+      ReactDOM.hydrateRoot(rootElement, React.createElement(appRoot));
     } catch (err) {
       debugger;
       throw err;
