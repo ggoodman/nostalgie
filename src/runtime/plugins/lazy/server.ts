@@ -6,6 +6,14 @@ import { LazyManager } from './runtime/manager';
 export default function createPlugin(options: {}): ServerPlugin<{
   manager: LazyManager;
 }> {
+  function stripLeadingSlash(assetId: string): string {
+    if (assetId.startsWith('/')) {
+      return assetId.slice(1);
+    }
+
+    return assetId;
+  }
+
   return {
     name: 'lazy-plugin',
     createState() {
@@ -27,7 +35,9 @@ export default function createPlugin(options: {}): ServerPlugin<{
 
       return manager
         .getPreloads()
-        .map((srcPath) => ctx.assetManifest.translatePath(srcPath));
+        .map((srcPath) =>
+          ctx.assetManifest.translatePath(stripLeadingSlash(srcPath))
+        );
     },
     async renderHtml(ctx, document) {
       const manager = ctx.state.manager;
@@ -38,7 +48,7 @@ export default function createPlugin(options: {}): ServerPlugin<{
         preloadLink.setAttribute('rel', 'modulepreload');
         preloadLink.setAttribute(
           'href',
-          ctx.assetManifest.translatePath(chunkId)
+          ctx.assetManifest.translatePath(stripLeadingSlash(chunkId))
         );
 
         document.head.prepend(preloadLink);
