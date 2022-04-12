@@ -6,6 +6,7 @@ import * as React from 'react';
 import { renderToString } from 'react-dom/server';
 // import type { ChunkDependencies } from '../build/types';
 import { DEFAULT_HTML_TEMPLATE, STATUS_CODES } from './constants';
+import type { AssetManifest } from './manifest';
 import { RendererPluginHost, RootComponent, ServerPlugin } from './plugin';
 import { vitePlugin } from './plugins/vite';
 import type { Request } from './request';
@@ -23,6 +24,7 @@ export interface RenderStats {
 
 export interface ServerRendererOptions extends RenderOptions {
   appRoot: RootComponent;
+  assetManifest: AssetManifest;
   // appRootUrl: string;
   baseUrl?: string;
   // chunkDependencies: ChunkDependencies;
@@ -34,6 +36,7 @@ export interface ServerRendererOptions extends RenderOptions {
 
 export class ServerRenderer {
   private readonly appRoot: RootComponent;
+  private readonly assetManifest: AssetManifest;
   // private readonly appRootUrl: string;
   // private readonly baseUrl: string;
   private readonly defaultRenderDeadline: number;
@@ -51,7 +54,12 @@ export class ServerRenderer {
     this.defaultRenderDeadline = options.deadline ?? 500;
     this.entrypointUrl = options.entrypointUrl;
     this.isDevelopmentMode = options.isDevelopmentMode ?? false;
-    this.plugins = (options.plugins ?? []).concat(vitePlugin());
+    this.plugins = options.plugins ?? [];
+    this.assetManifest = options.assetManifest;
+
+    if (import.meta.env.DEV) {
+      this.plugins.push(vitePlugin());
+    }
     this.htmlTemplateData = toJSON(
       parseHTML(options.htmlTemplate ?? DEFAULT_HTML_TEMPLATE).document
     );
@@ -60,8 +68,9 @@ export class ServerRenderer {
   async render(
     request: Request,
     options: RenderOptions = {}
-  ): Promise<{ response: Response; stats: RenderStats }> {
+  ): Promise<{ response: Response; errors: Error[]; stats: RenderStats }> {
     const start = Date.now();
+    const errors: Error[] = [];
     const deadline = options.deadline ?? this.defaultRenderDeadline;
 
     // We're going to give a maximum amount of time for this render.
@@ -72,6 +81,7 @@ export class ServerRenderer {
 
     // This is the request-specific instance that will run all our plugins for us
     const pluginHost = new RendererPluginHost(this.plugins, {
+      assetManifest: this.assetManifest,
       deadlineAt,
       renderMode: 'server',
       request,
@@ -112,12 +122,12 @@ export class ServerRenderer {
         renderedMarkup = renderToString(appEl);
         renderCount++;
       }
-    } catch (err) {
+    } catch (err: any) {
       // TODO: Allow the RendererPluginHost to handle errors (somehow?)
       // TODO: Bake error into dev builds for devex
       if (this.isDevelopmentMode) {
       }
-      console.error(err);
+      errors.push(err);
     }
 
     // TODO: Allow the RendererPluginHost to short-circuit the request (ie: redirects).
@@ -143,10 +153,13 @@ export class ServerRenderer {
     // Create and inject our bootstrap script
     const clientBootstrapData = pluginHost.getClientBootstrapData();
     const bootstrapScript = `
-import { render } from ${jsesc(this.entrypointUrl, {
-      isScriptContext: true,
-      json: true,
-    })};
+import { render } from ${jsesc(
+      this.assetManifest.translatePath(this.entrypointUrl),
+      {
+        isScriptContext: true,
+        json: true,
+      }
+    )};
 
 render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     `;
@@ -160,7 +173,10 @@ render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     // Inject a modulepreload for our entrypoint
     const preloadEntrypoint = document.createElement('link');
     preloadEntrypoint.setAttribute('rel', 'modulepreload');
-    preloadEntrypoint.setAttribute('href', this.entrypointUrl);
+    preloadEntrypoint.setAttribute(
+      'href',
+      this.assetManifest.translatePath(this.entrypointUrl)
+    );
     document.head.prepend(preloadEntrypoint);
 
     const body = document.toString();
@@ -173,6 +189,7 @@ render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
         status: 200,
         statusText: STATUS_CODES[200],
       },
+      errors,
       stats: {
         latency: Date.now() - start,
         renderCount,
@@ -180,7 +197,3 @@ render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     };
   }
 }
-
-// function ensureTrailingSlash(str: string): string {
-//   return str.endsWith('/') ? str : `${str}/`;
-// }

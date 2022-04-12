@@ -17,7 +17,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "noEmit": false,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "noUnusedParameters": false,
     "outDir": "./dist/.types",
     "pretty": true,

@@ -2,16 +2,36 @@ import Chalk from 'chalk';
 import type { Failure } from 'runtypes';
 import type { NostalgieConfig } from './config';
 import { getErrorLinesWithCause } from './error';
+import type { RenderStats } from './runtime/server';
 
 export interface Logger {
   onConfigLoadError(err: Error): void;
   onConfigValidationError(filePath: string, failure: Failure): void;
   onServerListening(address: string): void;
+  onServerRendered(options: { errors: Error[]; stats: RenderStats }): void;
+  onServerRenderError(err: Error): void;
   onValidConfiguration(config: NostalgieConfig): void;
   onExitSignalReceived(signal: NodeJS.Signals): void;
 }
 
 class TerminalLogger implements Logger {
+  onServerRendered({
+    errors,
+    stats,
+  }: {
+    errors: Error[];
+    stats: RenderStats;
+  }): void {
+    console.error(
+      `${Chalk.dim.green('++')} Page rendered in ${stats.latency}ms with ${
+        stats.renderCount
+      } renders.`
+    );
+
+    for (const err of errors) {
+      console.error(`${Chalk.dim.red('!!')} ${err.message}`);
+    }
+  }
   onConfigLoadError(err: Error) {
     console.error(
       `${Chalk.bold.redBright('!!')} Error loading the ${Chalk.bold(
@@ -20,19 +40,25 @@ class TerminalLogger implements Logger {
     );
     console.error(
       Chalk.red(
-        getErrorLinesWithCause(err, { indent: '   ', indentDepth: 1, indentString: '  ' }).join(
-          '\n'
-        )
+        getErrorLinesWithCause(err, {
+          indent: '   ',
+          indentDepth: 1,
+          indentString: '  ',
+        }).join('\n')
       )
     );
     console.error(
-      `${Chalk.dim.redBright('!!')} ${Chalk.dim('Waiting for the issues to be corrected...')}`
+      `${Chalk.dim.redBright('!!')} ${Chalk.dim(
+        'Waiting for the issues to be corrected...'
+      )}`
     );
   }
 
   onConfigValidationError(filePath: string, failure: Failure) {
     console.error(
-      `${Chalk.bold.redBright('!!')} Failed to validate the config file ${Chalk.bold(
+      `${Chalk.bold.redBright(
+        '!!'
+      )} Failed to validate the config file ${Chalk.bold(
         'nostalgie.conf.(js|ts)'
       )} file:`
     );
@@ -50,13 +76,19 @@ class TerminalLogger implements Logger {
 
   onExitSignalReceived(signal: NodeJS.Signals) {
     console.error(
-      `${Chalk.bold.yellowBright('##')} Received signal ${Chalk.bold(signal)}, exiting...`
+      `${Chalk.bold.yellowBright('##')} Received signal ${Chalk.bold(
+        signal
+      )}, exiting...`
     );
   }
 
   onServerListening(address: string) {
-    console.error(`${Chalk.bold.greenBright('++')} Server started at ${Chalk.bold(address)}`);
+    console.error(
+      `${Chalk.bold.greenBright('++')} Server started at ${Chalk.bold(address)}`
+    );
   }
+
+  onServerRenderError(err: Error) {}
 
   onValidConfiguration(config: NostalgieConfig) {
     console.error(`${Chalk.bold.greenBright('++')} Configuration reloaded.`);

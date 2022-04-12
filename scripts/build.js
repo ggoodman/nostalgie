@@ -1,7 +1,7 @@
 //@ts-check
 
 const ChildProcess = require('child_process');
-const { build } = require('esbuild-wasm');
+const { build } = require('esbuild');
 const Fs = require('fs').promises;
 const { builtinModules } = require('module');
 const { rollup } = require('rollup');
@@ -20,6 +20,7 @@ const externalModules = [
   'react-dom',
   'esbuild',
   'esbuild-wasm',
+  'nostalgie:manifest.json',
   ...builtinModules,
 ];
 // Type definition modules for the 'externalModules'

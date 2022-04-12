@@ -1,4 +1,4 @@
 import * as React from 'react';
-import { LazyManager } from './manager';
+import type { LazyManager } from './manager';
 
-export const LazyContext = React.createContext(new LazyManager());
+export const LazyContext = React.createContext<LazyManager | null>(null);

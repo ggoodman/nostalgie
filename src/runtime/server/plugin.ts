@@ -1,3 +1,4 @@
+import type { AssetManifest } from './manifest';
 import type { Request } from './request';
 import type { Response } from './response';
 
@@ -9,6 +10,7 @@ export interface ClientPluginReference {
 }
 
 interface RendererPluginHostOptions {
+  assetManifest: AssetManifest;
   deadlineAt: number;
   request: Readonly<Request>;
   renderMode: 'client' | 'server';

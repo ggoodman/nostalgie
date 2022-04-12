@@ -1,13 +1,13 @@
 //@ts-ignore
 // const logPromise = import('why-is-node-running');
 
+import { Background, withCancel } from '@ggoodman/context';
 import Debug from 'debug';
 import * as Path from 'path';
 import Yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { buildProject } from '../build';
 import { readConfigs } from '../config';
-import { Background } from '../context';
 import { runDevServer } from '../dev';
 import { createDefaultLogger } from '../logging';
 
@@ -42,7 +42,7 @@ Yargs(hideBin(process.argv))
         } as const),
     async (argv) => {
       const logger = createDefaultLogger();
-      const { cancel, context } = Background.withCancel();
+      const { cancel, ctx } = withCancel(Background());
       const exitSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
 
       for (const signal of exitSignals) {
@@ -53,11 +53,8 @@ Yargs(hideBin(process.argv))
         });
       }
 
-      for await (const {
-        context: configContext,
-        config,
-      } of await readConfigs(
-        context,
+      for await (const { context: configContext, config } of await readConfigs(
+        ctx,
         logger,
         Path.resolve(process.cwd(), argv.project_root || '.'),
         { watch: false }
@@ -112,7 +109,7 @@ Yargs(hideBin(process.argv))
         } as const),
     async (argv) => {
       const logger = createDefaultLogger();
-      const { cancel, context } = Background.withCancel();
+      const { cancel, ctx } = withCancel(Background());
       const exitSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
 
       for (const signal of exitSignals) {
@@ -130,11 +127,8 @@ Yargs(hideBin(process.argv))
       //   b. (Re)start the dev server with the updated list of plugins
       let runCount = 0;
 
-      for await (const {
-        context: configContext,
-        config,
-      } of await readConfigs(
-        context,
+      for await (const { context: configContext, config } of await readConfigs(
+        ctx,
         logger,
         Path.resolve(process.cwd(), argv.project_root || '.'),
         { watch: true }

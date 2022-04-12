@@ -39,7 +39,7 @@ export function lazyPlugin(): Plugin {
       return null;
     },
 
-    async transform(code, id, ssr) {
+    async transform(code, id, options) {
       if (id.includes('/node_modules/')) {
         return null;
       }
@@ -91,7 +91,12 @@ export function lazyPlugin(): Plugin {
         }
 
         const rootRelativePath = Path.relative(resolvedConfig.root, target.id);
+        // const rootRelativePath = rootRelativePathExt.replace(/\.[^.]+$/, '.js');
         const importerRelativePath = Path.relative(Path.dirname(id), target.id);
+        // const importerRelativePath = importerRelativePathExt.replace(
+        //   /\.[^.]+$/,
+        //   '.js'
+        // );
 
         debug('Overwriting deferred import %s in %s', match, id);
 
@@ -101,12 +106,12 @@ export function lazyPlugin(): Plugin {
           `, Symbol.for('nostalgie.id'), { configurable: true, value: { chunkId: ${jsesc(
             `/${rootRelativePath}`,
             { isScriptContext: true, json: true }
-          )}, sync: ${JSON.stringify(ssr)} }})`
+          )}, sync: ${JSON.stringify(!!options?.ssr)} }})`
         );
 
         const symbolName = `__nostalgie_lazy_${counter++}`;
 
-        if (ssr) {
+        if (options?.ssr) {
           // Convert a dynamic import into a synchronous require
           s.prepend(
             `import ${symbolName} from ${jsesc(`./${importerRelativePath}`, {

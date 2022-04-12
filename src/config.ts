@@ -1,7 +1,7 @@
+import { Context, withCancel } from '@ggoodman/context';
 import { makeAsyncIterableIteratorFromSink } from '@n1ru4l/push-pull-async-iterable-iterator';
 import { build, BuildResult } from 'esbuild';
 import * as Path from 'path';
-import type { Context } from './context';
 import { invariant } from './invariant';
 import type { Logger } from './logging';
 import { NostalgieSettings, validateSettings } from './settings';
@@ -26,7 +26,7 @@ export function readConfigs(
     config: NostalgieConfig;
     context: Context;
   }>((sink) => {
-    let childCtx = ctx.withCancel();
+    let childCtx = withCancel(ctx);
 
     ctx.onDidCancel(() => sink.complete());
 
@@ -35,9 +35,9 @@ export function readConfigs(
 
       if (config) {
         childCtx.cancel();
-        childCtx = ctx.withCancel();
+        childCtx = withCancel(ctx);
 
-        sink.next({ config, context: childCtx.context });
+        sink.next({ config, context: childCtx.ctx });
       }
     };
 
@@ -63,7 +63,7 @@ export function readConfigs(
       watch: options.watch
         ? {
             onRebuild: (err, result) => {
-              if (ctx.cancellationReason) {
+              if (ctx.error()) {
                 return;
               }
               if (err) {
