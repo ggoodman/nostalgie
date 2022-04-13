@@ -11,6 +11,10 @@ server.register(require('fastify-static').default, {
   prefix: '/assets/', // optional: default '/'
 });
 
+server.get('/robots.txt', async (req, reply) => {
+  return reply.code(200).type('text/plain').send('');
+});
+
 server.get('/*', async (req, reply) => {
   const { response } = await render({
     method: req.method,
