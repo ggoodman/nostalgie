@@ -1,7 +1,12 @@
 export const DEFAULT_HTML_TEMPLATE = `
 <!DOCTYPE html>
-<html>
-  <head></head>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Nostalgie project</title>
+    <meta name="description" content="Nostalgie starter project">
+  </head>
   <body></body>
 </html>
 `;
