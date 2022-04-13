@@ -1,7 +1,7 @@
 import Debug from 'debug';
 import jsesc from 'jsesc';
 import MagicString from 'magic-string';
-import * as Path from 'path';
+import * as Path from 'node:path';
 import type { InputOptions } from 'rollup';
 import type { ResolvedConfig } from 'vite';
 import { invariant } from '../../../invariant';
@@ -47,8 +47,6 @@ export function lazyPlugin(): Plugin {
       invariant(resolvedConfig, `Resolved config not available`);
       invariant(resolvedInputOptions, `Resolved input options not available`);
 
-      const isServerBuild =
-        resolvedConfig.command === 'build' && !!options?.ssr;
       const isSync = !!options?.ssr;
 
       const s = new MagicString(code, {
@@ -83,27 +81,20 @@ export function lazyPlugin(): Plugin {
           continue;
         }
         const rootRelativePath = Path.relative(resolvedConfig.root, target.id);
-        // const rootRelativePath = rootRelativePathExt.replace(/\.[^.]+$/, '.js');
         const importerRelativePath = Path.relative(Path.dirname(id), target.id);
 
-        // Identifier shared b/w server and client to identify a lazy import
-        let moduleId = rootRelativePath;
-
         // Location where the client can load a lazy import
-        let fileRef: string | undefined = undefined;
+        let fileRef: string = jsesc(`/${rootRelativePath}`, {
+          isScriptContext: true,
+          json: true,
+        });
 
-        if (isServerBuild) {
-          fileRef = jsesc(`/${rootRelativePath}`, {
-            isScriptContext: true,
-            json: true,
-          });
-        } else if (resolvedConfig.command === 'build') {
+        if (resolvedConfig.command === 'build') {
           const fileReferenceId = this.emitFile({
             type: 'chunk',
             id: target.id,
             importer: id,
           });
-          moduleId = fileReferenceId;
           fileRef = `import.meta.ROLLUP_FILE_URL_${fileReferenceId}`;
         }
 
