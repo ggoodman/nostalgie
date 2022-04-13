@@ -214,8 +214,16 @@ export async function runDevServer(
 
   server.route({
     method: 'get',
+    path: '/favicon.ico',
+    handler: async (request, h) => {
+      return h.response().code(404);
+    },
+  });
+
+  server.route({
+    method: 'get',
     path: '/{any*}',
-    handler: async (request, reply) => {
+    handler: async (request, h) => {
       try {
         const serverApp = (await vite.ssrLoadModule(serverEntrypointUrl)) as {
           render: import('./runtime/server/renderer').ServerRenderer['render'];
@@ -227,25 +235,25 @@ export async function runDevServer(
               return reject(err);
             }
 
-            return serverApp
-              .render({
-                body: '',
-                headers: new Headers(request.headers as any),
-                method: request.method,
-                path: request.url.pathname,
-              })
-              .then(({ errors, response, stats }) => {
-                const html = response.body as string;
-                const res = reply.response(html).code(response.status);
+            const req = {
+              body: '',
+              headers: new Headers(request.headers as any),
+              method: request.method,
+              path: request.url.pathname,
+            };
 
-                response.headers.forEach((value, key) => {
-                  res.header(key, value);
-                });
+            return serverApp.render(req).then(({ errors, response, stats }) => {
+              const html = response.body as string;
+              const res = h.response(html).code(response.status);
 
-                logger.onServerRendered({ errors, stats });
+              response.headers.forEach((value, key) => {
+                res.header(key, value);
+              });
 
-                return resolve(res);
-              }, reject);
+              logger.onServerRendered({ errors, request: req, stats });
+
+              return resolve(res);
+            }, reject);
           });
         }).catch((err) => {
           logger.onServerRenderError(err);

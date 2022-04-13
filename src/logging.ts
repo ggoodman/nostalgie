@@ -2,13 +2,17 @@ import Chalk from 'chalk';
 import type { Failure } from 'runtypes';
 import type { NostalgieConfig } from './config';
 import { getErrorLinesWithCause } from './error';
-import type { RenderStats } from './runtime/server';
+import type { RenderStats, Request } from './runtime/server';
 
 export interface Logger {
   onConfigLoadError(err: Error): void;
   onConfigValidationError(filePath: string, failure: Failure): void;
   onServerListening(address: string): void;
-  onServerRendered(options: { errors: Error[]; stats: RenderStats }): void;
+  onServerRendered(options: {
+    request: Request;
+    errors: Error[];
+    stats: RenderStats;
+  }): void;
   onServerRenderError(err: Error): void;
   onValidConfiguration(config: NostalgieConfig): void;
   onExitSignalReceived(signal: NodeJS.Signals): void;
@@ -17,15 +21,19 @@ export interface Logger {
 class TerminalLogger implements Logger {
   onServerRendered({
     errors,
+    request,
     stats,
   }: {
     errors: Error[];
+    request: Request;
     stats: RenderStats;
   }): void {
     console.error(
-      `${Chalk.dim.green('++')} Page rendered in ${stats.latency}ms with ${
+      `${Chalk.dim.green('++')} ${Chalk.bold(
+        request.method.toUpperCase()
+      )} ${Chalk.bold(request.path)} in ${stats.latency}ms (renders: ${
         stats.renderCount
-      } renders.`
+      })`
     );
 
     for (const err of errors) {
