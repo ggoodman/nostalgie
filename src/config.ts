@@ -48,6 +48,7 @@ export function readConfigs(
         'process.env.NODE_ENV': JSON.stringify(
           process.env.NODE_ENV ?? 'production'
         ),
+        __filename: '"nostalgie.config.js"',
       },
       conditions: ['require'],
       mainFields: ['main'],
