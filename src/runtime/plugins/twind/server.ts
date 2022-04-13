@@ -2,23 +2,20 @@ import { Configuration, create, silent } from 'twind';
 import { getStyleTagProperties, virtualSheet } from 'twind/sheets';
 import type { ServerPlugin } from '../../server/plugin';
 
-export default function twindPlugin(): ServerPlugin {
-  const configuration: Configuration = {
-    darkMode: 'media',
-    preflight: true,
-  };
-
+export default function twindPlugin(options: Configuration = {}): ServerPlugin {
   return {
     name: 'twind-plugin',
+
     renderHtml(ctx, document) {
       const els = document.querySelectorAll('[class]');
       const sheet = virtualSheet();
       const { tw } = create({
-        ...configuration,
+        ...options,
         mode: silent,
         sheet,
       });
 
+      // Normalize attribute ordering and shortcut names
       for (const el of els) {
         const mappedClassName = tw(el.className);
         // console.log(el.className, mappedClassName);
