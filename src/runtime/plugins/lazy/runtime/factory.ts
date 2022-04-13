@@ -1,13 +1,11 @@
-import type * as React from 'react';
-
 const kId = Symbol.for('nostalgie.id');
 
 export interface LazyFactoryMetadata {
-  chunkId: string;
+  id: string;
   sync?: boolean;
 }
 
-export function getFactoryMeta<TComponent extends React.ComponentType<any>>(
+export function getFactoryMeta(
   factory: unknown
 ): LazyFactoryMetadata | undefined {
   return (factory as any)?.[kId];

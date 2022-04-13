@@ -29,8 +29,8 @@ export default function createPlugin(options: {}): ClientPlugin<
       if (Array.isArray(ctx.serverData) && ctx.serverData.length) {
         const promises: Promise<unknown>[] = [];
 
-        for (const chunkId of ctx.serverData) {
-          const promise = ctx.state.preload(chunkId, () => i(chunkId));
+        for (const [srcPath, assetUrl] of ctx.serverData) {
+          const promise = ctx.state.preload(srcPath, () => i(assetUrl));
 
           if (promise) {
             promises.push(promise);

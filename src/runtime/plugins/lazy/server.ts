@@ -35,20 +35,21 @@ export default function createPlugin(options: {}): ServerPlugin<{
 
       return manager
         .getPreloads()
-        .map((srcPath) =>
-          ctx.assetManifest.translatePath(stripLeadingSlash(srcPath))
-        );
+        .map((srcPath) => [
+          srcPath,
+          ctx.assetManifest.translatePath(stripLeadingSlash(srcPath)),
+        ]);
     },
     async renderHtml(ctx, document) {
       const manager = ctx.state.manager;
       const preloads = manager.getPreloads();
 
-      for (const chunkId of preloads) {
+      for (const srcPath of preloads) {
         const preloadLink = document.createElement('link');
         preloadLink.setAttribute('rel', 'modulepreload');
         preloadLink.setAttribute(
           'href',
-          ctx.assetManifest.translatePath(stripLeadingSlash(chunkId))
+          ctx.assetManifest.translatePath(stripLeadingSlash(srcPath))
         );
 
         document.head.prepend(preloadLink);

@@ -47,6 +47,10 @@ export function lazyPlugin(): Plugin {
       invariant(resolvedConfig, `Resolved config not available`);
       invariant(resolvedInputOptions, `Resolved input options not available`);
 
+      const isServerBuild =
+        resolvedConfig.command === 'build' && !!options?.ssr;
+      const isSync = !!options?.ssr;
+
       const s = new MagicString(code, {
         filename: id,
         indentExclusionRanges: [],
@@ -78,40 +82,56 @@ export function lazyPlugin(): Plugin {
           );
           continue;
         }
+        const rootRelativePath = Path.relative(resolvedConfig.root, target.id);
+        // const rootRelativePath = rootRelativePathExt.replace(/\.[^.]+$/, '.js');
+        const importerRelativePath = Path.relative(Path.dirname(id), target.id);
 
-        let moduleId = target.id;
+        // Identifier shared b/w server and client to identify a lazy import
+        let moduleId = rootRelativePath;
 
-        if (resolvedConfig.command === 'build') {
+        // Location where the client can load a lazy import
+        let fileRef: string | undefined = undefined;
+
+        if (isServerBuild) {
+          fileRef = jsesc(`/${rootRelativePath}`, {
+            isScriptContext: true,
+            json: true,
+          });
+        } else if (resolvedConfig.command === 'build') {
           const fileReferenceId = this.emitFile({
             type: 'chunk',
             id: target.id,
             importer: id,
           });
-          moduleId = `import.meta.ROLLUP_FILE_URL_${fileReferenceId}`;
+          moduleId = fileReferenceId;
+          fileRef = `import.meta.ROLLUP_FILE_URL_${fileReferenceId}`;
         }
 
-        const rootRelativePath = Path.relative(resolvedConfig.root, target.id);
-        // const rootRelativePath = rootRelativePathExt.replace(/\.[^.]+$/, '.js');
-        const importerRelativePath = Path.relative(Path.dirname(id), target.id);
-        // const importerRelativePath = importerRelativePathExt.replace(
-        //   /\.[^.]+$/,
-        //   '.js'
-        // );
+        debug(
+          'Overwriting deferred import %s, of %s in %s',
+          match,
+          fileRef,
+          id
+        );
 
-        debug('Overwriting deferred import %s in %s', match, id);
+        const lazyMeta = {
+          id: rootRelativePath,
+          // Convert false to undefined so that stringification will skip
+          // the field.
+          sync: isSync || undefined,
+        };
 
         s.prependLeft(ss, 'Object.defineProperty(');
         s.appendRight(
           se,
-          `, Symbol.for('nostalgie.id'), { configurable: true, value: { chunkId: ${jsesc(
-            `/${rootRelativePath}`,
-            { isScriptContext: true, json: true }
-          )}, sync: ${JSON.stringify(!!options?.ssr)} }})`
+          `, Symbol.for('nostalgie.id'), { configurable: true, value: ${JSON.stringify(
+            lazyMeta
+          )}})`
         );
 
         const symbolName = `__nostalgie_lazy_${counter++}`;
 
-        if (options?.ssr) {
+        if (isSync) {
           // Convert a dynamic import into a synchronous require
           s.prepend(
             `import ${symbolName} from ${jsesc(`./${importerRelativePath}`, {
@@ -121,7 +141,7 @@ export function lazyPlugin(): Plugin {
           );
           s.overwrite(ss, se, `() => ({ default: ${symbolName} })`);
         } else if (resolvedConfig.command === 'build') {
-          s.overwrite(ss, se, `() => import(${moduleId})`);
+          s.overwrite(ss, se, `() => import(${fileRef})`);
         }
       }
 
@@ -133,6 +153,12 @@ export function lazyPlugin(): Plugin {
         code: s.toString(),
         map: s.generateMap({ hires: true }),
       };
+    },
+    resolveFileUrl(options) {
+      if (options.format === 'cjs') {
+        return null;
+      }
+      return JSON.stringify(options.fileName);
     },
   };
 }

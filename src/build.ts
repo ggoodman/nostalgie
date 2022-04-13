@@ -144,8 +144,6 @@ export function render(request) {
 }
           `.trim();
 
-            // const require = Module.createRequire(entrypointPath);
-            console.log('client', code);
             return {
               code,
             };

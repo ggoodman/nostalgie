@@ -1,20 +1,17 @@
 import * as React from 'react';
+import { invariant } from '../../../../invariant';
 import { getFactoryMeta, LazyFactoryMetadata } from './factory';
 import type { Idle, Loading, LoadState, Rejected, Resolved } from './state';
 
 export class LazyManager {
   private readonly loadStateById: Map<string, LoadState> = new Map();
-  private readonly loadStateByFactory: WeakMap<
-    () => any,
-    LoadState
-  > = new WeakMap();
 
   preload<TComponent extends React.ComponentType<any>>(
-    chunkId: string,
+    id: string,
     factory: () => Promise<{ default: TComponent }>
   ): Promise<unknown> | undefined {
     const { key, loadState, map } = this.ensureKnownChunkRegistered(factory, {
-      chunkId,
+      id,
     });
 
     return this.load(factory, key, map, loadState);
@@ -32,26 +29,9 @@ export class LazyManager {
   } {
     const meta = getFactoryMeta(factory);
 
-    if (meta) {
-      return this.ensureKnownChunkRegistered(factory, meta);
-    }
+    invariant(meta, 'Lazy component is not recognized');
 
-    const loadState: Idle<TComponent> = {
-      status: 'idle',
-      isError: false,
-      isIdle: true,
-      isLoading: false,
-      isSuccess: false,
-      factory,
-    };
-
-    this.loadStateByFactory.set(factory, loadState);
-
-    return {
-      key: factory,
-      loadState,
-      map: this.loadStateByFactory,
-    };
+    return this.ensureKnownChunkRegistered(factory, meta);
   }
 
   private ensureKnownChunkRegistered<
@@ -64,11 +44,11 @@ export class LazyManager {
     key: unknown;
     map: { set(key: unknown, loadState: LoadState): unknown };
   } {
-    const trackedLoadState = this.loadStateById.get(meta.chunkId);
+    const trackedLoadState = this.loadStateById.get(meta.id);
 
     if (trackedLoadState) {
       return {
-        key: meta.chunkId,
+        key: meta.id,
         loadState: trackedLoadState as LoadState<TComponent>,
         map: this.loadStateById,
       };
@@ -79,7 +59,7 @@ export class LazyManager {
       // expressions with synchronous `require()` expressions at build time allowing us to treat
       // the component as synchronous during SSR. However, that doesn't mix super well with
       // a strict type system so we need to do a dangerous cast through unknown.
-      const factoryReturn = (factory() as unknown) as {
+      const factoryReturn = factory() as unknown as {
         default: TComponent;
       };
       const { default: component } = factoryReturn;
@@ -92,10 +72,10 @@ export class LazyManager {
         isSuccess: true,
       };
 
-      this.loadStateById.set(meta.chunkId, loadState);
+      this.loadStateById.set(meta.id, loadState);
 
       return {
-        key: meta.chunkId,
+        key: meta.id,
         loadState,
         map: this.loadStateById,
       };
@@ -110,38 +90,48 @@ export class LazyManager {
       factory,
     };
 
-    this.loadStateById.set(meta.chunkId, loadState);
+    this.loadStateById.set(meta.id, loadState);
 
     return {
-      key: meta.chunkId,
+      key: meta.id,
       loadState,
       map: this.loadStateById,
     };
   }
 
   getPreloads(): string[] {
-    return Array.from(this.loadStateById.keys());
+    const preloads: string[] = [];
+    for (const [id, state] of this.loadStateById) {
+      if (state.isSuccess) {
+        preloads.push(id);
+      }
+    }
+    return preloads;
   }
 
   useLoadState<TComponent extends React.ComponentType<any>>(
     factory: () => Promise<{ default: TComponent }>
   ) {
-    const { key, loadState: initialLoadState, map } = React.useMemo(
-      () => this.ensureRegistered(factory),
-      []
-    );
+    const {
+      key,
+      loadState: initialLoadState,
+      map,
+    } = React.useMemo(() => this.ensureRegistered(factory), []);
     const [loadState, setLoadState] = React.useState(initialLoadState);
     const [disposed, setDisposed] = React.useState(false);
 
     React.useEffect(() => {
-      () => setDisposed(true);
-    });
-
-    this.load(factory, key, map, initialLoadState, (loadState) => {
-      if (!disposed) {
-        setLoadState(loadState);
+      if (!loadState.isIdle) {
+        return;
       }
-    });
+
+      this.load(factory, key, map, initialLoadState, (loadState) => {
+        if (!disposed) {
+          setLoadState(loadState);
+        }
+      });
+      return () => setDisposed(true);
+    }, [factory, loadState]);
 
     return loadState;
   }

@@ -19,6 +19,6 @@ export class ViteAssetManifest implements AssetManifest {
       throw new Error(`Unable to find manifest for ${srcPath}`);
     }
 
-    return manifestEntry.file;
+    return `/${manifestEntry.file}`;
   }
 }
