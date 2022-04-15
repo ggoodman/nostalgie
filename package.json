@@ -7,6 +7,7 @@
   "bin": "./dist/nostalgie",
   "exports": {
     ".": "./src/index.ts",
+    "./data": "./src/runtime/plugins/data/runtime/index.ts",
     "./runtime/client": "./src/runtime/client/index.ts",
     "./plugins/lazy": "./src/runtime/plugins/lazy/plugin.ts",
     "./plugins/lazy/client": "./src/runtime/plugins/lazy/client.ts",
@@ -15,7 +16,10 @@
     "./plugins/twind": "./src/runtime/plugins/twind/plugin.ts",
     "./plugins/twind/client": "./src/runtime/plugins/twind/client.ts",
     "./plugins/twind/server": "./src/runtime/plugins/twind/server.ts",
-    "./runtime/server": "./src/runtime/server/index.ts"
+    "./plugins/twind/shim/client": "./src/runtime/plugins/twind/shim/client.ts",
+    "./plugins/twind/shim/server": "./src/runtime/plugins/twind/shim/server.ts",
+    "./runtime/server": "./src/runtime/server/index.ts",
+    "./twind": "./src/runtime/plugins/twind/runtime/index.ts"
   },
   "scripts": {
     "clean": "rm -rf ./dist",
@@ -30,6 +34,7 @@
     "postversion": "git push --follow-tags && gh-release"
   },
   "devDependencies": {
+    "@mdx-js/mdx": "^2.1.1",
     "@types/debug": "^4.1.5",
     "@types/hapi__hapi": "^20.0.10",
     "@types/jsesc": "^3.0.1",
@@ -48,6 +53,8 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1",
     "react-refresh": "^0.12.0",
+    "remark-frontmatter": "^4.0.1",
+    "remark-mdx-frontmatter": "^1.1.1",
     "rollup": "^2.38.5",
     "rollup-plugin-dts": "^4.2.1",
     "typescript": "^4.6.3",

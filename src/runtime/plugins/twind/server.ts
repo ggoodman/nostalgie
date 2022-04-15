@@ -1,30 +1,45 @@
-import { Configuration, create, silent } from 'twind';
-import { getStyleTagProperties, virtualSheet } from 'twind/sheets';
+import { createElement } from 'react';
+import { create, Instance, silent } from 'twind';
+import {
+  getStyleTagProperties,
+  VirtualSheet,
+  virtualSheet,
+} from 'twind/sheets';
 import type { ServerPlugin } from '../../server/plugin';
+import type { TwindPluginOptions } from './options';
+import { TwindContext } from './runtime/context';
 
-export default function twindPlugin(options: Configuration = {}): ServerPlugin {
+export default function twindPlugin(
+  options: TwindPluginOptions = {}
+): ServerPlugin<{ sheet: VirtualSheet; twind: Instance }> {
   return {
     name: 'twind-plugin',
 
-    renderHtml(ctx, document) {
-      const els = document.querySelectorAll('[class]');
+    createState() {
       const sheet = virtualSheet();
-      const { tw } = create({
-        ...options,
-        mode: silent,
+
+      return {
         sheet,
-      });
+        twind: create({
+          ...options,
+          mode: silent,
+          sheet,
+        }),
+      };
+    },
 
-      // Normalize attribute ordering and shortcut names
-      for (const el of els) {
-        const mappedClassName = tw(el.className);
-        // console.log(el.className, mappedClassName);
-        if (mappedClassName) {
-          el.setAttribute('class', mappedClassName);
-        }
-      }
+    decorateApp(ctx, app) {
+      return function TwindWrapper() {
+        return createElement(
+          TwindContext.Provider,
+          { value: ctx.state.twind.tw },
+          createElement(app)
+        );
+      };
+    },
 
-      // console.log('renderHtml', els, ctx.state.sheet.target);
+    renderHtml(ctx, document) {
+      const sheet = ctx.state.sheet;
 
       const stylesheetProps = getStyleTagProperties(sheet);
       // console.log(sheet.target);
