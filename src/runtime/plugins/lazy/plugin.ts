@@ -48,6 +48,8 @@ export function lazyPlugin(): Plugin {
       invariant(resolvedInputOptions, `Resolved input options not available`);
 
       const isSync = !!options?.ssr;
+      const isProductionClientBuild =
+        !options?.ssr && resolvedConfig.command === 'build';
 
       const s = new MagicString(code, {
         filename: id,
@@ -89,7 +91,7 @@ export function lazyPlugin(): Plugin {
           json: true,
         });
 
-        if (resolvedConfig.command === 'build') {
+        if (isProductionClientBuild) {
           const fileReferenceId = this.emitFile({
             type: 'chunk',
             id: target.id,
