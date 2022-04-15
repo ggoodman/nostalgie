@@ -49,7 +49,7 @@ type RestParameters<T extends (...args: any) => any> = T extends (
   ? R
   : never;
 
-type WithVariants<Variants, T> = T & { style: Style<Variants> };
+type WithVariants<Variants, T> = T & { style: Style<Variants> } & string;
 
 type VariantsOfStyled<T> = T extends { style: Style<infer Variants> }
   ? Variants
@@ -186,7 +186,7 @@ export function styled<Variants>(type: any, config?: StyleConfig<Variants>) {
   const base =
     type != null && type.base ? style(type.base, config) : style(config);
 
-  return Object.defineProperty(
+  return Object.defineProperties(
     function Styled(props: any): any {
       const tw = useTwind();
       const variantProps: StyleProps<Variants> = {};
@@ -205,9 +205,15 @@ export function styled<Variants>(type: any, config?: StyleConfig<Variants>) {
         className: classNames,
       });
     },
-    'style',
     {
-      value: base,
+      style: {
+        value: base,
+      },
+      toString: {
+        get() {
+          return base.toString;
+        },
+      },
     }
   );
 }
