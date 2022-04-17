@@ -3,6 +3,7 @@ import reactRefreshPlugin from '@vitejs/plugin-react';
 import jsesc from 'jsesc';
 import * as Path from 'node:path';
 import { build, InlineConfig } from 'vite';
+import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
 import { NOSTALGIE_MANIFEST_MODULE_ID } from './constants';
 import { invariant } from './invariant';
@@ -180,6 +181,7 @@ export function render(request) {
         },
       },
       reactRefreshPlugin(),
+      createMdxPlugin(),
       ...(config.settings.plugins || []),
     ],
   };

@@ -6,6 +6,7 @@ import { Headers } from 'headers-utils/lib';
 import jsesc from 'jsesc';
 import * as Path from 'path';
 import { createServer } from 'vite';
+import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
 import { NOSTALGIE_MANIFEST_MODULE_ID } from './constants';
 import type { Logger } from './logging';
@@ -198,6 +199,7 @@ export async function runDevServer(
         },
       },
       reactRefreshPlugin({}),
+      createMdxPlugin(),
       ...(config.settings.plugins || []),
     ],
   });
@@ -255,10 +257,6 @@ export async function runDevServer(
               return resolve(res);
             }, reject);
           });
-        }).catch((err) => {
-          logger.onServerRenderError(err);
-
-          throw err;
         });
 
         return res;
