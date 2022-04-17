@@ -91,15 +91,6 @@ export function lazyPlugin(): Plugin {
           json: true,
         });
 
-        if (isProductionClientBuild) {
-          const fileReferenceId = this.emitFile({
-            type: 'chunk',
-            id: target.id,
-            importer: id,
-          });
-          fileRef = `import.meta.ROLLUP_FILE_URL_${fileReferenceId}`;
-        }
-
         debug(
           'Overwriting deferred import %s, of %s in %s',
           match,
