@@ -21,7 +21,7 @@ export default function twindPlugin(
       return {
         sheet,
         twind: create({
-          ...options,
+          ...options.twindConfig,
           mode: silent,
           sheet,
         }),

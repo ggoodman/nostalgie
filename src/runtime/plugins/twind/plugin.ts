@@ -1,13 +1,13 @@
-import type { Configuration } from 'twind';
 import * as colors from 'twind/colors';
 import type { Plugin } from '../../../plugin';
 import type { TwindPluginOptions } from './options';
 
 export function twindPlugin(options: TwindPluginOptions = {}): Plugin {
-  const config: Configuration = options.twindConfig ?? {
+  options.twindConfig ??= {
     preflight: true,
     theme: { extend: { colors } },
   };
+
   return {
     name: 'twind-plugin',
     getClientRendererPlugins() {
