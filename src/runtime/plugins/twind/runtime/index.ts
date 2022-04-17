@@ -1,219 +1,124 @@
-import type {
-  Attributes,
-  CElement,
-  ClassAttributes,
-  ClassicComponent,
-  ClassicComponentClass,
-  ClassType,
-  Component,
-  ComponentClass,
-  ComponentState,
-  DetailedReactHTMLElement,
-  DOMAttributes,
-  DOMElement,
-  FunctionComponent,
-  FunctionComponentElement,
-  HTMLAttributes,
-  InputHTMLAttributes,
+import React, {
+  createElement,
+  ElementType,
+  ForwardedRef,
+  forwardRef,
   ReactElement,
-  ReactHTML,
-  ReactNode,
-  ReactSVG,
-  ReactSVGElement,
-  SVGAttributes,
+  useContext,
 } from 'react';
-import { createElement, useContext } from 'react';
-import type { Style, StyleConfig, StyleProps } from 'twind/style';
-import { style } from 'twind/style';
+import { Style, style, StyleConfig, StyleProps, TW } from 'twind/style';
 import { invariant } from '../../../../invariant';
 import { TwindContext } from './context';
+import type { PolymorphicPropsWithRef } from './types';
 
-export function useTwind() {
+export interface StyledComponent<Variants, Tag extends ElementType> {
+  <T extends React.ElementType = Tag>(
+    props: PolymorphicPropsWithRef<Omit<StyleProps<Variants>, 'class'>, T>
+  ): ReactElement<any, any> | null;
+
+  toString(): string;
+
+  readonly className: string;
+
+  readonly selector: string;
+
+  readonly style: Style<Variants>;
+}
+
+export function styled<Variants, Tag extends ElementType>(
+  tag: Tag,
+  config?: StyleConfig<Variants>
+): StyledComponent<Variants, Tag> & string;
+export function styled<Variants, Tag extends ElementType, BaseVariants>(
+  tag: StyledComponent<BaseVariants, Tag>,
+  config?: StyleConfig<Variants, BaseVariants>
+): StyledComponent<Variants & BaseVariants, Tag> & string;
+export function styled<Variants, Tag extends ElementType>(
+  tag: Tag,
+  config?: Style<Variants>
+): StyledComponent<Variants, Tag> & string;
+
+export function styled<Variants, Tag extends ElementType, BaseVariants = {}>(
+  tag: Tag | StyledComponent<BaseVariants, Tag>,
+  config?: StyleConfig<Variants> | Style<Variants>
+): StyledComponent<Variants, Tag> & string {
+  const base =
+    typeof config === 'function'
+      ? config
+      : isStyled(tag)
+      ? style(tag.style, config)
+      : style(config);
+
+  const sc = forwardRef(
+    <T extends React.ElementType = Tag>(
+      {
+        as: asType,
+        children,
+        className,
+        css,
+        tw: twProp,
+        ...props
+      }: PolymorphicPropsWithRef<Omit<StyleProps<Variants>, 'class'>, T>,
+      ref: ForwardedRef<any>
+    ) => {
+      const tw = useContext(TwindContext);
+
+      invariant(tw, 'Missing Twind context');
+
+      const forwardedProps: any = {
+        ...props,
+        ref,
+        className: dedupeClassNames(
+          tw(
+            base({
+              className,
+              css,
+              tw: twProp,
+              ...props,
+            } as StyleProps<Variants>)
+          )
+        ),
+      };
+
+      return createElement(
+        typeof asType === 'string' ? asType : tag,
+        forwardedProps,
+        children
+      );
+    }
+  );
+
+  return Object.defineProperties(sc, {
+    className: {
+      get: () => base.className,
+    },
+    selector: {
+      get: () => base.selector,
+    },
+    style: {
+      value: base,
+    },
+    toString: {
+      value: base.toString,
+    },
+  }) as unknown as StyledComponent<Variants, Tag> & string;
+}
+
+export function useTwind(): TW {
   const tw = useContext(TwindContext);
 
-  invariant(tw, "Did you forget to install the 'nostalgie/twind' plugin?");
+  invariant(tw, 'Missing Twind context');
 
   return tw;
 }
 
-type FirstParameter<T extends (...args: any) => any> = T extends (
-  head: infer H,
-  ...args: any
-) => any
-  ? H
-  : never;
-type RestParameters<T extends (...args: any) => any> = T extends (
-  head: any,
-  ...args: infer R
-) => any
-  ? R
-  : never;
-
-type WithVariants<Variants, T> = T & { style: Style<Variants> } & string;
-
-type VariantsOfStyled<T> = T extends { style: Style<infer Variants> }
-  ? Variants
-  : never;
-
-// Composition
-
-export function styled<Variants, Base extends ReturnType<typeof styled>>(
-  type: Base,
-  config?: StyleConfig<Variants, VariantsOfStyled<Base>>
-): WithVariants<
-  Variants,
-  (
-    props: FirstParameter<Base> & StyleProps<Variants>,
-    ...rest: RestParameters<Base>
-  ) => ReturnType<Base>
->;
-
-// DOM Elements
-
-export function styled<Variants>(
-  type: 'input',
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?:
-      | (StyleProps<Variants> &
-          InputHTMLAttributes<HTMLInputElement> &
-          ClassAttributes<HTMLInputElement>)
-      | null,
-    ...children: ReactNode[]
-  ) => DetailedReactHTMLElement<
-    InputHTMLAttributes<HTMLInputElement>,
-    HTMLInputElement
-  >
->;
-export function styled<
-  Variants,
-  P extends HTMLAttributes<T>,
-  T extends HTMLElement
->(
-  type: keyof ReactHTML,
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?: (StyleProps<Variants> & ClassAttributes<T> & P) | null,
-    ...children: ReactNode[]
-  ) => DetailedReactHTMLElement<P, T>
->;
-export function styled<
-  Variants,
-  P extends SVGAttributes<T>,
-  T extends SVGElement
->(
-  type: keyof ReactSVG,
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?: (StyleProps<Variants> & ClassAttributes<T> & P) | null,
-    ...children: ReactNode[]
-  ) => ReactSVGElement
->;
-export function styled<Variants, P extends DOMAttributes<T>, T extends Element>(
-  type: string,
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?: (StyleProps<Variants> & ClassAttributes<T> & P) | null,
-    ...children: ReactNode[]
-  ) => DOMElement<P, T>
->;
-
-// Custom components
-
-export function styled<Variants, P extends {}>(
-  type: FunctionComponent<P>,
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?: (StyleProps<Variants> & Attributes & P) | null,
-    ...children: ReactNode[]
-  ) => FunctionComponentElement<P>
->;
-export function styled<Variants, P extends {}>(
-  type: ClassType<
-    P,
-    ClassicComponent<P, ComponentState>,
-    ClassicComponentClass<P>
-  >,
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?:
-      | (StyleProps<Variants> &
-          ClassAttributes<ClassicComponent<P, ComponentState>> &
-          P)
-      | null,
-    ...children: ReactNode[]
-  ) => CElement<P, ClassicComponent<P, ComponentState>>
->;
-export function styled<
-  Variants,
-  P extends {},
-  T extends Component<P, ComponentState>,
-  C extends ComponentClass<P>
->(
-  type: ClassType<P, T, C>,
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?: (StyleProps<Variants> & ClassAttributes<T> & P) | null,
-    ...children: ReactNode[]
-  ) => CElement<P, T>
->;
-export function styled<Variants, P extends {}>(
-  type: FunctionComponent<P> | ComponentClass<P> | string,
-  config?: StyleConfig<Variants>
-): WithVariants<
-  Variants,
-  (
-    props?: (StyleProps<Variants> & Attributes & P) | null,
-    ...children: ReactNode[]
-  ) => ReactElement<P>
->;
-
-export function styled<Variants>(type: any, config?: StyleConfig<Variants>) {
-  const base =
-    type != null && type.base ? style(type.base, config) : style(config);
-
-  return Object.defineProperties(
-    function Styled(props: any): any {
-      const tw = useTwind();
-      const variantProps: StyleProps<Variants> = {};
-
-      if (config?.variants && props != null) {
-        for (const key in config.variants) {
-          variantProps[key] = props[key];
-        }
-      }
-
-      const classNames = `${tw(base(variantProps))} ${
-        props?.className ?? ''
-      }`.trim();
-      return createElement(type, {
-        ...props,
-        className: classNames,
-      });
-    },
-    {
-      style: {
-        value: base,
-      },
-      toString: {
-        get() {
-          return base.toString;
-        },
-      },
-    }
+function isStyled(cmp: ElementType): cmp is StyledComponent<any, any> {
+  return (
+    cmp != null && (cmp as StyledComponent<any, ElementType>).style != null
   );
+}
+
+function dedupeClassNames(className: string) {
+  return className;
+  // return [...new Set(className.split(' '))].join(' ');
 }
