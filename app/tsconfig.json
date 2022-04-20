@@ -8,9 +8,9 @@
     // "rootDir": "../",
     "baseUrl": ".",
     "paths": {
-      "nostalgie/plugins/*": ["../src/runtime/plugins/*/plugin.ts"]
+      "nostalgie/twind": ["../src/runtime/plugins/twind/runtime/index.ts"]
     }
   },
   "include": ["nostalgie.config.js", "src"],
-  "references": [{"path": "../"}]
+  "references": [{ "path": "../" }]
 }

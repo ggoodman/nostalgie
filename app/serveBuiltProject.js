@@ -2,9 +2,12 @@
 const { render } = require('./out/nostalgie.server');
 
 const fastify = require('fastify');
+const pino = require('pino');
 const path = require('path');
 
-const server = fastify.fastify();
+const server = fastify.fastify({
+  logger: pino.pino(),
+});
 
 server.register(require('fastify-static').default, {
   root: path.join(__dirname, './out/assets'),

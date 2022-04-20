@@ -96,7 +96,9 @@ class TerminalLogger implements Logger {
     );
   }
 
-  onServerRenderError(err: Error) {}
+  onServerRenderError(err: Error) {
+    console.error(err);
+  }
 
   onValidConfiguration(config: NostalgieConfig) {
     console.error(`${Chalk.bold.greenBright('++')} Configuration reloaded.`);

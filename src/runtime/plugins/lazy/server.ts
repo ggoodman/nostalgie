@@ -37,7 +37,9 @@ export default function createPlugin(options: {}): ServerPlugin<{
         .getPreloads()
         .map((srcPath) => [
           srcPath,
-          ctx.assetManifest.translatePath(stripLeadingSlash(srcPath)),
+          maybeDecorateNonJsPath(
+            ctx.assetManifest.translatePath(stripLeadingSlash(srcPath))
+          ),
         ]);
     },
     async renderHtml(ctx, document) {
@@ -49,11 +51,28 @@ export default function createPlugin(options: {}): ServerPlugin<{
         preloadLink.setAttribute('rel', 'modulepreload');
         preloadLink.setAttribute(
           'href',
-          ctx.assetManifest.translatePath(stripLeadingSlash(srcPath))
+          maybeDecorateNonJsPath(
+            ctx.assetManifest.translatePath(stripLeadingSlash(srcPath))
+          )
         );
 
         document.head.prepend(preloadLink);
       }
     },
   };
+}
+
+/**
+ *
+ *
+ * @see https://github.com/vitejs/vite/blob/e5729bee1e3f0753dc3514757fa15e5533c387fe/packages/vite/src/node/plugins/importAnalysis.ts#L67-L69
+ * @param path
+ * @returns
+ */
+function maybeDecorateNonJsPath(path: string): string {
+  if (!/\.(jsx?|tsx?|css)$/.test(path)) {
+    return `${path}?import`;
+  }
+
+  return path;
 }

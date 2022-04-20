@@ -170,14 +170,15 @@ render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     bootstrapScriptEl.setAttribute('type', 'module');
     document.body.appendChild(bootstrapScriptEl);
 
-    // Inject a modulepreload for our entrypoint
-    const preloadEntrypoint = document.createElement('link');
-    preloadEntrypoint.setAttribute('rel', 'modulepreload');
-    preloadEntrypoint.setAttribute(
-      'href',
-      this.assetManifest.translatePath(this.entrypointUrl)
-    );
-    document.head.prepend(preloadEntrypoint);
+    // Inject a modulepreload for our entrypoint and its dependencies
+    const preloads = this.assetManifest.listDependencies(this.entrypointUrl);
+
+    for (const preload of preloads) {
+      const preloadEntrypoint = document.createElement('link');
+      preloadEntrypoint.setAttribute('rel', 'modulepreload');
+      preloadEntrypoint.setAttribute('href', preload);
+      document.head.prepend(preloadEntrypoint);
+    }
 
     const body = document.toString();
     const headers = new Headers({ 'content-type': 'text/html' });

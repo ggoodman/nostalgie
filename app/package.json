@@ -9,13 +9,15 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  },
   "devDependencies": {
     "fastify": "^3.28.0",
     "fastify-static": "^4.6.1",
-    "nostalgie": "file:../dist"
+    "nostalgie": "file:../dist",
+    "pino": "^7.10.0",
+    "pino-pretty": "^7.6.1"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   }
 }

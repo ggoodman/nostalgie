@@ -1,4 +1,5 @@
-import type { Plugin as VitePlugin } from 'vite';
+import type { Plugin as VitePlugin, UserConfig } from 'vite';
+import type { NostalgieConfig } from './config';
 
 type MaybeArray<T> = Array<T> | T;
 
@@ -25,6 +26,17 @@ export interface RendererPluginReference {
  * for now.
  */
 export interface Plugin extends VitePlugin {
-  getServerRendererPlugins?: () => MaybeArray<RendererPluginReference> | undefined;
-  getClientRendererPlugins?: () => MaybeArray<RendererPluginReference> | undefined;
+  getServerRendererPlugins?: () =>
+    | MaybeArray<RendererPluginReference>
+    | undefined;
+  getClientRendererPlugins?: () =>
+    | MaybeArray<RendererPluginReference>
+    | undefined;
+
+  nostalgieConfig?: (
+    viteConfig: UserConfig,
+    nostalgieConfig: NostalgieConfig
+  ) => void | Promise<void>;
+
+  nostalgieConfigResolved?: (config: NostalgieConfig) => void | Promise<void>;
 }

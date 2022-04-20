@@ -3,11 +3,13 @@ import reactRefreshPlugin from '@vitejs/plugin-react';
 import jsesc from 'jsesc';
 import * as Path from 'node:path';
 import { build, InlineConfig } from 'vite';
+import { createDedupePlugin } from './build/plugins/dedupe';
 import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
 import { NOSTALGIE_MANIFEST_MODULE_ID } from './constants';
 import { invariant } from './invariant';
 import type { Logger } from './logging';
+import type { Plugin } from './plugin';
 
 // const debug = Debug.debug('nostalgie:dev');
 
@@ -38,62 +40,6 @@ export async function buildProject(
 
   // const appEntryUrl = `${urlPrefix}/static/app.es.js`;
 
-  if (config.settings.plugins?.length) {
-    for (const plugin of config.settings.plugins) {
-      if (typeof plugin.getClientRendererPlugins === 'function') {
-        const refs = plugin.getClientRendererPlugins();
-        const refsArr = Array.isArray(refs) ? refs : refs ? [refs] : [];
-
-        for (const ref of refsArr) {
-          const symbol = `plugin__${clientRenderPluginInstantiations.length}`;
-          const target = ref.exportName
-            ? `{ ${ref.exportName}: ${symbol} }`
-            : symbol;
-
-          // The import statement to pull in the client plugin
-          clientRenderPluginImports.push(
-            `import ${target} from ${jsesc(ref.spec, {
-              isScriptContext: true,
-              json: true,
-            })};`
-          );
-          // The function call to instantiate the plugin with the config
-          clientRenderPluginInstantiations.push(
-            `${symbol}(${jsesc(ref.config, { isScriptContext: true })})`
-          );
-        }
-      }
-
-      if (typeof plugin.getServerRendererPlugins === 'function') {
-        const refs = plugin.getServerRendererPlugins();
-        const refsArr = Array.isArray(refs) ? refs : refs ? [refs] : [];
-
-        for (const ref of refsArr) {
-          const symbol = `plugin__${serverRenderPluginInstantiations.length}`;
-          const target = ref.exportName
-            ? `{ ${ref.exportName}: ${symbol} }`
-            : symbol;
-
-          // The import statement to pull in the server plugin
-          serverRenderPluginImports.push(
-            `import ${target} from ${jsesc(ref.spec, {
-              isScriptContext: true,
-              json: true,
-            })};`
-          );
-          // The function call to instantiate the plugin with the config
-          serverRenderPluginInstantiations.push(
-            `${symbol}(${jsesc(ref.config, { isScriptContext: true })})`
-          );
-        }
-      }
-    }
-  }
-
-  const appEntrypoint = config.settings.appEntrypoint;
-
-  invariant(appEntrypoint, 'App entrypoint is missing or falsy');
-
   const viteConfig: InlineConfig = {
     root: config.rootDir,
     configFile: false,
@@ -101,8 +47,89 @@ export async function buildProject(
     clearScreen: false,
     logLevel: 'info',
     plugins: [
+      createDedupePlugin(),
       {
         name: 'nostalgie',
+        async config(viteConfig) {
+          if (!Array.isArray(viteConfig.plugins)) {
+            return;
+          }
+
+          for (const plugin of viteConfig.plugins) {
+            const configFn = (plugin as Plugin).nostalgieConfig;
+
+            if (typeof configFn === 'function') {
+              await configFn(viteConfig, config);
+            }
+          }
+        },
+        async configResolved(viteConfig) {
+          for (const plugin of viteConfig.plugins) {
+            const configResolved = (plugin as Plugin).nostalgieConfigResolved;
+
+            if (typeof configResolved === 'function') {
+              await configResolved(config);
+            }
+          }
+
+          // Reset plugin imports and instantiations
+          serverRenderPluginImports.length = 0;
+          serverRenderPluginInstantiations.length = 0;
+          clientRenderPluginImports.length = 0;
+          clientRenderPluginInstantiations.length = 0;
+
+          if (config.settings.plugins?.length) {
+            for (const plugin of config.settings.plugins) {
+              if (typeof plugin.getClientRendererPlugins === 'function') {
+                const refs = plugin.getClientRendererPlugins();
+                const refsArr = Array.isArray(refs) ? refs : refs ? [refs] : [];
+
+                for (const ref of refsArr) {
+                  const symbol = `plugin__${clientRenderPluginInstantiations.length}`;
+                  const target = ref.exportName
+                    ? `{ ${ref.exportName}: ${symbol} }`
+                    : symbol;
+
+                  // The import statement to pull in the client plugin
+                  clientRenderPluginImports.push(
+                    `import ${target} from ${jsesc(ref.spec, {
+                      isScriptContext: true,
+                      json: true,
+                    })};`
+                  );
+                  // The function call to instantiate the plugin with the config
+                  clientRenderPluginInstantiations.push(
+                    `${symbol}(${jsesc(ref.config, { isScriptContext: true })})`
+                  );
+                }
+              }
+
+              if (typeof plugin.getServerRendererPlugins === 'function') {
+                const refs = plugin.getServerRendererPlugins();
+                const refsArr = Array.isArray(refs) ? refs : refs ? [refs] : [];
+
+                for (const ref of refsArr) {
+                  const symbol = `plugin__${serverRenderPluginInstantiations.length}`;
+                  const target = ref.exportName
+                    ? `{ ${ref.exportName}: ${symbol} }`
+                    : symbol;
+
+                  // The import statement to pull in the server plugin
+                  serverRenderPluginImports.push(
+                    `import ${target} from ${jsesc(ref.spec, {
+                      isScriptContext: true,
+                      json: true,
+                    })};`
+                  );
+                  // The function call to instantiate the plugin with the config
+                  serverRenderPluginInstantiations.push(
+                    `${symbol}(${jsesc(ref.config, { isScriptContext: true })})`
+                  );
+                }
+              }
+            }
+          }
+        },
         resolveId(source, importer, options) {
           if (source === clientEntrypointUrl) {
             return {
@@ -121,10 +148,12 @@ export async function buildProject(
           }
         },
         load(id, ssr) {
+          const appEntrypoint = config.settings.appEntrypoint;
+
+          invariant(appEntrypoint, 'App entrypoint is missing or falsy');
           if (id === syntheticClientEntrypointPath) {
-            const entrypointPath = Path.resolve(config.rootDir, appEntrypoint);
             const code = `
-import App from ${jsesc(entrypointPath, {
+import App from ${jsesc(appEntrypoint, {
               isScriptContext: true,
               json: true,
             })};
@@ -149,9 +178,8 @@ export function render(request) {
               code,
             };
           } else if (id === syntheticServerEntrypointPath) {
-            const entrypointPath = Path.resolve(config.rootDir, appEntrypoint);
             const code = `
-              import App from ${jsesc(entrypointPath, {
+              import App from ${jsesc(appEntrypoint, {
                 isScriptContext: true,
                 json: true,
               })};
@@ -186,8 +214,15 @@ export function render(request) {
     ],
   };
 
+  const appEntrypoint = config.settings.appEntrypoint;
+
+  invariant(appEntrypoint, 'App entrypoint is missing or falsy');
+
   await build({
     ...viteConfig,
+    define: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
     build: {
       target: 'modules',
       rollupOptions: {
@@ -202,7 +237,7 @@ export function render(request) {
 
       emptyOutDir: true,
       cssCodeSplit: true,
-      minify: true,
+      minify: false,
       manifest: true,
       ssr: false,
     },

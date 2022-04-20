@@ -62,6 +62,7 @@ export class LazyManager {
       const factoryReturn = factory() as unknown as {
         default: TComponent;
       };
+
       const { default: component } = factoryReturn;
       const loadState: Resolved<TComponent> = {
         status: 'success',
@@ -70,6 +71,7 @@ export class LazyManager {
         isIdle: false,
         isLoading: false,
         isSuccess: true,
+        url: meta.id,
       };
 
       this.loadStateById.set(meta.id, loadState);
@@ -88,6 +90,7 @@ export class LazyManager {
       isLoading: false,
       isSuccess: false,
       factory,
+      url: meta.id,
     };
 
     this.loadStateById.set(meta.id, loadState);
@@ -111,7 +114,7 @@ export class LazyManager {
 
   useLoadState<TComponent extends React.ComponentType<any>>(
     factory: () => Promise<{ default: TComponent }>
-  ) {
+  ): LoadState {
     const {
       key,
       loadState: initialLoadState,
@@ -146,6 +149,8 @@ export class LazyManager {
     let promise: Promise<{ default: TComponent }> | undefined;
     let disposed = false;
 
+    const url = loadState.url;
+
     if (loadState.status === 'idle') {
       promise = factory();
       const loadingState: Loading<TComponent> = {
@@ -155,6 +160,7 @@ export class LazyManager {
         isLoading: true,
         isSuccess: false,
         promise,
+        url,
       };
 
       map.set(key, loadingState);
@@ -175,6 +181,7 @@ export class LazyManager {
             isIdle: false,
             isLoading: false,
             isSuccess: true,
+            url,
           };
           map.set(key, loadState);
           if (!disposed) {
@@ -189,6 +196,7 @@ export class LazyManager {
             isIdle: false,
             isLoading: false,
             isSuccess: false,
+            url,
           };
           map.set(key, loadState);
           if (!disposed) {

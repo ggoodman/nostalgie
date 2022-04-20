@@ -2,7 +2,6 @@ import Debug from 'debug';
 import jsesc from 'jsesc';
 import MagicString from 'magic-string';
 import * as Path from 'node:path';
-import type { InputOptions } from 'rollup';
 import type { ResolvedConfig } from 'vite';
 import { invariant } from '../../../invariant';
 import type { Plugin } from '../../../plugin';
@@ -12,11 +11,10 @@ const debug = Debug.debug('nostalgie:plugin:lazy');
 
 export function lazyPlugin(): Plugin {
   let resolvedConfig: ResolvedConfig | undefined = undefined;
-  let resolvedInputOptions: InputOptions | undefined = undefined;
   let counter = 0;
 
   return {
-    name: 'lazy-plugin',
+    name: 'plugin-lazy',
     enforce: 'post',
     getClientRendererPlugins() {
       return {
@@ -35,7 +33,6 @@ export function lazyPlugin(): Plugin {
     },
 
     options(inputOptions) {
-      resolvedInputOptions = inputOptions;
       return null;
     },
 
@@ -45,12 +42,8 @@ export function lazyPlugin(): Plugin {
       }
 
       invariant(resolvedConfig, `Resolved config not available`);
-      invariant(resolvedInputOptions, `Resolved input options not available`);
 
       const isSync = !!options?.ssr;
-      const isProductionClientBuild =
-        !options?.ssr && resolvedConfig.command === 'build';
-
       const s = new MagicString(code, {
         filename: id,
         indentExclusionRanges: [],
@@ -58,6 +51,10 @@ export function lazyPlugin(): Plugin {
 
       const deferredImportRx = /\(\)\s*=>\s*import\(\s*(['"])([^)]+)\1\s*\)/gm;
       let matched = false;
+
+      if (id === '/routes:./src/pages') {
+        console.log('transform', id, code);
+      }
 
       for (
         let res = deferredImportRx.exec(code);
@@ -80,6 +77,7 @@ export function lazyPlugin(): Plugin {
             )} while trying to annotate it`,
             ss
           );
+
           continue;
         }
         const rootRelativePath = Path.relative(resolvedConfig.root, target.id);

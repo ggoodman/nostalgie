@@ -9,10 +9,45 @@ export function createMdxPlugin(): Plugin {
 
   return {
     name: 'nostalgie-mdx-plugin',
+    enforce: 'pre',
     configResolved(config) {
       resolvedConfig = config;
     },
-    async transform(code, id, options = {}) {
+    // async resolveId(source, importer) {
+    //   if (!source.endsWith('.mdx')) {
+    //     return;
+    //   }
+
+    //   const resolveResult = await this.resolve(source, importer, {
+    //     skipSelf: true,
+    //   });
+
+    //   if (!resolveResult?.id) {
+    //     return;
+    //   }
+
+    //   return {
+    //     id: `${resolveResult.id}`,
+    //   };
+    // },
+    // async load(id) {
+    //   if (!id.endsWith('.mdx')) {
+    //     return;
+    //   }
+
+    //   invariant(resolvedConfig, 'Config must be resolved');
+
+    //   const path = id; //.slice(0, -3);
+    //   const absPath = resolve(resolvedConfig.root, path);
+    //   const code = await readFile(absPath, {
+    //     encoding: 'utf-8',
+    //   });
+
+    //   return {
+    //     code,
+    //   };
+    // },
+    async transform(code, id) {
       if (!id.endsWith('.mdx')) {
         return;
       }
@@ -71,8 +106,16 @@ export function createMdxPlugin(): Plugin {
           code: chunks.join('\n') + '\n',
         };
       } catch (err: any) {
+        console.error(err);
         this.error(err);
       }
     },
+    // async transform(code, id, options = {}) {
+    //   if (!id.endsWith('.mdx.js')) {
+    //     return;
+    //   }
+    //   console.log('transform mdx', id);
+
+    // },
   };
 }

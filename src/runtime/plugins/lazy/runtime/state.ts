@@ -5,6 +5,7 @@ export interface Idle<TComponent extends React.ComponentType<any>> {
   readonly isSuccess: false;
   readonly isError: false;
   readonly factory: () => Promise<{ default: TComponent }>;
+  readonly url: string;
 }
 
 export interface Loading<TComponent extends React.ComponentType<any>> {
@@ -14,6 +15,7 @@ export interface Loading<TComponent extends React.ComponentType<any>> {
   readonly isSuccess: false;
   readonly isError: false;
   readonly promise: Promise<{ default: TComponent }>;
+  readonly url: string;
 }
 
 export interface Resolved<TComponent extends React.ComponentType<any>> {
@@ -23,6 +25,7 @@ export interface Resolved<TComponent extends React.ComponentType<any>> {
   readonly isSuccess: true;
   readonly isError: false;
   readonly component: TComponent;
+  readonly url: string;
 }
 
 export interface Rejected {
@@ -32,6 +35,7 @@ export interface Rejected {
   readonly isSuccess: false;
   readonly isError: true;
   readonly error: Error;
+  readonly url: string;
 }
 
 export type LoadState<

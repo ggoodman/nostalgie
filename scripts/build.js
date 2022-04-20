@@ -18,6 +18,8 @@ const externalModules = [
   'react',
   // We don't want to bundle this so that applications can choose versions
   'react-dom',
+  'react-router',
+  'react-router-dom',
   'esbuild',
   'esbuild-wasm',
   'nostalgie:manifest.json',
@@ -106,6 +108,7 @@ async function buildRuntimeModules() {
       outdir: Path.resolve(__dirname, '../dist'),
       platform: 'neutral',
       plugins: [
+        externalize(externalModules),
         {
           name: 'resolve_node_esm_uris',
           setup(build) {
@@ -155,6 +158,7 @@ async function buildRuntimeModules() {
       outdir: Path.resolve(__dirname, '../dist'),
       platform: 'neutral',
       plugins: [
+        externalize(externalModules),
         {
           name: 'resolve_node_esm_uris',
           setup(build) {

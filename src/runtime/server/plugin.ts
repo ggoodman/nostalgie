@@ -205,7 +205,7 @@ export class RendererPluginHost {
     }
   }
 
-  renderHtml(document: HTMLDocument) {
+  renderHtml(document: Document) {
     for (const { plugin, state } of this.pluginsWithState) {
       if (typeof plugin.renderHtml === 'function') {
         plugin.renderHtml(

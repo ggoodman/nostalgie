@@ -2,6 +2,7 @@ import { Context, withCancel } from '@ggoodman/context';
 import { makeAsyncIterableIteratorFromSink } from '@n1ru4l/push-pull-async-iterable-iterator';
 import { build, BuildResult } from 'esbuild';
 import * as Path from 'path';
+import type { ResolvedConfig, UserConfig } from 'vite';
 import { invariant } from './invariant';
 import type { Logger } from './logging';
 import { NostalgieSettings, validateSettings } from './settings';
@@ -12,7 +13,16 @@ export interface NostalgieConfig {
   settings: NostalgieSettings;
 }
 
+export interface NostalgieViteConfig extends ResolvedConfig {
+  nostalgie: NostalgieConfig;
+}
+
+export interface NostalgieUserViteConfig extends UserConfig {
+  nostalgie: NostalgieConfig;
+}
+
 export interface ReadConfigOptions {
+  env?: 'development' | 'produciton';
   watch?: boolean;
 }
 
@@ -45,9 +55,7 @@ export function readConfigs(
       absWorkingDir: rootDir,
       bundle: true,
       define: {
-        'process.env.NODE_ENV': JSON.stringify(
-          process.env.NODE_ENV ?? 'production'
-        ),
+        'process.env.NODE_ENV': JSON.stringify(options.env ?? 'production'),
         __filename: '"nostalgie.config.js"',
       },
       conditions: ['require'],
