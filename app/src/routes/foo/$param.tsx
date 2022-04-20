@@ -1,5 +1,8 @@
 import * as React from 'react';
+import { useParams } from 'react-router';
 
 export default function () {
-  return <h1>Got some params!</h1>;
+  const params = useParams();
+
+  return <h1>Got some params! {JSON.stringify(params)}</h1>;
 }
