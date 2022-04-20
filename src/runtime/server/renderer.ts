@@ -176,7 +176,7 @@ render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     for (const preload of preloads) {
       const preloadEntrypoint = document.createElement('link');
       preloadEntrypoint.setAttribute('rel', 'modulepreload');
-      preloadEntrypoint.setAttribute('href', preload);
+      preloadEntrypoint.setAttribute('href', `/${preload}`);
       document.head.prepend(preloadEntrypoint);
     }
 
