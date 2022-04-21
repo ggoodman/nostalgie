@@ -42,9 +42,12 @@ export class ClientRenderer {
         await maybeBeforeRenderPromise;
       }
 
-      ReactDOM.hydrateRoot(rootElement, React.createElement(appRoot));
+      ReactDOM.hydrateRoot(rootElement, React.createElement(appRoot), {
+        onRecoverableError(err) {
+          console.debug(err);
+        },
+      });
     } catch (err) {
-      debugger;
       throw err;
     }
   }

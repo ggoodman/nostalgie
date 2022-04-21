@@ -1,6 +1,5 @@
+import { Outlet } from 'nostalgie/routing';
 import { styled } from 'nostalgie/twind';
-import * as React from 'react';
-import { Outlet } from 'react-router';
 import { Link } from 'react-router-dom';
 
 const HeadLink = styled(Link, {
@@ -15,7 +14,7 @@ export default function RootLayout() {
         <HeadLink to="/intro">Intro</HeadLink>
         <HeadLink to="/foo/bar">Foo Bar</HeadLink>
       </nav>
-      <Outlet />
+      <Outlet loading={<h1>Loading so loadingly</h1>} />
     </div>
   );
 }

@@ -5,16 +5,6 @@ export interface AssetManifest {
   translatePath(srcPath: string): string;
 }
 
-export class NoopAssetManifest implements AssetManifest {
-  listDependencies(srcPath: string): string[] {
-    return [];
-  }
-
-  translatePath(srcPath: string): string {
-    return srcPath.startsWith('/') ? srcPath : `/${srcPath}`;
-  }
-}
-
 export class ViteAssetManifest implements AssetManifest {
   constructor(private readonly manifest: Manifest) {}
 
@@ -35,6 +25,10 @@ export class ViteAssetManifest implements AssetManifest {
   }
 
   listDependencies(srcPath: string): string[] {
+    if (import.meta.env.DEV && import.meta.env.SSR) {
+      return [];
+    }
+
     const dependencies: string[] = [];
 
     this.traverseDependencies(srcPath, dependencies);
@@ -43,6 +37,10 @@ export class ViteAssetManifest implements AssetManifest {
   }
 
   translatePath(srcPath: string): string {
+    if (import.meta.env.DEV && import.meta.env.SSR) {
+      return srcPath.startsWith('/') ? srcPath : `/${srcPath}`;
+    }
+
     const manifestEntry = this.manifest[srcPath];
 
     if (!manifestEntry) {

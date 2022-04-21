@@ -4,7 +4,8 @@
     "allowJs": true,
     "noEmit": true,
     "outDir": "dist",
-    "jsx": "react",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     // "rootDir": "../",
     "baseUrl": ".",
     "paths": {

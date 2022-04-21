@@ -1,5 +1,4 @@
 import { Link } from 'nostalgie/routing';
-import * as React from 'react';
 
 export default function () {
   return (

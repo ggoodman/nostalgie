@@ -110,6 +110,7 @@
     "headers-utils": "^3.0.2",
     "jsesc": "^3.0.2",
     "magic-string": "^0.26.1",
+    "react-error-boundary": "^3.1.4",
     "runtypes": "^6.0.0",
     "ts-primitives": "^3.2.0",
     "twind": "^0.16.10",

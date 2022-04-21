@@ -19,11 +19,13 @@ server.get('/robots.txt', async (req, reply) => {
 });
 
 server.get('/*', async (req, reply) => {
-  const { response } = await render({
+  const { response, errors, stats } = await render({
     method: req.method,
     headers: req.headers,
     path: req.url,
   });
+
+  req.log.info({ errors, stats }, 'ssr completed');
 
   return reply
     .code(response.status)

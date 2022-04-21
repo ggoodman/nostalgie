@@ -3,14 +3,16 @@ import { ResponseObject, Server } from '@hapi/hapi';
 import reactRefreshPlugin from '@vitejs/plugin-react';
 import Debug from 'debug';
 import { Headers } from 'headers-utils/lib';
-import jsesc from 'jsesc';
-import * as Path from 'node:path';
 import { createServer } from 'vite';
 import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
 import { NOSTALGIE_MANIFEST_MODULE_ID } from './constants';
 import type { Logger } from './logging';
-import type { Plugin } from './plugin';
+import { nostalgieClientEntryPlugin } from './plugins/nostalgieClientEntry';
+import { nostalgieConfigPlugin } from './plugins/nostalgieConfig';
+import { nostalgiePluginsPlugin } from './plugins/nostalgiePlugins';
+import { nostalgieServerEntryPlugin } from './plugins/nostalgieServerEntry';
+import { errorBoundaryPlugin } from './runtime/server/plugins/errorBoundary';
 
 const debug = Debug.debug('nostalgie:dev');
 
@@ -24,14 +26,6 @@ export async function runDevServer(
 
   const clientEntrypointUrl = `/nostalgie.client.js`;
   const serverEntrypointUrl = `/nostalgie.server.js`;
-  const syntheticClientEntrypointPath = Path.join(
-    config.rootDir,
-    clientEntrypointUrl
-  );
-  const syntheticServerEntrypointPath = Path.join(
-    config.rootDir,
-    serverEntrypointUrl
-  );
   const serverRenderPluginImports: string[] = [];
   const serverRenderPluginInstantiations: string[] = [];
   const clientRenderPluginImports: string[] = [];
@@ -51,98 +45,31 @@ export async function runDevServer(
     clearScreen: false,
     logLevel: 'info',
     plugins: [
+      errorBoundaryPlugin(),
+      nostalgieConfigPlugin(config),
+      nostalgiePluginsPlugin({
+        serverRenderPluginImports,
+        serverRenderPluginInstantiations,
+        clientRenderPluginImports,
+        clientRenderPluginInstantiations,
+      }),
+      nostalgieServerEntryPlugin({
+        config,
+        clientEntrypointUrl,
+        serverEntrypointUrl,
+        serverRenderPluginImports,
+        serverRenderPluginInstantiations,
+      }),
+      nostalgieClientEntryPlugin({
+        config,
+        clientEntrypointUrl,
+        clientRenderPluginImports,
+        clientRenderPluginInstantiations,
+      }),
       {
-        name: 'nostalgie',
-        async config(viteConfig) {
-          if (!Array.isArray(viteConfig.plugins)) {
-            return;
-          }
-
-          for (const plugin of viteConfig.plugins) {
-            const configFn = (plugin as Plugin).nostalgieConfig;
-
-            if (typeof configFn === 'function') {
-              await configFn(viteConfig, config);
-            }
-          }
-        },
-        async configResolved(viteConfig) {
-          for (const plugin of viteConfig.plugins) {
-            const configResolvedFn = (plugin as Plugin).nostalgieConfigResolved;
-
-            if (typeof configResolvedFn === 'function') {
-              await configResolvedFn(config);
-            }
-          }
-
-          // Reset plugin imports and instantiations
-          serverRenderPluginImports.length = 0;
-          serverRenderPluginInstantiations.length = 0;
-          clientRenderPluginImports.length = 0;
-          clientRenderPluginInstantiations.length = 0;
-
-          if (config.settings.plugins?.length) {
-            for (const plugin of config.settings.plugins) {
-              if (typeof plugin.getClientRendererPlugins === 'function') {
-                const refs = plugin.getClientRendererPlugins();
-                const refsArr = Array.isArray(refs) ? refs : refs ? [refs] : [];
-
-                for (const ref of refsArr) {
-                  const symbol = `plugin__${clientRenderPluginInstantiations.length}`;
-                  const target = ref.exportName
-                    ? `{ ${ref.exportName}: ${symbol} }`
-                    : symbol;
-
-                  // The import statement to pull in the client plugin
-                  clientRenderPluginImports.push(
-                    `import ${target} from ${jsesc(ref.spec, {
-                      isScriptContext: true,
-                      json: true,
-                    })};`
-                  );
-                  // The function call to instantiate the plugin with the config
-                  clientRenderPluginInstantiations.push(
-                    `${symbol}(${jsesc(ref.config, { isScriptContext: true })})`
-                  );
-                }
-              }
-
-              if (typeof plugin.getServerRendererPlugins === 'function') {
-                const refs = plugin.getServerRendererPlugins();
-                const refsArr = Array.isArray(refs) ? refs : refs ? [refs] : [];
-
-                for (const ref of refsArr) {
-                  const symbol = `plugin__${serverRenderPluginInstantiations.length}`;
-                  const target = ref.exportName
-                    ? `{ ${ref.exportName}: ${symbol} }`
-                    : symbol;
-
-                  // The import statement to pull in the server plugin
-                  serverRenderPluginImports.push(
-                    `import ${target} from ${jsesc(ref.spec, {
-                      isScriptContext: true,
-                      json: true,
-                    })};`
-                  );
-                  // The function call to instantiate the plugin with the config
-                  serverRenderPluginInstantiations.push(
-                    `${symbol}(${jsesc(ref.config, { isScriptContext: true })})`
-                  );
-                }
-              }
-            }
-          }
-        },
-        resolveId(source, importer, options) {
-          if (source === serverEntrypointUrl) {
-            return {
-              id: syntheticServerEntrypointPath,
-            };
-          } else if (source === clientEntrypointUrl) {
-            return {
-              id: syntheticClientEntrypointPath,
-            };
-          } else if (source === NOSTALGIE_MANIFEST_MODULE_ID) {
+        name: 'nostalgie-plugin-asset-manifest',
+        resolveId(source) {
+          if (source === NOSTALGIE_MANIFEST_MODULE_ID) {
             return {
               id: NOSTALGIE_MANIFEST_MODULE_ID,
             };
@@ -151,65 +78,7 @@ export async function runDevServer(
           return undefined;
         },
         load(id, options) {
-          if (id === syntheticServerEntrypointPath) {
-            const code = `
-              import App from ${jsesc(config.settings.appEntrypoint!, {
-                isScriptContext: true,
-                json: true,
-              })};
-              import { ServerRenderer, NoopAssetManifest } from "nostalgie/runtime/server";
-              ${serverRenderPluginImports.join('\n')}
-              
-              const renderer = new ServerRenderer({
-                appRoot: App,
-                assetManifest: new NoopAssetManifest(),
-                entrypointUrl: ${jsesc(clientEntrypointUrl, {
-                  isScriptContext: true,
-                  json: true,
-                })},
-                publicUrl: 'https://localhost:3000/',
-                plugins: [${serverRenderPluginInstantiations.join(',')}]
-              });
-
-              export function render(request) {
-                return renderer.render(request);
-              }`.trim();
-
-            // const require = Module.createRequire(entrypointPath);
-            return {
-              code,
-            };
-          } else if (id === syntheticClientEntrypointPath) {
-            const entrypointPath = Path.resolve(
-              config.rootDir,
-              config.settings.appEntrypoint!
-            );
-            const code = `
-              import App from ${jsesc(config.settings.appEntrypoint!, {
-                isScriptContext: true,
-                json: true,
-              })};
-              import { ClientRenderer } from "nostalgie/runtime/client";
-              ${clientRenderPluginImports.join('\n')}
-
-              const renderer = new ClientRenderer({
-                appRoot: App,
-                entrypointUrl: ${jsesc(clientEntrypointUrl, {
-                  isScriptContext: true,
-                  json: true,
-                })},
-                plugins: [${clientRenderPluginInstantiations.join(',')}]
-              });
-
-              export function render(request) {
-                return renderer.render(request);
-              }`.trim();
-
-            // const require = Module.createRequire(entrypointPath);
-            return {
-              code,
-            };
-          } else if (id === NOSTALGIE_MANIFEST_MODULE_ID) {
+          if (id === NOSTALGIE_MANIFEST_MODULE_ID) {
             return {
               code: '{}',
             };
@@ -289,27 +158,6 @@ export async function runDevServer(
       }
     },
   });
-
-  // server.route({
-  //   method: 'get',
-  //   path: '/{any*}',
-  //   handler: async (request, reply) => {
-  //     const { response } = await renderer.render({
-  //       body: '',
-  //       headers: new Headers(request.headers as any),
-  //       method: request.method,
-  //       path: request.url.pathname,
-  //     });
-  //     const html = response.body as string;
-  //     const res = reply.response(html).code(response.status);
-
-  //     response.headers.forEach((value, key) => {
-  //       res.header(key, value);
-  //     });
-
-  //     return res;
-  //   },
-  // });
 
   await server.start();
 
