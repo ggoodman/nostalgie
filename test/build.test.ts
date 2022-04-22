@@ -22,6 +22,7 @@ describe('buildProject', () => {
         },
       }),
       {
+        logLevel: 'error',
         noEmit: true,
       }
     );

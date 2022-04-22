@@ -1,7 +1,7 @@
 import type { Context } from '@ggoodman/context';
 import reactRefreshPlugin from '@vitejs/plugin-react';
 import type { RollupOutput } from 'rollup';
-import { build, type InlineConfig } from 'vite';
+import { build, LogLevel, type InlineConfig } from 'vite';
 import { createDedupePlugin } from './build/plugins/dedupe';
 import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
@@ -16,6 +16,7 @@ import { nostalgieServerEntryPlugin } from './plugins/nostalgieServerEntry';
 // const debug = Debug.debug('nostalgie:dev');
 
 export interface BuildProjectOptions {
+  logLevel?: LogLevel;
   noEmit?: boolean;
 }
 
@@ -42,7 +43,7 @@ export async function buildProject(
     configFile: false,
     mode: 'production',
     clearScreen: false,
-    logLevel: 'info',
+    logLevel: options?.logLevel ?? 'info',
     plugins: [
       nostalgieConfigPlugin(config),
       nostalgiePluginsPlugin({
