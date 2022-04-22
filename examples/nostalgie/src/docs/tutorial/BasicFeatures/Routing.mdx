@@ -1,5 +1,0 @@
----
-title: Routing
----
-
-# Routing

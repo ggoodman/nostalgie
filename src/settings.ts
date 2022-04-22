@@ -20,6 +20,8 @@ export function createSettings(settings: NostalgieSettings): NostalgieSettings {
   return settings;
 }
 
-export function validateSettings(userSettings: unknown): Result<NostalgieSettings> {
+export function validateSettings(
+  userSettings: unknown
+): Result<NostalgieSettings> {
   return NostalgieSettings.validate(userSettings) as Result<NostalgieSettings>;
 }

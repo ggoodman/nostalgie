@@ -1,13 +1,13 @@
 import {
-  ComponentType,
   createContext,
   createElement,
   Fragment,
-  ReactElement,
   Suspense,
   useContext,
   useEffect,
   useState,
+  type ComponentType,
+  type ReactElement,
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useOutlet, useOutletContext } from 'react-router-dom';

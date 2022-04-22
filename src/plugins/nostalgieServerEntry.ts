@@ -64,7 +64,6 @@ export function nostalgieServerEntryPlugin({
         });
 
         export function render(request) {
-        
           return renderer.render(request);
         }`.trim();
 

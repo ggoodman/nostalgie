@@ -1,5 +1,5 @@
 import type { Context } from '@ggoodman/context';
-import { ResponseObject, Server } from '@hapi/hapi';
+import { Server, type ResponseObject } from '@hapi/hapi';
 import reactRefreshPlugin from '@vitejs/plugin-react';
 import Debug from 'debug';
 import { Headers } from 'headers-utils/lib';

@@ -1,3 +1,0 @@
-build:
-  docker:
-    web: ./examples/nostalgie/build/Dockerfile

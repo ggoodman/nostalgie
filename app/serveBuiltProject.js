@@ -1,36 +1,64 @@
 //@ts-check
-const { render } = require('./out/nostalgie.server');
 
-const fastify = require('fastify');
-const pino = require('pino');
-const path = require('path');
+const Fastify = require('fastify');
+const Pino = require('pino');
+const Path = require('node:path');
+const Piscina = require('piscina');
+const { Headers } = require('headers-utils');
 
-const server = fastify.fastify({
-  logger: pino.pino(),
-});
+/** @type {import('node:cluster').default} */
+//@ts-ignore
+const Cluster = require('node:cluster');
+const Os = require('node:os');
 
-server.register(require('fastify-static').default, {
-  root: path.join(__dirname, './out/assets'),
-  prefix: '/assets/', // optional: default '/'
-});
+const Nostalgie = require('./out/nostalgie.server');
 
-server.get('/robots.txt', async (req, reply) => {
-  return reply.code(200).type('text/plain').send('');
-});
-
-server.get('/*', async (req, reply) => {
-  const { response, errors, stats } = await render({
-    method: req.method,
-    headers: req.headers,
-    path: req.url,
+if (false && Cluster.isPrimary) {
+} else {
+  const pool = new Piscina({
+    filename: __dirname + '/out/nostalgie.server.js',
+    name: 'render',
   });
 
-  req.log.info({ errors, stats }, 'ssr completed');
+  const server = Fastify.fastify({
+    logger: Pino.pino(),
+  });
 
-  return reply
-    .code(response.status)
-    .headers(Object.fromEntries(response.headers))
-    .send(response.body);
-});
+  server.register(require('fastify-static').default, {
+    root: Path.join(__dirname, './out/assets'),
+    prefix: '/assets/', // optional: default '/'
+  });
 
-server.listen(3000);
+  server.get('/robots.txt', async (req, reply) => {
+    return reply.code(200).type('text/plain').send('');
+  });
+
+  const renderWithNostalgie = Nostalgie.render;
+
+  /** @type {typeof import('./out/nostalgie.server').render} */
+  const renderWithPiscina = async (req) => {
+    /** @type {Awaited<ReturnType<typeof import('./out/nostalgie.server').render>>} */
+    const result = await pool.run(req);
+
+    result.response.headers = new Headers(result.response.headers._headers);
+
+    return result;
+  };
+
+  server.get('/*', async (req, reply) => {
+    const { response, errors, stats } = await renderWithPiscina({
+      method: req.method,
+      headers: req.headers,
+      path: req.url,
+    });
+
+    req.log.info({ errors, stats }, 'ssr completed');
+
+    return reply
+      .code(response.status)
+      .headers(Object.fromEntries(response.headers))
+      .send(response.body);
+  });
+
+  server.listen(3000);
+}

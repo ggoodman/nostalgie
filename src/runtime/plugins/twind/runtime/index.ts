@@ -1,10 +1,10 @@
-import React, {
+import {
   createElement,
-  ElementType,
-  ForwardedRef,
   forwardRef,
-  ReactElement,
   useContext,
+  type ElementType,
+  type ForwardedRef,
+  type ReactElement,
 } from 'react';
 import { Style, style, StyleConfig, StyleProps, TW } from 'twind/style';
 import { invariant } from '../../../../invariant';
@@ -12,7 +12,7 @@ import { TwindContext } from './context';
 import type { PolymorphicPropsWithRef } from './types';
 
 export interface StyledComponent<Variants, Tag extends ElementType> {
-  <T extends React.ElementType = Tag>(
+  <T extends ElementType = Tag>(
     props: PolymorphicPropsWithRef<Omit<StyleProps<Variants>, 'class'>, T>
   ): ReactElement<any, any> | null;
 
@@ -50,7 +50,7 @@ export function styled<Variants, Tag extends ElementType, BaseVariants = {}>(
       : style(config);
 
   const sc = forwardRef(
-    <T extends React.ElementType = Tag>(
+    <T extends ElementType = Tag>(
       {
         as: asType,
         children,

@@ -1,7 +1,7 @@
 import type { Context } from '@ggoodman/context';
 import reactRefreshPlugin from '@vitejs/plugin-react';
 import * as Path from 'node:path';
-import { build, InlineConfig } from 'vite';
+import { build, type InlineConfig } from 'vite';
 import { createDedupePlugin } from './build/plugins/dedupe';
 import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';

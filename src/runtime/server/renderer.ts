@@ -7,7 +7,11 @@ import { renderToString } from 'react-dom/server';
 // import type { ChunkDependencies } from '../build/types';
 import { DEFAULT_HTML_TEMPLATE, STATUS_CODES } from './constants';
 import type { AssetManifest } from './manifest';
-import { RendererPluginHost, RootComponent, ServerPlugin } from './plugin';
+import {
+  RendererPluginHost,
+  type RootComponent,
+  type ServerPlugin,
+} from './plugin';
 import { vitePlugin } from './plugins/vite';
 import type { Request } from './request';
 import type { Response } from './response';

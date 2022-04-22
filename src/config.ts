@@ -1,10 +1,10 @@
-import { Context, withCancel } from '@ggoodman/context';
+import { withCancel, type Context } from '@ggoodman/context';
 import { makeAsyncIterableIteratorFromSink } from '@n1ru4l/push-pull-async-iterable-iterator';
-import { build, BuildResult } from 'esbuild';
+import { build, type BuildResult } from 'esbuild';
 import * as Path from 'path';
 import { invariant } from './invariant';
 import type { Logger } from './logging';
-import { NostalgieSettings, validateSettings } from './settings';
+import { validateSettings, type NostalgieSettings } from './settings';
 
 export interface NostalgieConfig {
   fileName: string;

@@ -14,7 +14,8 @@
     "fastify-static": "^4.6.1",
     "nostalgie": "file:../dist",
     "pino": "^7.10.0",
-    "pino-pretty": "^7.6.1"
+    "pino-pretty": "^7.6.1",
+    "piscina": "^3.2.0"
   },
   "dependencies": {
     "react": "^18.0.0",

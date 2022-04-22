@@ -208,12 +208,23 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
             if (files.has(candidate)) {
               const layoutPathname = join(path, candidate);
 
-              layoutPath = layoutPathname;
+              const layoutInfo = await this.resolve(
+                layoutPathname,
+                config.rootDir,
+                {
+                  skipSelf: true,
+                }
+              );
+              if (layoutInfo && !layoutInfo.external) {
+                const layoutData = await this.load(layoutInfo);
+                console.log('moduleInfo', layoutData.ast?.type);
+                layoutPath = layoutPathname;
 
-              this.addWatchFile(layoutPathname);
+                this.addWatchFile(layoutPathname);
 
-              // Don't process the layout after
-              files.delete(candidate);
+                // Don't process the layout after
+                files.delete(candidate);
+              }
             }
           }
 
