@@ -11,6 +11,8 @@ export const DEFAULT_HTML_TEMPLATE = `
 </html>
 `;
 
+export const NOSTALGIE_BOOTSTRAP_SCRIPT_ID = 'nostalgie-bootstrap';
+
 /*
  * Copyright Joyent, Inc. and other Node contributors.
  *

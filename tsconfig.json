@@ -13,7 +13,7 @@
     "importsNotUsedAsValues": "error",
     "incremental": true,
     "isolatedModules": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "lib": ["ESNext", "DOM.Iterable"],
     "module": "esnext",
     "moduleResolution": "node",
@@ -37,6 +37,5 @@
       "nostalgie/runtime/client": ["./src/runtime/client"]
     }
   },
-  "include": ["./package.json", "./src"],
-  "exclude": ["./src/old"]
+  "include": ["./package.json", "./src", "./test"],
 }

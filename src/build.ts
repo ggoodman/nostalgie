@@ -97,7 +97,7 @@ export async function buildProject(
 
         emptyOutDir: true,
         cssCodeSplit: true,
-        minify: false,
+        minify: true,
         manifest: true,
         ssr: false,
 

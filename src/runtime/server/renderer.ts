@@ -5,7 +5,11 @@ import type { jsdonValue } from 'linkedom/types/shared/parse-json';
 import * as React from 'react';
 import { renderToString } from 'react-dom/server';
 // import type { ChunkDependencies } from '../build/types';
-import { DEFAULT_HTML_TEMPLATE, STATUS_CODES } from './constants';
+import {
+  DEFAULT_HTML_TEMPLATE,
+  NOSTALGIE_BOOTSTRAP_SCRIPT_ID,
+  STATUS_CODES,
+} from './constants';
 import type { AssetManifest } from './manifest';
 import {
   RendererPluginHost,
@@ -169,6 +173,7 @@ render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
     `;
     const bootstrapScriptEl = document.createElement('script');
     bootstrapScriptEl.appendChild(document.createTextNode(bootstrapScript));
+    bootstrapScriptEl.setAttribute('id', NOSTALGIE_BOOTSTRAP_SCRIPT_ID);
     bootstrapScriptEl.setAttribute('async', '');
     bootstrapScriptEl.setAttribute('defer', '');
     bootstrapScriptEl.setAttribute('type', 'module');
