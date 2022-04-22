@@ -17,6 +17,25 @@ export interface ReadConfigOptions {
   watch?: boolean;
 }
 
+export function defineConfig(config: NostalgieConfig): NostalgieConfig {
+  const validationResult = validateSettings(config.settings);
+  const fileName = Path.resolve(
+    config.rootDir,
+    // TODO: Refactor define config
+    'nostalgie.config.js'
+  );
+
+  if (!validationResult.success) {
+    throw new Error(validationResult.message);
+  }
+
+  return {
+    rootDir: config.rootDir,
+    fileName,
+    settings: validationResult.value,
+  };
+}
+
 export function readConfigs(
   ctx: Context,
   logger: Logger,
@@ -95,9 +114,11 @@ function instantiateConfig(
   rootDir: string,
   buildResult: BuildResult
 ): NostalgieConfig | undefined {
-  invariant(buildResult.outputFiles, 'Build results must have output files.');
+  const outputFiles = buildResult.outputFiles;
+
+  invariant(outputFiles, 'Build results must have output files.');
   invariant(
-    buildResult.outputFiles.length === 1,
+    outputFiles.length === 1,
     'Build results must have a single output file.'
   );
 
@@ -107,13 +128,12 @@ function instantiateConfig(
       'module',
       'exports',
       'require',
-      buildResult.outputFiles[0].text
+      outputFiles[0].text
     );
 
     instantiate(mod, mod.exports, require);
 
     const userSettings = (mod.exports as any).default;
-
     const validationResult = validateSettings(userSettings);
     const fileName = Path.resolve(
       rootDir,

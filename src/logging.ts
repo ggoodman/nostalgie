@@ -18,7 +18,30 @@ export interface Logger {
   onExitSignalReceived(signal: NodeJS.Signals): void;
 }
 
-class TerminalLogger implements Logger {
+export class SilentLogger implements Logger {
+  onServerRendered({
+    errors,
+    request,
+    stats,
+  }: {
+    errors: Error[];
+    request: Request;
+    stats: RenderStats;
+  }): void {}
+  onConfigLoadError(err: Error) {}
+
+  onConfigValidationError(filePath: string, failure: Failure) {}
+
+  onExitSignalReceived(signal: NodeJS.Signals) {}
+
+  onServerListening(address: string) {}
+
+  onServerRenderError(err: Error) {}
+
+  onValidConfiguration(config: NostalgieConfig) {}
+}
+
+export class TerminalLogger implements Logger {
   onServerRendered({
     errors,
     request,

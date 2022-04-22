@@ -106,7 +106,6 @@ export function createMdxPlugin(): Plugin {
           code: chunks.join('\n') + '\n',
         };
       } catch (err: any) {
-        console.error(err);
         this.error(err);
       }
     },

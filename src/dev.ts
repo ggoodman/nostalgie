@@ -1,7 +1,7 @@
 import type { Context } from '@ggoodman/context';
-import { Server, type ResponseObject } from '@hapi/hapi';
 import reactRefreshPlugin from '@vitejs/plugin-react';
 import Debug from 'debug';
+import fastify, { FastifyReply } from 'fastify';
 import { Headers } from 'headers-utils/lib';
 import { createServer } from 'vite';
 import { createMdxPlugin } from './build/plugins/mdx';
@@ -96,23 +96,20 @@ export async function runDevServer(
     vite.close();
   });
 
-  const server = new Server({
-    host: 'localhost',
-    port: 3000,
-  });
+  const server = fastify({});
 
   server.route({
-    method: 'get',
-    path: '/favicon.ico',
-    handler: async (request, h) => {
-      return h.response().code(404);
+    method: 'GET',
+    url: '/favicon.ico',
+    handler: async (request, reply) => {
+      return reply.code(404);
     },
   });
 
   server.route({
-    method: 'get',
-    path: '/{any*}',
-    handler: async (request, h) => {
+    method: 'GET',
+    url: '/*',
+    handler: async (request, reply) => {
       try {
         const serverApp = (await vite.ssrLoadModule(serverEntrypointUrl)) as {
           render: import('./runtime/server/renderer').ServerRenderer['render'];
@@ -122,8 +119,8 @@ export async function runDevServer(
           throw new Error('Error importing SSR module');
         }
 
-        const res = await new Promise<ResponseObject>((resolve, reject) => {
-          vite.middlewares(request.raw.req, request.raw.res, (err: Error) => {
+        const res = await new Promise<FastifyReply>((resolve, reject) => {
+          vite.middlewares(request.raw, reply.raw, (err: Error) => {
             if (err) {
               return reject(err);
             }
@@ -132,12 +129,15 @@ export async function runDevServer(
               body: '',
               headers: new Headers(request.headers as any),
               method: request.method,
-              path: request.url.pathname,
+              path: request.url,
             };
 
             return serverApp.render(req).then(({ errors, response, stats }) => {
               const html = response.body as string;
-              const res = h.response(html).code(response.status);
+              const res = reply
+                .code(response.status)
+                .headers(Object.fromEntries(response.headers.entries()))
+                .send(html);
 
               response.headers.forEach((value, key) => {
                 res.header(key, value);
@@ -159,15 +159,18 @@ export async function runDevServer(
     },
   });
 
-  await server.start();
+  const uri = await server.listen({
+    port: 3000,
+    host: 'localhost',
+  });
 
-  logger.onServerListening(server.info.uri);
+  logger.onServerListening(uri);
 
-  ctx.onDidCancel(() => server.stop());
+  ctx.onDidCancel(() => server.close());
 
   await new Promise<void>((resolve) =>
-    server.ext('onPostStop', () => {
-      debug('hapi server onPostStop');
+    server.addHook('onClose', () => {
+      debug('fastify server onClose');
       return resolve();
     })
   );
