@@ -45,7 +45,7 @@ export async function runDevServer(
     clearScreen: false,
     logLevel: 'info',
     plugins: [
-      ...(config.settings.plugins || []),
+      ...(config.plugins || []),
       errorBoundaryPlugin(),
       nostalgiePluginsPlugin({
         serverRenderPluginImports,
@@ -122,7 +122,9 @@ export async function runDevServer(
     url: '/*',
     handler: async (request, reply) => {
       try {
-        const serverApp = (await vite.ssrLoadModule(serverEntrypointUrl)) as {
+        const serverApp = (await vite.ssrLoadModule(serverEntrypointUrl, {
+          fixStacktrace: true,
+        })) as {
           render: import('./runtime/server/serverRenderer').ServerRenderer['render'];
         };
 

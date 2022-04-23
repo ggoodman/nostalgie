@@ -36,7 +36,7 @@ export function nostalgieClientEntryPlugin({
         return;
       }
 
-      const appEntrypoint = config.settings.appEntrypoint;
+      const appEntrypoint = config.appEntrypoint;
 
       invariant(appEntrypoint, 'App entrypoint is missing or falsy');
 
@@ -53,7 +53,7 @@ export function nostalgieClientEntryPlugin({
           appRoot: App,
           entrypointUrl: ${jsesc(clientEntrypointUrl, {
             isScriptContext: true,
-            json: true,
+            wrap: true,
           })},
           plugins: [${clientRenderPluginInstantiations.join(',')}]
         });

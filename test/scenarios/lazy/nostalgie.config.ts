@@ -1,7 +1,7 @@
 import { lazyPlugin } from 'nostalgie/plugins/lazy';
-import { createSettings } from '../../../src/settings';
+import { defineConfig } from '../../../src/config';
 
-export default createSettings({
+export default defineConfig({
   appEntrypoint: './',
   plugins: [lazyPlugin()],
 });

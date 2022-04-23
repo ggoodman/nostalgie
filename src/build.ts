@@ -46,7 +46,7 @@ export async function buildProject(
     clearScreen: false,
     logLevel: options?.logLevel ?? 'info',
     plugins: [
-      ...(config.settings.plugins || []),
+      ...(config.plugins || []),
       nostalgiePluginsPlugin({
         serverRenderPluginImports,
         serverRenderPluginInstantiations,
@@ -78,7 +78,7 @@ export async function buildProject(
     }
   }
 
-  const appEntrypoint = config.settings.appEntrypoint;
+  const appEntrypoint = config.appEntrypoint;
 
   invariant(appEntrypoint, 'App entrypoint is missing or falsy');
 

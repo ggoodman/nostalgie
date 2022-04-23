@@ -39,7 +39,7 @@ export function nostalgieServerEntryPlugin({
         return;
       }
 
-      const appEntrypoint = config.settings.appEntrypoint;
+      const appEntrypoint = config.appEntrypoint;
 
       invariant(appEntrypoint, 'App entrypoint is missing or falsy');
 
@@ -57,7 +57,7 @@ export function nostalgieServerEntryPlugin({
           assetManifest: new ViteAssetManifest(manifest),
           entrypointUrl: ${jsesc(clientEntrypointUrl, {
             isScriptContext: true,
-            json: true,
+            wrap: true,
           })},
           publicUrl: 'https://localhost:3000/',
           plugins: [${serverRenderPluginInstantiations.join(',')}]

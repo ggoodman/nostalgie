@@ -8,9 +8,6 @@
     "jsxImportSource": "react",
     // "rootDir": "../",
     "baseUrl": ".",
-    "paths": {
-      "nostalgie/twind": ["../src/runtime/plugins/twind/runtime/index.ts"]
-    },
     "strict": true
   },
   "include": ["nostalgie.config.js", "src"],

@@ -32,13 +32,10 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
         viteConfig.plugins.push(LazyPlugin.lazyPlugin());
       }
 
-      if (!nostalgieConfig.settings.appEntrypoint?.startsWith(prefix)) {
-        nostalgieConfig.settings.appEntrypoint = `${prefix}${nostalgieConfig.settings.appEntrypoint}`;
+      if (!nostalgieConfig.appEntrypoint?.startsWith(prefix)) {
+        nostalgieConfig.appEntrypoint = `${prefix}${nostalgieConfig.appEntrypoint}`;
 
-        debug(
-          'Updated app entrypoint to: %s',
-          nostalgieConfig.settings.appEntrypoint
-        );
+        debug('Updated app entrypoint to: %s', nostalgieConfig.appEntrypoint);
       }
 
       (viteConfig as any).ssr ??= {};
@@ -279,7 +276,7 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
         }
       `;
 
-        return { code };
+        return { code, map: { mappings: '' } };
       };
     },
   };

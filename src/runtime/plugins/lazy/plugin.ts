@@ -88,7 +88,7 @@ export function lazyPlugin(): Plugin {
         // Location where the client can load a lazy import
         let fileRef: string = jsesc(`/${rootRelativePath}`, {
           isScriptContext: true,
-          json: true,
+          wrap: true,
         });
 
         debug(

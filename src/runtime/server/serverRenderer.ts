@@ -157,17 +157,18 @@ export class ServerRenderer {
 
     // Create and inject our bootstrap script
     const clientBootstrapData = pluginHost.getClientBootstrapData();
-    const bootstrapScript = `
+    const bootstrapScript =
+      `
 import { render } from ${jsesc(
-      this.assetManifest.translatePath(this.entrypointUrl),
-      {
-        isScriptContext: true,
-        json: true,
-      }
-    )};
+        this.assetManifest.translatePath(this.entrypointUrl),
+        {
+          isScriptContext: true,
+          json: true,
+        }
+      )};
 
-render(${jsesc(clientBootstrapData, { isScriptContext: true, json: true })});
-    `;
+render(${jsesc(clientBootstrapData, { isScriptContext: true })});
+    `.trim() + '\n';
     const bootstrapScriptEl = document.createElement('script');
     bootstrapScriptEl.appendChild(document.createTextNode(bootstrapScript));
     bootstrapScriptEl.setAttribute('id', NOSTALGIE_BOOTSTRAP_SCRIPT_ID);

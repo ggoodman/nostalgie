@@ -1,9 +1,11 @@
+//@ts-check
+
 import { lazyPlugin } from 'nostalgie/plugins/lazy';
 import { routingPlugin } from 'nostalgie/plugins/routing';
 import { twindPlugin } from 'nostalgie/plugins/twind';
-import { createSettings } from '../src/settings';
+import { defineConfig } from '../src/config';
 
-export default createSettings({
+export default defineConfig({
   appEntrypoint: './src/root',
   plugins: [
     routingPlugin({

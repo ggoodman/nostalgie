@@ -2,9 +2,9 @@ import { Link, Outlet } from 'nostalgie/routing';
 import {
   style,
   styled,
-  StyledComponent,
   useTwind,
   variant,
+  type StyledComponent,
 } from 'nostalgie/twind';
 import { ComponentProps } from 'react';
 import { useMatch } from 'react-router';
