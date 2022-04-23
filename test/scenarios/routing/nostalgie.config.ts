@@ -5,5 +5,9 @@ export default createSettings({
   // This needs to point to the root layout. The plugin will assume
   // that the `routes` folder is adjacent to it.
   appEntrypoint: './root.tsx',
-  plugins: [routingPlugin()],
+  plugins: [
+    routingPlugin({
+      routesPath: './routes',
+    }),
+  ],
 });

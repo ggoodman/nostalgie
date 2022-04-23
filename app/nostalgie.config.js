@@ -5,5 +5,11 @@ import { createSettings } from '../src/settings';
 
 export default createSettings({
   appEntrypoint: './src/root',
-  plugins: [routingPlugin(), lazyPlugin(), twindPlugin({ shimHtml: false })],
+  plugins: [
+    routingPlugin({
+      routesPath: './src/routes',
+    }),
+    lazyPlugin(),
+    twindPlugin({ shimHtml: false }),
+  ],
 });
