@@ -33,10 +33,8 @@ export interface Plugin extends VitePlugin {
     | MaybeArray<RendererPluginReference>
     | undefined;
 
-  nostalgieConfig?: (
-    viteConfig: UserConfig,
-    nostalgieConfig: NostalgieConfig
+  preconfigure?: (
+    nostalgieConfig: NostalgieConfig,
+    viteConfig: UserConfig
   ) => void | Promise<void>;
-
-  nostalgieConfigResolved?: (config: NostalgieConfig) => void | Promise<void>;
 }

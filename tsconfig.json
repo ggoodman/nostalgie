@@ -1,41 +1,4 @@
 {
-  "compilerOptions": {
-    "allowJs": false,
-    "allowSyntheticDefaultImports": true,
-    "composite": true,
-    "declaration": true,
-    "declarationMap": false,
-    "downlevelIteration": true,
-    "emitDeclarationOnly": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
-    "importsNotUsedAsValues": "error",
-    "incremental": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM.Iterable"],
-    "module": "esnext",
-    "moduleResolution": "node",
-    "noEmit": false,
-    "noErrorTruncation": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "outDir": "./dist/.types",
-    "pretty": true,
-    "resolveJsonModule": true,
-    "rootDir": ".",
-    "skipDefaultLibCheck": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "strict": true,
-    "stripInternal": true,
-    "target": "ESNext",
-    "types": [],
-    "paths": {
-      "nostalgie/runtime/client": ["./src/runtime/client"]
-    }
-  },
-  "include": ["./package.json", "./src", "./test"],
+  "extends": "./tsconfig.base.json",
+  "include": ["./package.json", "./src", "./test"]
 }

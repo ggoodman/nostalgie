@@ -215,7 +215,7 @@ async function buildRuntimeTypes() {
 
   await execAsync(
     Path.resolve(__dirname, '../node_modules/.bin/tsc'),
-    ['--build', '--force', '--incremental'],
+    ['--build', '--force', '--incremental', './tsconfig.base.json'],
     {
       cwd: Path.resolve(__dirname, '../'),
     }

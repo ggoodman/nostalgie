@@ -9,12 +9,14 @@ import type { Plugin } from '../../../plugin';
 const debug = Debug.debug('nostalgie:plugin:lazy');
 // const preloadMethod = `__vitePreload`
 
+export const pluginName = 'nostalgie-plugin-lazy';
+
 export function lazyPlugin(): Plugin {
   let resolvedConfig: ResolvedConfig | undefined = undefined;
   let counter = 0;
 
   return {
-    name: 'plugin-lazy',
+    name: pluginName,
     enforce: 'post',
     getClientRendererPlugins() {
       return {

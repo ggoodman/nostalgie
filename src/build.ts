@@ -1,5 +1,6 @@
 import type { Context } from '@ggoodman/context';
 import reactRefreshPlugin from '@vitejs/plugin-react';
+import Debug from 'debug';
 import type { RollupOutput } from 'rollup';
 import { build, LogLevel, type InlineConfig } from 'vite';
 import { createDedupePlugin } from './build/plugins/dedupe';
@@ -7,13 +8,13 @@ import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
 import { invariant } from './invariant';
 import type { Logger } from './logging';
+import type { Plugin } from './plugin';
 import { nostalgieClientEntryPlugin } from './plugins/nostalgieClientEntry';
-import { nostalgieConfigPlugin } from './plugins/nostalgieConfig';
 import { createManifestPlugin } from './plugins/nostalgieManifest';
 import { nostalgiePluginsPlugin } from './plugins/nostalgiePlugins';
 import { nostalgieServerEntryPlugin } from './plugins/nostalgieServerEntry';
 
-// const debug = Debug.debug('nostalgie:dev');
+const debug = Debug.debug('nostalgie:build');
 
 export interface BuildProjectOptions {
   logLevel?: LogLevel;
@@ -45,7 +46,43 @@ export async function buildProject(
     clearScreen: false,
     logLevel: options?.logLevel ?? 'info',
     plugins: [
-      nostalgieConfigPlugin(config),
+      new Proxy(
+        {
+          name: 'pre-observer',
+          enforce: 'pre' as const,
+        },
+        {
+          get(target, prop, receiver) {
+            switch (prop) {
+              case 'apply':
+              case 'name':
+              case 'enforce':
+                return Reflect.get(target, prop, receiver);
+              default:
+                return () => debug('pre.%s', prop);
+            }
+          },
+        }
+      ),
+      new Proxy(
+        {
+          name: 'post-observer',
+          enforce: 'post' as const,
+        },
+        {
+          get(target, prop, receiver) {
+            switch (prop) {
+              case 'apply':
+              case 'name':
+              case 'enforce':
+                return Reflect.get(target, prop, receiver);
+              default:
+                return () => debug('post.%s', prop);
+            }
+          },
+        }
+      ),
+      ...(config.settings.plugins || []),
       nostalgiePluginsPlugin({
         serverRenderPluginImports,
         serverRenderPluginInstantiations,
@@ -68,9 +105,14 @@ export async function buildProject(
       createDedupePlugin(),
       reactRefreshPlugin(),
       createMdxPlugin(),
-      ...(config.settings.plugins || []),
     ],
   };
+
+  for (const plugin of viteConfig.plugins! as Plugin[]) {
+    if (typeof plugin?.preconfigure === 'function') {
+      await plugin?.preconfigure(config, viteConfig);
+    }
+  }
 
   const appEntrypoint = config.settings.appEntrypoint;
 

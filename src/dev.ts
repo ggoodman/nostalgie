@@ -3,13 +3,13 @@ import reactRefreshPlugin from '@vitejs/plugin-react';
 import Debug from 'debug';
 import fastify, { FastifyReply } from 'fastify';
 import { Headers } from 'headers-utils/lib';
-import { createServer } from 'vite';
+import { createServer, InlineConfig } from 'vite';
 import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
 import { NOSTALGIE_MANIFEST_MODULE_ID } from './constants';
 import type { Logger } from './logging';
+import type { Plugin } from './plugin';
 import { nostalgieClientEntryPlugin } from './plugins/nostalgieClientEntry';
-import { nostalgieConfigPlugin } from './plugins/nostalgieConfig';
 import { nostalgiePluginsPlugin } from './plugins/nostalgiePlugins';
 import { nostalgieServerEntryPlugin } from './plugins/nostalgieServerEntry';
 import { errorBoundaryPlugin } from './runtime/server/plugins/errorBoundary';
@@ -31,7 +31,7 @@ export async function runDevServer(
   const clientRenderPluginImports: string[] = [];
   const clientRenderPluginInstantiations: string[] = [];
 
-  const vite = await createServer({
+  const viteConfig: InlineConfig = {
     root: config.rootDir,
     build: {},
     configFile: false,
@@ -46,7 +46,6 @@ export async function runDevServer(
     logLevel: 'info',
     plugins: [
       errorBoundaryPlugin(),
-      nostalgieConfigPlugin(config),
       nostalgiePluginsPlugin({
         serverRenderPluginImports,
         serverRenderPluginInstantiations,
@@ -89,7 +88,15 @@ export async function runDevServer(
       createMdxPlugin(),
       ...(config.settings.plugins || []),
     ],
-  });
+  };
+
+  for (const plugin of viteConfig.plugins! as Plugin[]) {
+    if (typeof plugin?.preconfigure === 'function') {
+      await plugin?.preconfigure(config, viteConfig);
+    }
+  }
+
+  const vite = await createServer(viteConfig);
 
   ctx.onDidCancel(() => {
     debug('dev server context cancelled');

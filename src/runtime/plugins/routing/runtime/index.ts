@@ -10,7 +10,11 @@ import {
   type ReactElement,
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useOutlet, useOutletContext } from 'react-router-dom';
+import {
+  useOutlet,
+  useOutletContext,
+  useParams as useReactRouterParams,
+} from 'react-router-dom';
 import { invariant } from '../../../../invariant';
 import type { LoadState, Resolved } from '../../lazy/runtime/state';
 
@@ -94,6 +98,10 @@ export function Outlet(props: OutletProps) {
     ...props.context,
     loading: props.loading,
   });
+}
+
+export function useParams() {
+  return useReactRouterParams();
 }
 
 export function useChildLoadState(): LoadState {
