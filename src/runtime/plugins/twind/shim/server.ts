@@ -11,7 +11,7 @@ export default function twindPlugin(
     ...createBasePlugin(),
 
     renderHtml(ctx, document) {
-      const els = document.querySelectorAll('[class]');
+      const els = Array.from(document.querySelectorAll('[class]'));
       const {
         sheet,
         twind: { tw },
