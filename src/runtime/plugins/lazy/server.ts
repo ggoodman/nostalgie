@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import type { ServerPlugin } from '../../server/plugin';
+import type { ServerPlugin } from '../../server/serverRenderPlugin';
 import { LazyContext } from './runtime/context';
 import { LazyManager } from './runtime/manager';
 

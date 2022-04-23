@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { setup, silent, tw } from 'twind';
-import type { ClientPlugin } from '../../client/plugin';
+import type { ClientPlugin } from '../../client/clientRenderPlugin';
 import type { TwindPluginOptions } from './options';
 import { TwindContext } from './runtime/context';
 

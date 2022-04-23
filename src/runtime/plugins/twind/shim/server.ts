@@ -1,6 +1,6 @@
 import type { Instance } from 'twind';
 import { getStyleTagProperties, VirtualSheet } from 'twind/sheets';
-import type { ServerPlugin } from '../../../server/plugin';
+import type { ServerPlugin } from '../../../server/serverRenderPlugin';
 import type { TwindPluginOptions } from '../options';
 import createBasePlugin from '../server';
 

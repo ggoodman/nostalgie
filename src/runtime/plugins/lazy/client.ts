@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { ClientPlugin } from '../../client/plugin';
+import type { ClientPlugin } from '../../client/clientRenderPlugin';
 import { LazyContext } from './runtime/context';
 import { LazyManager } from './runtime/manager';
 

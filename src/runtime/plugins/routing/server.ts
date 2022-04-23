@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { StaticRouter } from 'react-router-dom/server';
-import type { ServerPlugin } from '../../server/plugin';
+import type { ServerPlugin } from '../../server/serverRenderPlugin';
 
 export default function createPlugin(): ServerPlugin {
   return {

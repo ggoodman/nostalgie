@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import type { ClientPlugin } from '../../client/plugin';
+import type { ClientPlugin } from '../../client/clientRenderPlugin';
 
 export default function createPlugin(): ClientPlugin {
   return {

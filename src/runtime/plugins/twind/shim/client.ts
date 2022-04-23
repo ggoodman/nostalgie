@@ -1,5 +1,5 @@
 import { setup, silent } from 'twind/shim';
-import type { ClientPlugin } from '../../../client/plugin';
+import type { ClientPlugin } from '../../../client/clientRenderPlugin';
 import createBasePlugin from '../client';
 import type { TwindPluginOptions } from '../options';
 

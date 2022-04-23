@@ -1,5 +1,5 @@
 import { createElement, Fragment, Suspense } from 'react';
-import type { ServerPlugin } from '../plugin';
+import type { ServerPlugin } from '../serverRenderPlugin';
 
 export function errorBoundaryPlugin(): ServerPlugin {
   return {

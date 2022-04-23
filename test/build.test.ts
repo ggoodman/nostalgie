@@ -6,8 +6,8 @@ import { parseHTML } from 'linkedom';
 import type { OutputChunk } from 'rollup';
 import { buildProject } from '../src/build';
 import { readConfigs } from '../src/config';
+import { NOSTALGIE_BOOTSTRAP_SCRIPT_ID } from '../src/constants';
 import { SilentLogger } from '../src/logging';
-import { NOSTALGIE_BOOTSTRAP_SCRIPT_ID } from '../src/runtime/server/constants';
 
 async function first<T>(iter: AsyncIterable<T>): Promise<T> {
   for await (const value of iter) {
@@ -45,7 +45,7 @@ describe('buildProject', () => {
     serverMod(require, mod.exports, mod);
 
     const server = mod.exports as {
-      render: import('../src/runtime/server/renderer').ServerRenderer['render'];
+      render: import('../src/runtime/server/serverRenderer').ServerRenderer['render'];
     };
 
     const result = await server.render({
@@ -107,7 +107,7 @@ describe('buildProject', () => {
     serverMod(require, mod.exports, mod);
 
     const server = mod.exports as {
-      render: import('../src/runtime/server/renderer').ServerRenderer['render'];
+      render: import('../src/runtime/server/serverRenderer').ServerRenderer['render'];
     };
 
     const result = await server.render({
@@ -169,7 +169,7 @@ describe('buildProject', () => {
     serverMod(require, mod.exports, mod);
 
     const server = mod.exports as {
-      render: import('../src/runtime/server/renderer').ServerRenderer['render'];
+      render: import('../src/runtime/server/serverRenderer').ServerRenderer['render'];
     };
 
     const result = await server.render({

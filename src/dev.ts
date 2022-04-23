@@ -45,42 +45,6 @@ export async function runDevServer(
     clearScreen: false,
     logLevel: 'info',
     plugins: [
-      // new Proxy(
-      //   {
-      //     name: 'pre-observer',
-      //     enforce: 'pre' as const,
-      //   },
-      //   {
-      //     get(target, prop, receiver) {
-      //       switch (prop) {
-      //         case 'apply':
-      //         case 'name':
-      //         case 'enforce':
-      //           return Reflect.get(target, prop, receiver);
-      //         default:
-      //           return () => debug('pre.%s', prop);
-      //       }
-      //     },
-      //   }
-      // ),
-      // new Proxy(
-      //   {
-      //     name: 'post-observer',
-      //     enforce: 'post' as const,
-      //   },
-      //   {
-      //     get(target, prop, receiver) {
-      //       switch (prop) {
-      //         case 'apply':
-      //         case 'name':
-      //         case 'enforce':
-      //           return Reflect.get(target, prop, receiver);
-      //         default:
-      //           return () => debug('post.%s', prop);
-      //       }
-      //     },
-      //   }
-      // ),
       ...(config.settings.plugins || []),
       errorBoundaryPlugin(),
       nostalgiePluginsPlugin({
@@ -159,7 +123,7 @@ export async function runDevServer(
     handler: async (request, reply) => {
       try {
         const serverApp = (await vite.ssrLoadModule(serverEntrypointUrl)) as {
-          render: import('./runtime/server/renderer').ServerRenderer['render'];
+          render: import('./runtime/server/serverRenderer').ServerRenderer['render'];
         };
 
         if (serverApp == null || typeof serverApp.render !== 'function') {

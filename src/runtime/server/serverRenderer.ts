@@ -4,21 +4,18 @@ import { parseHTML, parseJSON, toJSON } from 'linkedom';
 import type { jsdonValue } from 'linkedom/types/shared/parse-json';
 import * as React from 'react';
 import { renderToString } from 'react-dom/server';
+import { NOSTALGIE_BOOTSTRAP_SCRIPT_ID } from '../../constants';
+import type { AssetManifest } from './assetManifest';
 // import type { ChunkDependencies } from '../build/types';
-import {
-  DEFAULT_HTML_TEMPLATE,
-  NOSTALGIE_BOOTSTRAP_SCRIPT_ID,
-  STATUS_CODES,
-} from './constants';
-import type { AssetManifest } from './manifest';
+import { DEFAULT_HTML_TEMPLATE, STATUS_CODES } from './constants';
+import { vitePlugin } from './plugins/vite';
+import type { Request } from './request';
+import type { Response } from './response';
 import {
   RendererPluginHost,
   type RootComponent,
   type ServerPlugin,
-} from './plugin';
-import { vitePlugin } from './plugins/vite';
-import type { Request } from './request';
-import type { Response } from './response';
+} from './serverRenderPlugin';
 
 export interface RenderOptions {
   deadline?: number;

@@ -1,2 +1,2 @@
-export * from './plugin';
-export * from './renderer';
+export * from './clientRenderer';
+export * from './clientRenderPlugin';

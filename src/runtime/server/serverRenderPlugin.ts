@@ -1,4 +1,4 @@
-import type { AssetManifest } from './manifest';
+import type { AssetManifest } from './assetManifest';
 import type { Request } from './request';
 import type { Response } from './response';
 

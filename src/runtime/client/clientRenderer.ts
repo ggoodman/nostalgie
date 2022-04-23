@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { invariant } from '../../invariant';
-import { RendererPluginHost, type ClientPlugin } from './plugin';
+import { RendererPluginHost, type ClientPlugin } from './clientRenderPlugin';
 
 export type RootComponent = (props: any) => React.ReactElement;
 

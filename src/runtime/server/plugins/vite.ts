@@ -1,5 +1,5 @@
 ///<reference lib="dom" />
-import type { ServerPlugin } from '../plugin';
+import type { ServerPlugin } from '../serverRenderPlugin';
 
 export function vitePlugin(): ServerPlugin {
   return {
