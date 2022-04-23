@@ -31,7 +31,7 @@
     "sourceMap": true,
     "strict": true,
     "stripInternal": true,
-    "target": "ESNext",
+    "target": "es2020",
     "types": []
   },
   "include": ["./package.json", "./src"]
