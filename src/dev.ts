@@ -45,6 +45,43 @@ export async function runDevServer(
     clearScreen: false,
     logLevel: 'info',
     plugins: [
+      // new Proxy(
+      //   {
+      //     name: 'pre-observer',
+      //     enforce: 'pre' as const,
+      //   },
+      //   {
+      //     get(target, prop, receiver) {
+      //       switch (prop) {
+      //         case 'apply':
+      //         case 'name':
+      //         case 'enforce':
+      //           return Reflect.get(target, prop, receiver);
+      //         default:
+      //           return () => debug('pre.%s', prop);
+      //       }
+      //     },
+      //   }
+      // ),
+      // new Proxy(
+      //   {
+      //     name: 'post-observer',
+      //     enforce: 'post' as const,
+      //   },
+      //   {
+      //     get(target, prop, receiver) {
+      //       switch (prop) {
+      //         case 'apply':
+      //         case 'name':
+      //         case 'enforce':
+      //           return Reflect.get(target, prop, receiver);
+      //         default:
+      //           return () => debug('post.%s', prop);
+      //       }
+      //     },
+      //   }
+      // ),
+      ...(config.settings.plugins || []),
       errorBoundaryPlugin(),
       nostalgiePluginsPlugin({
         serverRenderPluginImports,
@@ -86,7 +123,6 @@ export async function runDevServer(
       },
       reactRefreshPlugin({}),
       createMdxPlugin(),
-      ...(config.settings.plugins || []),
     ],
   };
 
@@ -103,7 +139,11 @@ export async function runDevServer(
     vite.close();
   });
 
-  const server = fastify({});
+  const server = fastify({
+    // If we don't do this, the context will wait indefinitely for all
+    // open connections to close.
+    forceCloseConnections: true,
+  });
 
   server.route({
     method: 'GET',

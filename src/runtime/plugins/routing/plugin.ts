@@ -1,7 +1,4 @@
-import type { ExportNamedDeclaration } from '@mdx-js/mdx/lib/plugin/recma-document';
 import Debug from 'debug';
-import type { BaseNode, Node } from 'estree';
-import { walk } from 'estree-walker';
 import { readdir, stat } from 'fs/promises';
 import { join, relative, resolve } from 'path';
 import type { NostalgieConfig } from '../../../config';
@@ -135,20 +132,17 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
 
       class RouteEntry {
         readonly children?: RouteEntry[];
-        readonly functionNames: string[];
         readonly lazyPath?: string;
         readonly index?: boolean;
         readonly path?: string;
 
         constructor(options: {
           children?: RouteEntry[];
-          functionNames: string[];
           lazyPath?: string;
           index?: boolean;
           path?: string;
         }) {
           this.children = options.children;
-          this.functionNames = options.functionNames;
           this.lazyPath = options.lazyPath;
           this.index = options.index;
           this.path = options.path;
@@ -187,67 +181,6 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
         }
       }
 
-      const extractFunctionNames = async (
-        pathname: string
-      ): Promise<string[]> => {
-        const loadInfo = await this.load({
-          id: pathname,
-        });
-
-        invariant(loadInfo.ast, 'The loaded route had no AST');
-
-        function isEstreeNode(node: BaseNode): node is Node {
-          return true;
-        }
-
-        function getNostalgieFunctionExports(
-          node: ExportNamedDeclaration
-        ): string[] | undefined {
-          if (node.declaration?.type === 'FunctionDeclaration') {
-            if (node.declaration.id?.name.startsWith('$')) {
-              return [node.declaration.id.name];
-            }
-          }
-          if (node.declaration?.type === 'VariableDeclaration') {
-            return node.declaration.declarations.reduce((names, decl) => {
-              if (
-                decl.type === 'VariableDeclarator' &&
-                decl.id.type === 'Identifier' &&
-                decl.id.name.startsWith('$')
-              ) {
-                names.push(decl.id.name);
-              }
-              return names;
-            }, [] as string[]);
-          }
-        }
-
-        const functionNames: string[] = [];
-
-        walk(loadInfo.ast, {
-          enter(node) {
-            invariant(isEstreeNode(node), 'Walking a non-estree node');
-            switch (node.type) {
-              case 'ExportNamedDeclaration': {
-                const nostalgieFunctionNames =
-                  getNostalgieFunctionExports(node);
-
-                if (nostalgieFunctionNames) {
-                  functionNames.push(...nostalgieFunctionNames);
-                }
-                break;
-              }
-            }
-          },
-        });
-
-        if (functionNames.length) {
-          console.log(loadInfo.id, functionNames);
-        }
-
-        return functionNames;
-      };
-
       const processPath = async (
         path: string,
         history: string[]
@@ -268,7 +201,6 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
 
         for (const dirname of dirs) {
           let layoutPath: string | undefined = undefined;
-          let functionNames: string[] = [];
 
           for (const ext of extensions) {
             const candidate = `${dirname}${ext}`;
@@ -285,7 +217,6 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
               );
               if (layoutInfo && !layoutInfo.external) {
                 layoutPath = layoutPathname;
-                functionNames = await extractFunctionNames(layoutPathname);
 
                 this.addWatchFile(layoutPathname);
 
@@ -303,7 +234,6 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
           entries.push(
             new RouteEntry({
               children,
-              functionNames,
               index: false,
               lazyPath: layoutPath,
               path: mapFileToRoute(dirname, history),
@@ -314,12 +244,10 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
         for (const filename of files) {
           const pathname = join(path, filename);
           const index = extensions.some((ext) => filename === `index${ext}`);
-          const functionNames = await extractFunctionNames(pathname);
 
           entries.push(
             new RouteEntry({
               index,
-              functionNames,
               lazyPath: pathname,
               path: index ? undefined : mapFileToRoute(filename, history),
             })
@@ -331,12 +259,9 @@ export function routingPlugin(options: RoutingPluginOptions = {}): Plugin {
         return entries;
       };
 
-      const functionNames = await extractFunctionNames(rootLayoutPath);
-
       const children = await processPath(routesPath, []);
       const rootEntry = new RouteEntry({
         children,
-        functionNames,
         index: false,
         lazyPath: rootLayoutPath,
         path: '/',

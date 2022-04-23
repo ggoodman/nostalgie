@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import {
   createElement,
   forwardRef,
@@ -6,14 +7,24 @@ import {
   type ForwardedRef,
   type ReactElement,
 } from 'react';
-import { Style, style, StyleConfig, StyleProps, TW } from 'twind/style';
+import {
+  style,
+  TW,
+  type CSSRules,
+  type Directive,
+  type Style,
+  type StyleConfig,
+  type StyleProps,
+} from 'twind/style';
 import { invariant } from '../../../../invariant';
 import { TwindContext } from './context';
 import type { PolymorphicPropsWithRef } from './types';
 
+export { apply, css, style, type Style } from 'twind/style';
+
 export interface StyledComponent<Variants, Tag extends ElementType> {
   <T extends ElementType = Tag>(
-    props: PolymorphicPropsWithRef<Omit<StyleProps<Variants>, 'class'>, T>
+    props: PolymorphicPropsWithRef<StyleProps<Variants>, T>
   ): ReactElement<any, any> | null;
 
   toString(): string;
@@ -24,6 +35,11 @@ export interface StyledComponent<Variants, Tag extends ElementType> {
 
   readonly style: Style<Variants>;
 }
+
+export type StyledComponentProps<
+  Variants,
+  Tag extends ElementType
+> = PolymorphicPropsWithRef<StyleProps<Variants>, Tag>;
 
 export function styled<Variants, Tag extends ElementType>(
   tag: Tag,
@@ -58,7 +74,7 @@ export function styled<Variants, Tag extends ElementType, BaseVariants = {}>(
         css,
         tw: twProp,
         ...props
-      }: PolymorphicPropsWithRef<Omit<StyleProps<Variants>, 'class'>, T>,
+      }: PolymorphicPropsWithRef<StyleProps<Variants>, T>,
       ref: ForwardedRef<any>
     ) => {
       const tw = useContext(TwindContext);
@@ -66,19 +82,25 @@ export function styled<Variants, Tag extends ElementType, BaseVariants = {}>(
       invariant(tw, 'Missing Twind context');
 
       const forwardedProps: any = {
-        ...props,
         ref,
-        className: dedupeClassNames(
-          tw(
-            base({
-              className,
-              css,
-              tw: twProp,
-              ...props,
-            } as StyleProps<Variants>)
-          )
-        ),
       };
+
+      for (const prop in props) {
+        if (isPropValid(prop)) {
+          forwardedProps[prop] = props[prop as keyof typeof props];
+        }
+      }
+
+      forwardedProps.className = dedupeClassNames(
+        tw(
+          base({
+            ...props,
+            className,
+            css,
+            tw: twProp,
+          } as StyleProps<Variants>)
+        )
+      );
 
       return createElement(
         typeof asType === 'string' ? asType : tag,
@@ -121,4 +143,20 @@ function isStyled(cmp: ElementType): cmp is StyledComponent<any, any> {
 function dedupeClassNames(className: string) {
   return className;
   // return [...new Set(className.split(' '))].join(' ');
+}
+
+export function variant<Options extends string>(
+  options: Record<Options, unknown>,
+  fn: (option: Options) => string | CSSRules | Directive<CSSRules>
+): Record<Options, string | CSSRules | Directive<CSSRules>> {
+  const variant = {} as Record<
+    Options,
+    string | CSSRules | Directive<CSSRules>
+  >;
+
+  for (const option in options) {
+    variant[option] = fn(option);
+  }
+
+  return variant;
 }

@@ -24,6 +24,8 @@ if (false && Cluster.isPrimary) {
     logger: Pino.pino(),
   });
 
+  server.register(require('fastify-compress').default);
+
   server.register(require('fastify-static').default, {
     root: Path.join(__dirname, './out/assets'),
     prefix: '/assets/', // optional: default '/'
@@ -32,8 +34,6 @@ if (false && Cluster.isPrimary) {
   server.get('/robots.txt', async (req, reply) => {
     return reply.code(200).type('text/plain').send('');
   });
-
-  const renderWithNostalgie = Nostalgie.render;
 
   /** @type {typeof import('./out/nostalgie.server').render} */
   const renderWithPiscina = async (req) => {

@@ -1,5 +1,4 @@
 import jsesc from 'jsesc';
-import { invariant } from '../invariant';
 import type { Plugin } from '../plugin';
 
 export interface PluginsPluginOptions {
@@ -24,9 +23,7 @@ export function nostalgiePluginsPlugin(options: PluginsPluginOptions): Plugin {
   return {
     name: 'nostalgie-plugin-plugins',
     enforce: 'post',
-    buildStart(config) {
-      invariant(config, 'Nostalgie config hook must have run');
-
+    configResolved(config) {
       serverRenderPluginImports.length = 0;
       serverRenderPluginInstantiations.length = 0;
       clientRenderPluginImports.length = 0;

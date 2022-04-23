@@ -11,6 +11,7 @@
   "license": "ISC",
   "devDependencies": {
     "fastify": "^3.28.0",
+    "fastify-compress": "^4.0.1",
     "fastify-static": "^4.6.1",
     "nostalgie": "file:../dist",
     "pino": "^7.10.0",

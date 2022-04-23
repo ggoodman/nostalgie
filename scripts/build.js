@@ -208,8 +208,6 @@ async function buildRuntimeModules() {
 }
 
 async function buildRuntimeTypes() {
-  /** @type {Extract<import('rollup').InputOption, {}>} */
-  const runtimeInput = {};
   /** @type {Promise<void>[]} */
   const buildPromises = [];
 

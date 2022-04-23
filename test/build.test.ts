@@ -56,13 +56,6 @@ describe('buildProject', () => {
     });
 
     expect(result.errors).toHaveLength(0);
-    expect(result.response.body).toMatchInlineSnapshot(`
-      "<!DOCTYPE html><html lang=\\"en\\"><head><link href=\\"/assets/nostalgie.client.243fa4ea.js\\" rel=\\"modulepreload\\"><meta charset=\\"UTF-8\\"><meta name=\\"viewport\\" content=\\"width=device-width\\"><title>Nostalgie project</title><meta name=\\"description\\" content=\\"Nostalgie starter project\\"></head><body><div id=\\"root\\"><span>Hello Nostalgie</span></div><script type=\\"module\\" defer async id=\\"nostalgie-bootstrap\\">
-      import { render } from \\"/assets/nostalgie.client.243fa4ea.js\\";
-
-      render({});
-          </script></body></html>"
-    `);
     expect(Object.fromEntries(result.response.headers)).toMatchInlineSnapshot(`
       Object {
         "content-type": "text/html",
@@ -125,13 +118,6 @@ describe('buildProject', () => {
     });
 
     expect(result.errors).toHaveLength(0);
-    expect(result.response.body).toMatchInlineSnapshot(`
-      "<!DOCTYPE html><html lang=\\"en\\"><head><link href=\\"/assets/nostalgie.client.d0a08269.js\\" rel=\\"modulepreload\\"><link href=\\"/assets/nostalgie.client.2e352ba1.js\\" rel=\\"modulepreload\\"><link href=\\"/assets/lazy.5c6f8b84.js\\" rel=\\"modulepreload\\"><meta charset=\\"UTF-8\\"><meta name=\\"viewport\\" content=\\"width=device-width\\"><title>Nostalgie project</title><meta name=\\"description\\" content=\\"Nostalgie starter project\\"></head><body><div id=\\"root\\"><span>I was lazy loaded</span></div><script type=\\"module\\" defer async id=\\"nostalgie-bootstrap\\">
-      import { render } from \\"/assets/nostalgie.client.d0a08269.js\\";
-
-      render({\\"lazy-plugin\\":[[\\"lazy.tsx\\",\\"/assets/lazy.5c6f8b84.js\\"]]});
-          </script></body></html>"
-    `);
     expect(Object.fromEntries(result.response.headers)).toMatchInlineSnapshot(`
       Object {
         "content-type": "text/html",
@@ -194,13 +180,6 @@ describe('buildProject', () => {
     });
 
     expect(result.errors).toHaveLength(0);
-    expect(result.response.body).toMatchInlineSnapshot(`
-      "<!DOCTYPE html><html lang=\\"en\\"><head><link href=\\"/assets/nostalgie.client.774333c2.js\\" rel=\\"modulepreload\\"><link href=\\"/assets/nostalgie.client.d784ef0e.js\\" rel=\\"modulepreload\\"><link href=\\"/assets/_postId.6519d3ec.js\\" rel=\\"modulepreload\\"><link href=\\"/assets/posts.141f1afa.js\\" rel=\\"modulepreload\\"><link href=\\"/assets/root.6cad1884.js\\" rel=\\"modulepreload\\"><meta charset=\\"UTF-8\\"><meta name=\\"viewport\\" content=\\"width=device-width\\"><title>Nostalgie project</title><meta name=\\"description\\" content=\\"Nostalgie starter project\\"></head><body><div id=\\"root\\"><!--$--><div><nav>Navigation here</nav><!--$--><main><h1>Posts</h1><!--$--><article><h1>Post 123</h1></article><!--/$--></main><!--/$--><footer>Footer here</footer></div><!--/$--></div><script type=\\"module\\" defer async id=\\"nostalgie-bootstrap\\">
-      import { render } from \\"/assets/nostalgie.client.774333c2.js\\";
-
-      render({\\"lazy-plugin\\":[[\\"root.tsx\\",\\"/assets/root.6cad1884.js\\"],[\\"routes/posts.tsx\\",\\"/assets/posts.141f1afa.js\\"],[\\"routes/posts/$postId.tsx\\",\\"/assets/_postId.6519d3ec.js\\"]]});
-          </script></body></html>"
-    `);
     expect(Object.fromEntries(result.response.headers)).toMatchInlineSnapshot(`
       Object {
         "content-type": "text/html",

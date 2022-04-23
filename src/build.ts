@@ -46,42 +46,42 @@ export async function buildProject(
     clearScreen: false,
     logLevel: options?.logLevel ?? 'info',
     plugins: [
-      new Proxy(
-        {
-          name: 'pre-observer',
-          enforce: 'pre' as const,
-        },
-        {
-          get(target, prop, receiver) {
-            switch (prop) {
-              case 'apply':
-              case 'name':
-              case 'enforce':
-                return Reflect.get(target, prop, receiver);
-              default:
-                return () => debug('pre.%s', prop);
-            }
-          },
-        }
-      ),
-      new Proxy(
-        {
-          name: 'post-observer',
-          enforce: 'post' as const,
-        },
-        {
-          get(target, prop, receiver) {
-            switch (prop) {
-              case 'apply':
-              case 'name':
-              case 'enforce':
-                return Reflect.get(target, prop, receiver);
-              default:
-                return () => debug('post.%s', prop);
-            }
-          },
-        }
-      ),
+      // new Proxy(
+      //   {
+      //     name: 'pre-observer',
+      //     enforce: 'pre' as const,
+      //   },
+      //   {
+      //     get(target, prop, receiver) {
+      //       switch (prop) {
+      //         case 'apply':
+      //         case 'name':
+      //         case 'enforce':
+      //           return Reflect.get(target, prop, receiver);
+      //         default:
+      //           return () => debug('pre.%s', prop);
+      //       }
+      //     },
+      //   }
+      // ),
+      // new Proxy(
+      //   {
+      //     name: 'post-observer',
+      //     enforce: 'post' as const,
+      //   },
+      //   {
+      //     get(target, prop, receiver) {
+      //       switch (prop) {
+      //         case 'apply':
+      //         case 'name':
+      //         case 'enforce':
+      //           return Reflect.get(target, prop, receiver);
+      //         default:
+      //           return () => debug('post.%s', prop);
+      //       }
+      //     },
+      //   }
+      // ),
       ...(config.settings.plugins || []),
       nostalgiePluginsPlugin({
         serverRenderPluginImports,
