@@ -4,15 +4,15 @@ import Debug from 'debug';
 import fastify, { FastifyReply } from 'fastify';
 import { Headers } from 'headers-utils/lib';
 import { createServer, InlineConfig } from 'vite';
-import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
 import { NOSTALGIE_MANIFEST_MODULE_ID } from './constants';
+import { nostalgieClientEntryPlugin } from './internal/plugins/clientEntryPlugin';
+import { createMdxPlugin } from './internal/plugins/mdx';
+import { nostalgiePluginsPlugin } from './internal/plugins/serializeRuntimePluginsPlugin';
+import { nostalgieServerEntryPlugin } from './internal/plugins/serverEntryPlugin';
+import { errorBoundaryPlugin } from './internal/server/plugins/errorBoundary';
 import type { Logger } from './logging';
 import type { Plugin } from './plugin';
-import { nostalgieClientEntryPlugin } from './plugins/nostalgieClientEntry';
-import { nostalgiePluginsPlugin } from './plugins/nostalgiePlugins';
-import { nostalgieServerEntryPlugin } from './plugins/nostalgieServerEntry';
-import { errorBoundaryPlugin } from './runtime/server/plugins/errorBoundary';
 
 const debug = Debug.debug('nostalgie:dev');
 
@@ -125,7 +125,7 @@ export async function runDevServer(
         const serverApp = (await vite.ssrLoadModule(serverEntrypointUrl, {
           fixStacktrace: true,
         })) as {
-          render: import('./runtime/server/serverRenderer').ServerRenderer['render'];
+          render: import('./internal/server/serverRenderer').ServerRenderer['render'];
         };
 
         if (serverApp == null || typeof serverApp.render !== 'function') {

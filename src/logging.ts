@@ -2,7 +2,7 @@ import Chalk from 'chalk';
 import type { Failure } from 'runtypes';
 import type { NostalgieConfig } from './config';
 import { getErrorLinesWithCause } from './error';
-import type { RenderStats, Request } from './runtime/server';
+import type { RenderStats, Request } from './internal/server';
 
 export interface Logger {
   onConfigLoadError(err: Error): void;

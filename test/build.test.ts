@@ -45,7 +45,7 @@ describe('buildProject', () => {
     serverMod(require, mod.exports, mod);
 
     const server = mod.exports as {
-      render: import('../src/runtime/server/serverRenderer').ServerRenderer['render'];
+      render: import('../src/internal/server/serverRenderer').ServerRenderer['render'];
     };
 
     const result = await server.render({
@@ -107,7 +107,7 @@ describe('buildProject', () => {
     serverMod(require, mod.exports, mod);
 
     const server = mod.exports as {
-      render: import('../src/runtime/server/serverRenderer').ServerRenderer['render'];
+      render: import('../src/internal/server/serverRenderer').ServerRenderer['render'];
     };
 
     const result = await server.render({
@@ -169,7 +169,7 @@ describe('buildProject', () => {
     serverMod(require, mod.exports, mod);
 
     const server = mod.exports as {
-      render: import('../src/runtime/server/serverRenderer').ServerRenderer['render'];
+      render: import('../src/internal/server/serverRenderer').ServerRenderer['render'];
     };
 
     const result = await server.render({

@@ -3,16 +3,16 @@ import reactRefreshPlugin from '@vitejs/plugin-react';
 import Debug from 'debug';
 import type { RollupOutput } from 'rollup';
 import { build, LogLevel, type InlineConfig } from 'vite';
-import { createDedupePlugin } from './build/plugins/dedupe';
-import { createMdxPlugin } from './build/plugins/mdx';
 import type { NostalgieConfig } from './config';
+import { createManifestPlugin } from './internal/plugins/buildManifestPlugin';
+import { nostalgieClientEntryPlugin } from './internal/plugins/clientEntryPlugin';
+import { createDedupePlugin } from './internal/plugins/dedupe';
+import { createMdxPlugin } from './internal/plugins/mdx';
+import { nostalgiePluginsPlugin } from './internal/plugins/serializeRuntimePluginsPlugin';
+import { nostalgieServerEntryPlugin } from './internal/plugins/serverEntryPlugin';
 import { invariant } from './invariant';
 import type { Logger } from './logging';
 import type { Plugin } from './plugin';
-import { nostalgieClientEntryPlugin } from './plugins/nostalgieClientEntry';
-import { createManifestPlugin } from './plugins/nostalgieManifest';
-import { nostalgiePluginsPlugin } from './plugins/nostalgiePlugins';
-import { nostalgieServerEntryPlugin } from './plugins/nostalgieServerEntry';
 
 const debug = Debug.debug('nostalgie:build');
 

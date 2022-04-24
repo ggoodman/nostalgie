@@ -1,4 +1,4 @@
-import { lazyPlugin } from 'nostalgie/plugins/lazy';
+import { lazyPlugin } from 'nostalgie/lazy/plugin';
 import { defineConfig } from '../../../src/config';
 
 export default defineConfig({

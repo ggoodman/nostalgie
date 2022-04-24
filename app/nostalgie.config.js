@@ -1,8 +1,8 @@
 //@ts-check
 
-import { lazyPlugin } from 'nostalgie/plugins/lazy';
-import { routingPlugin } from 'nostalgie/plugins/routing';
-import { twindPlugin } from 'nostalgie/plugins/twind';
+import { lazyPlugin } from 'nostalgie/lazy/plugin';
+import { routingPlugin } from 'nostalgie/routing/plugin';
+import { twindPlugin } from 'nostalgie/twind/plugin';
 import { defineConfig } from '../src/config';
 
 export default defineConfig({

@@ -1,4 +1,4 @@
-import { routingPlugin } from 'nostalgie/plugins/routing';
+import { routingPlugin } from 'nostalgie/routing/plugin';
 import { defineConfig } from '../../../src/config';
 
 export default defineConfig({
