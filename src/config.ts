@@ -61,7 +61,22 @@ export function defineConfig(config: NostalgieUserConfig): NostalgieUserConfig {
   };
 }
 
-export function readConfigs(
+export async function readConfig(
+  ctx: Context,
+  logger: Logger,
+  rootDir: string,
+  options: Readonly<ReadConfigOptions> = {}
+) {
+  const iter = watchConfig(ctx, logger, rootDir, options);
+
+  for await (const value of iter) {
+    return value;
+  }
+
+  throw new Error('No value emitted');
+}
+
+export function watchConfig(
   ctx: Context,
   logger: Logger,
   rootDir: string,

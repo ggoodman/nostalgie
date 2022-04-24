@@ -1,29 +1,22 @@
-///<reference types="jest" />
-
 import { Background } from '@ggoodman/context';
 import { Headers } from 'headers-utils';
 import { parseHTML } from 'linkedom';
 import type { OutputChunk } from 'rollup';
+import { describe, expect, it } from 'vitest';
 import { buildProject } from '../src/build';
-import { readConfigs } from '../src/config';
+import { readConfig } from '../src/config';
 import { NOSTALGIE_BOOTSTRAP_SCRIPT_ID } from '../src/constants';
 import { SilentLogger } from '../src/logging';
-
-async function first<T>(iter: AsyncIterable<T>): Promise<T> {
-  for await (const value of iter) {
-    return value;
-  }
-
-  throw new Error('No value emitted');
-}
 
 describe('buildProject', () => {
   const logger = new SilentLogger();
 
   it('builds a project', async () => {
     const ctx = Background();
-    const { config } = await first(
-      readConfigs(ctx, logger, `${__dirname}/scenarios/basic`)
+    const { config } = await readConfig(
+      ctx,
+      logger,
+      `${__dirname}/scenarios/basic`
     );
     const { clientBuild, serverBuild } = await buildProject(
       ctx,
@@ -57,7 +50,7 @@ describe('buildProject', () => {
 
     expect(result.errors).toHaveLength(0);
     expect(Object.fromEntries(result.response.headers)).toMatchInlineSnapshot(`
-      Object {
+      {
         "content-type": "text/html",
       }
     `);
@@ -84,8 +77,10 @@ describe('buildProject', () => {
 
   it('will inline lazy components', async () => {
     const ctx = Background();
-    const { config } = await first(
-      readConfigs(ctx, logger, `${__dirname}/scenarios/lazy`)
+    const { config } = await readConfig(
+      ctx,
+      logger,
+      `${__dirname}/scenarios/lazy`
     );
     const { clientBuild, serverBuild } = await buildProject(
       ctx,
@@ -119,7 +114,7 @@ describe('buildProject', () => {
 
     expect(result.errors).toHaveLength(0);
     expect(Object.fromEntries(result.response.headers)).toMatchInlineSnapshot(`
-      Object {
+      {
         "content-type": "text/html",
       }
     `);
@@ -146,8 +141,10 @@ describe('buildProject', () => {
 
   it('will render nested routes', async () => {
     const ctx = Background();
-    const { config } = await first(
-      readConfigs(ctx, logger, `${__dirname}/scenarios/routing`)
+    const { config } = await readConfig(
+      ctx,
+      logger,
+      `${__dirname}/scenarios/routing`
     );
     const { clientBuild, serverBuild } = await buildProject(
       ctx,
@@ -181,7 +178,7 @@ describe('buildProject', () => {
 
     expect(result.errors).toHaveLength(0);
     expect(Object.fromEntries(result.response.headers)).toMatchInlineSnapshot(`
-      Object {
+      {
         "content-type": "text/html",
       }
     `);

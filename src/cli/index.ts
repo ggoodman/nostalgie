@@ -7,8 +7,8 @@ import * as Path from 'path';
 import Yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { buildProject } from '../build';
-import { readConfigs } from '../config';
-import { runDevServer } from '../dev';
+import { watchConfig } from '../config';
+import { runDevServer } from '../devServer';
 import { createDefaultLogger } from '../logging';
 
 const debug = Debug.debug('nostalgie:cli');
@@ -53,7 +53,7 @@ Yargs(hideBin(process.argv))
         });
       }
 
-      for await (const { context: configContext, config } of await readConfigs(
+      for await (const { context: configContext, config } of await watchConfig(
         ctx,
         logger,
         Path.resolve(process.cwd(), argv.project_root || '.'),
@@ -127,7 +127,7 @@ Yargs(hideBin(process.argv))
       //   b. (Re)start the dev server with the updated list of plugins
       let runCount = 0;
 
-      for await (const { context: configContext, config } of await readConfigs(
+      for await (const { context: configContext, config } of await watchConfig(
         ctx,
         logger,
         Path.resolve(process.cwd(), argv.project_root || '.'),
