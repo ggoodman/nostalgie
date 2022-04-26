@@ -20,14 +20,20 @@ import type { LoadState, Resolved } from '../lazy/state';
 
 export { Link } from 'react-router-dom';
 
+export interface RouteModuleExports {
+  default: ComponentType<any>;
+}
+
 export interface RouteLoadState {
-  loadState: LoadState;
-  setLoadState: (loadState: LoadState) => void;
+  loadState: LoadState<RouteModuleExports>;
+  setLoadState: (loadState: LoadState<RouteModuleExports>) => void;
 }
 
 const RouteBoundaryContext = createContext<RouteLoadState | null>(null);
 
-export function createRoute(useLazy: () => LoadState): ReactElement {
+export function createRoute(
+  useLazy: () => LoadState<RouteModuleExports>
+): ReactElement {
   function LazyRoute(): ReactElement {
     const loadState = useLazy();
     const boundary = useContext(RouteBoundaryContext);
@@ -48,9 +54,9 @@ export function createRoute(useLazy: () => LoadState): ReactElement {
         return outletContext?.loading ?? createElement(Fragment);
       case 'success':
         if (import.meta.env.DEV) {
-          if (loadState.component == null) {
+          if (typeof loadState.value.default !== 'function') {
             console.warn(
-              `A route referred to a lazy component at ${loadState.url} that has no default export. Did you forget to export your route or layout component?`
+              `A route referred to a lazy component at ${loadState.url} whose default export is not a function. Did you forget to export your route or layout component?`
             );
           }
         }
@@ -72,8 +78,10 @@ export function createRoute(useLazy: () => LoadState): ReactElement {
   );
 }
 
-function RouteBoundary(props: { loadState: Resolved<ComponentType<any>> }) {
-  const [loadState, setLoadState] = useState<LoadState>(() => props.loadState);
+function RouteBoundary(props: { loadState: Resolved<RouteModuleExports> }) {
+  const [loadState, setLoadState] = useState<LoadState<RouteModuleExports>>(
+    () => props.loadState
+  );
 
   return createElement(
     RouteBoundaryContext.Provider,
@@ -84,7 +92,7 @@ function RouteBoundary(props: { loadState: Resolved<ComponentType<any>> }) {
       },
     },
     null,
-    createElement(props.loadState.component)
+    createElement(props.loadState.value.default)
   );
 }
 
@@ -104,7 +112,7 @@ export function useParams() {
   return useReactRouterParams();
 }
 
-export function useChildLoadState(): LoadState {
+export function useChildLoadState(): LoadState<RouteModuleExports> {
   const ctx = useContext(RouteBoundaryContext);
 
   invariant(

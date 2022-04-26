@@ -54,10 +54,6 @@ export function lazyPlugin(): Plugin {
       const deferredImportRx = /\(\)\s*=>\s*import\(\s*(['"])([^)]+)\1\s*\)/gm;
       let matched = false;
 
-      if (id === '/routes:./src/pages') {
-        console.log('transform', id, code);
-      }
-
       for (
         let res = deferredImportRx.exec(code);
         res != null;
