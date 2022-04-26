@@ -2,16 +2,16 @@ import { Background } from '@ggoodman/context';
 import { Headers } from 'headers-utils';
 import { parseHTML } from 'linkedom';
 import type { OutputChunk } from 'rollup';
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import { buildProject } from '../src/build';
 import { readConfig } from '../src/config';
 import { NOSTALGIE_BOOTSTRAP_SCRIPT_ID } from '../src/constants';
 import { SilentLogger } from '../src/logging';
 
-describe('buildProject', () => {
+describe.concurrent('buildProject', () => {
   const logger = new SilentLogger();
 
-  it('builds a project', async () => {
+  it('builds a project', async ({ expect }) => {
     const ctx = Background();
     const { config } = await readConfig(
       ctx,
@@ -75,7 +75,7 @@ describe('buildProject', () => {
     expect(root.textContent).toMatchInlineSnapshot(`"Hello Nostalgie"`);
   });
 
-  it('will inline lazy components', async () => {
+  it('will inline lazy components', async ({ expect }) => {
     const ctx = Background();
     const { config } = await readConfig(
       ctx,
@@ -139,7 +139,7 @@ describe('buildProject', () => {
     expect(root.textContent).toMatchInlineSnapshot(`"I was lazy loaded"`);
   });
 
-  it('will render nested routes', async () => {
+  it('will render nested routes', async ({ expect }) => {
     const ctx = Background();
     const { config } = await readConfig(
       ctx,

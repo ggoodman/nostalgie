@@ -47,7 +47,7 @@
     "@types/debug": "^4.1.5",
     "@types/jsesc": "^3.0.1",
     "@types/node": "^16.11.26",
-    "@types/pino": "^6.3.4",
+    "@types/pino": "^7.0.5",
     "@types/react": "^18.0.1",
     "@types/react-dom": "^18.0.0",
     "@types/yargs": "^17.0.10",
@@ -61,6 +61,7 @@
     "fast-glob": "^3.2.11",
     "fastify": "^3.28.0",
     "gh-release": "^5.0.0",
+    "git-remote-origin-url": "^4.0.0",
     "happy-dom": "^2.55.0",
     "headers-utils": "^3.0.2",
     "jsdon": "^0.1.14",
@@ -85,7 +86,7 @@
     "typescript": "^4.6.3",
     "uvu": "^0.5.1",
     "vite": "^2.7.3",
-    "vitest": "^0.9.4",
+    "vitest": "^0.10.0",
     "yargs": "^17.4.1"
   },
   "repository": {
