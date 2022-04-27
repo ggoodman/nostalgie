@@ -1,13 +1,34 @@
+import { useMarkup } from 'nostalgie/markup';
 import { Link } from 'nostalgie/routing';
-import { useTwind } from 'nostalgie/twind';
-import { ScrollPadding } from '../components/ScrollPadding';
+import { css, useTwind } from 'nostalgie/twind';
 import { H3 } from '../design/headers';
 
 export default function () {
   const tw = useTwind();
 
+  useMarkup({
+    title: 'Nostalgie - The fullstack web framework',
+    meta: {
+      properties: {
+        'og:locale:alternate': ['foo'],
+        'og:description': 'The fullstack web framework',
+      },
+      names: {
+        creator: ['Geoffrey', 'Goodman'],
+        robots: 'nofollow',
+      },
+    },
+  });
+
   return (
-    <ScrollPadding className={tw('container mx-auto antialiased')}>
+    <div
+      className={tw(
+        css({
+          '@apply': 'container mx-auto antialiased',
+          scrollbarGutter: 'stable',
+        })
+      )}
+    >
       <div className={tw('px-4 py-6 text-gray-900')}>
         <header>
           <h1
@@ -267,6 +288,6 @@ export default function () {
           </div>
         </div>
       </div>
-    </ScrollPadding>
+    </div>
   );
 }

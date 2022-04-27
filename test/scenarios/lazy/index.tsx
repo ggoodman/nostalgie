@@ -1,6 +1,6 @@
 import { createLazy } from 'nostalgie/lazy';
 
-const useLazy = createLazy(() => import('./lazy'), { name: 'default' });
+const useLazy = createLazy(() => import('./lazy'));
 
 export default function App() {
   const lazyComponentState = useLazy();
@@ -8,5 +8,5 @@ export default function App() {
   if (!lazyComponentState.isSuccess) {
     return <span>Loading...</span>;
   }
-  return <lazyComponentState.value />;
+  return <lazyComponentState.value.default />;
 }

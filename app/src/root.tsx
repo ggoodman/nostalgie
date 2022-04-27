@@ -1,3 +1,6 @@
+/// <reference types="vite/client" />
+
+import { useMarkup } from 'nostalgie/markup';
 import { Link, Outlet } from 'nostalgie/routing';
 import {
   style,
@@ -8,6 +11,7 @@ import {
 } from 'nostalgie/twind';
 import { ComponentProps } from 'react';
 import { useMatch } from 'react-router';
+import faviconHref from './img/favicon.ico';
 
 const navStyle = style({
   base: 'px-1 sm:px-4 border-b-4',
@@ -43,6 +47,15 @@ function withRouteMatch<Component extends StyledComponent<'active', any>>(
 
 export default function RootLayout() {
   const tw = useTwind();
+
+  useMarkup({
+    title: 'Nostalgie',
+    lang: 'en',
+    links: [{ rel: 'icon', href: faviconHref }],
+    meta: {
+      charset: 'utf-8',
+    },
+  });
 
   return (
     <>

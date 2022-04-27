@@ -70,9 +70,9 @@ export default function createPlugin(options: {}): ServerPlugin<{
  * @returns
  */
 function maybeDecorateNonJsPath(path: string): string {
-  if (!/\.(jsx?|tsx?|css)$/.test(path)) {
-    return `${path}?import`;
-  }
+  // if (!/\.(jsx?|tsx?|css)$/.test(path)) {
+  //   return `${path}?import`;
+  // }
 
   return path;
 }

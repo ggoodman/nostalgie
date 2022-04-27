@@ -87,19 +87,20 @@ export function lazyPlugin(): Plugin {
           wrap: true,
         });
 
-        debug(
-          'Overwriting deferred import %s, of %s in %s',
-          match,
-          fileRef,
-          id
-        );
-
         const lazyMeta = {
           id: rootRelativePath,
           // Convert false to undefined so that stringification will skip
           // the field.
           sync: isSync || undefined,
         };
+
+        debug(
+          'Overwriting deferred import %s, of %s in %s',
+          match,
+          fileRef,
+          id,
+          lazyMeta
+        );
 
         s.prependLeft(ss, 'Object.defineProperty(');
         s.appendRight(

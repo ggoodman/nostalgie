@@ -33,6 +33,7 @@ export async function runDevServer(
 
   const viteConfig: InlineConfig = {
     root: config.rootDir,
+    assetsInclude: ['**/*.ico'],
     build: {},
     configFile: false,
     server: {
@@ -111,27 +112,9 @@ export async function runDevServer(
 
   server.route({
     method: 'GET',
-    url: '/favicon.ico',
-    handler: async (request, reply) => {
-      return reply.code(404);
-    },
-  });
-
-  server.route({
-    method: 'GET',
     url: '/*',
     handler: async (request, reply) => {
       try {
-        const serverApp = (await vite.ssrLoadModule(serverEntrypointUrl, {
-          fixStacktrace: true,
-        })) as {
-          render: import('./internal/server/serverRenderer').ServerRenderer['render'];
-        };
-
-        if (serverApp == null || typeof serverApp.render !== 'function') {
-          throw new Error('Error importing SSR module');
-        }
-
         const res = await new Promise<FastifyReply>((resolve, reject) => {
           vite.middlewares(request.raw, reply.raw, (err: Error) => {
             if (err) {
@@ -145,21 +128,31 @@ export async function runDevServer(
               path: request.url,
             };
 
-            return serverApp.render(req).then(({ errors, response, stats }) => {
-              const html = response.body as string;
-              const res = reply
-                .code(response.status)
-                .headers(Object.fromEntries(response.headers.entries()))
-                .send(html);
+            vite
+              .ssrLoadModule(serverEntrypointUrl, {
+                fixStacktrace: true,
+              })
+              .then((serverApp) => {
+                assertServerApp(serverApp);
 
-              response.headers.forEach((value, key) => {
-                res.header(key, value);
+                return serverApp
+                  .render(req)
+                  .then(({ errors, response, stats }) => {
+                    const html = response.body as string;
+                    const res = reply
+                      .code(response.status)
+                      .headers(Object.fromEntries(response.headers.entries()))
+                      .send(html);
+
+                    response.headers.forEach((value, key) => {
+                      res.header(key, value);
+                    });
+
+                    logger.onServerRendered({ errors, request: req, stats });
+
+                    return resolve(res);
+                  }, reject);
               });
-
-              logger.onServerRendered({ errors, request: req, stats });
-
-              return resolve(res);
-            }, reject);
           });
         });
 
@@ -172,6 +165,13 @@ export async function runDevServer(
     },
   });
 
+  const serverClosedPromise = new Promise<void>((resolve) =>
+    server.addHook('onClose', () => {
+      debug('fastify server onClose');
+      return resolve();
+    })
+  );
+
   const uri = await server.listen({
     port: 3000,
     host: 'localhost',
@@ -181,10 +181,13 @@ export async function runDevServer(
 
   ctx.onDidCancel(() => server.close());
 
-  await new Promise<void>((resolve) =>
-    server.addHook('onClose', () => {
-      debug('fastify server onClose');
-      return resolve();
-    })
-  );
+  await serverClosedPromise;
+}
+
+function assertServerApp(serverApp: unknown): asserts serverApp is {
+  render: import('./internal/server/serverRenderer').ServerRenderer['render'];
+} {
+  if (serverApp == null || typeof (serverApp as any).render !== 'function') {
+    throw new Error('Error importing SSR module');
+  }
 }

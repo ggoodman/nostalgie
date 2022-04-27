@@ -139,7 +139,7 @@ export async function buildProject(
         cssCodeSplit: false,
         minify: false,
         manifest: false,
-        assetsDir: '',
+        assetsDir: './assets',
 
         ssr: true,
 

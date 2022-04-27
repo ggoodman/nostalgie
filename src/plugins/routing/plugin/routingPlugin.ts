@@ -26,7 +26,7 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
       // Make sure the lazy plugin is requested
       if (
         !viteConfig.plugins
-          .flat()
+          .flat(Number.MAX_SAFE_INTEGER)
           .some((plugin) => plugin && plugin.name === LazyPlugin.pluginName)
       ) {
         viteConfig.plugins.push(LazyPlugin.lazyPlugin());
@@ -65,6 +65,8 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
         if (!source.startsWith(prefix)) {
           return;
         }
+
+        debug('resolveId(%s, %s)', source, importer);
 
         const routeSpec = source.slice(prefix.length);
         const routesInfo = await this.resolve(routeSpec, importer, {
@@ -231,6 +233,26 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
 
           for (const filename of files) {
             const pathname = join(path, filename);
+
+            if (extensions.some((ext) => filename === `404${ext}`)) {
+              if (history.length > 0) {
+                console.warn(
+                  `Found a 404 handler at ./${history.join(
+                    '/'
+                  )}. To register a not-found handler, the 404 page should be in the root of the routes folder.`
+                );
+              }
+
+              entries.push(
+                new RouteEntry({
+                  lazyPath: pathname,
+                  path: '*',
+                })
+              );
+
+              continue;
+            }
+
             const index = extensions.some((ext) => filename === `index${ext}`);
 
             entries.push(
@@ -258,7 +280,7 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
         });
         const routesCode = `[${rootEntry.toJavaScript()}]`;
 
-        debug('Finished discovering pages');
+        debug('Finished discovering pages', routesCode);
 
         const prelude = `
         import { useRoutes } from 'react-router-dom';
