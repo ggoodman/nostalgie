@@ -26,7 +26,7 @@ export interface MetaTagDescription {
   charset?: Suggest<'utf-8'>;
   'http-equiv'?: MetaHttpEquiv;
   names?: MetaNameMap | Record<string, string>;
-  properties?: PropertyNameMap | Record<string, string>;
+  properties?: MetaPropertyMap | Record<string, string>;
 }
 
 export interface MetaNameMap {
@@ -51,7 +51,7 @@ export interface MetaNameMap {
   /**
    * Words relevant to the page's content separated by commas.
    */
-  keywords?: string;
+  keywords?: string[];
 
   /**
    * Controls the HTTP `Referer` header of requests sent from the document.
@@ -220,7 +220,7 @@ type RobotsKeywords =
 
 type RobotsText = Suggest<UnionConcat<RobotsKeywords, ','>>;
 
-export interface PropertyNameMap {
+export interface MetaPropertyMap {
   //
   // Basic metadata
   //

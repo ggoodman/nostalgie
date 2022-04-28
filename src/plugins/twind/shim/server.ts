@@ -20,14 +20,12 @@ export default function twindPlugin(
       // Normalize attribute ordering and shortcut names
       for (const el of els) {
         const mappedClassName = tw(el.className);
-        // console.log(el.className, mappedClassName);
         if (mappedClassName) {
           el.setAttribute('class', mappedClassName);
         }
       }
 
       const stylesheetProps = getStyleTagProperties(sheet);
-      // console.log(sheet.target);
       const stylesheetEl = document.createElement('style');
       stylesheetEl.setAttribute('id', stylesheetProps.id);
       stylesheetEl.textContent = stylesheetProps.textContent;

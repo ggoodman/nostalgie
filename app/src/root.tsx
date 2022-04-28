@@ -2,15 +2,8 @@
 
 import { useMarkup } from 'nostalgie/markup';
 import { Link, Outlet } from 'nostalgie/routing';
-import {
-  style,
-  styled,
-  useTwind,
-  variant,
-  type StyledComponent,
-} from 'nostalgie/twind';
-import { ComponentProps } from 'react';
-import { useMatch } from 'react-router';
+import { css, style, styled, useTwind, variant } from 'nostalgie/twind';
+import { NavLink } from 'react-router-dom';
 import faviconHref from './img/favicon.ico';
 
 const navStyle = style({
@@ -31,18 +24,44 @@ const navStyle = style({
   },
 });
 
-const NavbarAnchor = withRouteMatch(styled('a', navStyle));
+const NavbarAnchor = styled('a', navStyle);
 
-const NavbarLink = withRouteMatch(styled(Link, navStyle));
+const NavbarLink = styled(NavLink, navStyle);
 
-function withRouteMatch<Component extends StyledComponent<'active', any>>(
-  Component: Component
-) {
-  return function WithRouteMatch(props: ComponentProps<Component>) {
-    const active = typeof props.to === 'string' ? !!useMatch(props.to) : false;
+const description =
+  'Nostalgie is an opinionated, full-stack, platform-agnostic framework for building web apps and web pages using React.';
 
-    return <Component active={active} {...(props as any)} />;
-  };
+function NostalgieLogo() {
+  const tw = useTwind();
+
+  return (
+    <Link
+      className={tw(
+        css({
+          '&': {
+            '@apply': 'px-4 nostalgie text-3xl font-light tracking-widest',
+            display: 'inline-block',
+            // visibility: 'hidden',
+            // width: unset,
+          },
+
+          '&::first-letter': {
+            'font-family': 'Monoton, cursive',
+            'font-size': '130%',
+            'font-weight': 'normal',
+            'text-decoration': 'nnderline',
+            'text-decoration-color': 'rgba(67, 56, 202)',
+            'letter-spacing': 'normal',
+            'margin-right': '4px',
+            visibility: 'visible',
+          },
+        })
+      )}
+      to="/"
+    >
+      Nostalgie
+    </Link>
+  );
 }
 
 export default function RootLayout() {
@@ -54,6 +73,17 @@ export default function RootLayout() {
     links: [{ rel: 'icon', href: faviconHref }],
     meta: {
       charset: 'utf-8',
+      names: {
+        description,
+        keywords: ['react', 'framework', 'ssr', 'full-stack'],
+        viewport: {
+          'user-scalable': 'no',
+        },
+      },
+      properties: {
+        'og:title': 'Nostalgie',
+        'og:description': description,
+      },
     },
   });
 
@@ -69,21 +99,17 @@ export default function RootLayout() {
             )}
           >
             <div className={tw('md:w-60 flex-initial')}>
-              <Link
-                className={tw(
-                  'px-4 nostalgie text-3xl font-light tracking-widest'
-                )}
-                to="/"
-              >
-                Nostalgie
-              </Link>
+              <NostalgieLogo />
             </div>
             <div
               className={tw(
                 'pl-2 sm:pl-8 lg:px-16 flex flex-row items-center space-x-1 md:text-lg font-bold'
               )}
             >
-              <NavbarLink color="indigo" to="/docs">
+              <NavbarLink
+                className={tw(navStyle({ color: 'indigo' }))}
+                to="/docs"
+              >
                 Docs
               </NavbarLink>
               <NavbarLink color="green" to="/changelog">
@@ -111,7 +137,16 @@ export default function RootLayout() {
             'flex-1 overflow-x-hidden flex flex-col justify-items-stretch'
           )}
         >
-          <Outlet loading={<h1>Loading...</h1>} />
+          <div
+            className={tw(
+              css({
+                '@apply': 'container mx-auto antialiased',
+                scrollbarGutter: 'stable',
+              })
+            )}
+          >
+            <Outlet loading={<h1>Loading...</h1>} />
+          </div>
         </div>
       </div>
     </>

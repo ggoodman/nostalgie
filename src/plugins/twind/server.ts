@@ -42,7 +42,6 @@ export default function twindPlugin(
       const sheet = ctx.state.sheet;
 
       const stylesheetProps = getStyleTagProperties(sheet);
-      // console.log(sheet.target);
       const stylesheetEl = document.createElement('style');
       stylesheetEl.setAttribute('id', stylesheetProps.id);
       stylesheetEl.textContent = stylesheetProps.textContent;

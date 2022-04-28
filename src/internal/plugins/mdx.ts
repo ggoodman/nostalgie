@@ -1,11 +1,22 @@
 import type { PluggableList } from '@mdx-js/mdx/lib/core';
+import Debug from 'debug';
 import { relative } from 'node:path';
+import { SourceMapGenerator } from 'source-map';
 import type { ResolvedConfig } from 'vite';
+import {} from 'vite';
 import { invariant } from '../../invariant';
 import type { Plugin } from '../../plugin';
 
+const debug = Debug('nostalgie:plugin:mdx');
+
 export function createMdxPlugin(): Plugin {
   let resolvedConfig: ResolvedConfig | undefined = undefined;
+
+  const rootRel = (path: string) => {
+    invariant(resolvedConfig, 'Config must be resolved');
+
+    return relative(resolvedConfig.root, path);
+  };
 
   return {
     name: 'nostalgie-mdx-plugin',
@@ -13,31 +24,37 @@ export function createMdxPlugin(): Plugin {
     configResolved(config) {
       resolvedConfig = config;
     },
-    // async resolveId(source, importer) {
-    //   if (!source.endsWith('.mdx')) {
-    //     return;
-    //   }
+    async resolveId(source, importer) {
+      if (!source.endsWith('.mdx')) {
+        return;
+      }
 
-    //   const resolveResult = await this.resolve(source, importer, {
-    //     skipSelf: true,
-    //   });
+      debug('resolveId(%s, %s)', source, importer);
 
-    //   if (!resolveResult?.id) {
-    //     return;
-    //   }
+      const resolveResult = await this.resolve(source, importer, {
+        skipSelf: true,
+      });
 
-    //   return {
-    //     id: `${resolveResult.id}`,
-    //   };
-    // },
+      if (!resolveResult?.id) {
+        return;
+      }
+
+      debug('resolveId(%s, %s) => ', source, importer, resolveResult.id);
+
+      return {
+        id: `${resolveResult.id}`,
+      };
+    },
     // async load(id) {
-    //   if (!id.endsWith('.mdx')) {
+    //   if (!id.startsWith('\0') || !id.endsWith('.mdx')) {
     //     return;
     //   }
+
+    //   debug('load(%s)', id);
 
     //   invariant(resolvedConfig, 'Config must be resolved');
 
-    //   const path = id; //.slice(0, -3);
+    //   const path = id.slice(1);
     //   const absPath = resolve(resolvedConfig.root, path);
     //   const code = await readFile(absPath, {
     //     encoding: 'utf-8',
@@ -51,6 +68,8 @@ export function createMdxPlugin(): Plugin {
       if (!id.endsWith('.mdx')) {
         return;
       }
+
+      debug('transform(%s, %id)', code.slice(20), id);
 
       const [
         { compile },
@@ -68,24 +87,23 @@ export function createMdxPlugin(): Plugin {
 
       try {
         const vfile = await compile(
-          { path: id, value: code },
+          { path: id.slice(1), value: code },
           {
             jsx: false,
             jsxRuntime: 'classic',
-            pragma: 'React.createElement',
-            pragmaFrag: 'React.Fragment',
             remarkPlugins,
             outputFormat: 'program',
+            SourceMapGenerator,
           }
         );
 
         invariant(resolvedConfig, 'Resolved config missing');
 
-        const filename = relative(resolvedConfig.root, id);
+        const filename = relative(resolvedConfig.root, id.slice(1));
         const chunks: string[] = [
+          vfile.toString(),
           `export const filename = ${JSON.stringify(filename)};`,
           `export const source = ${JSON.stringify(code)};`,
-          vfile.toString(),
         ];
 
         for (const message of vfile.messages) {
@@ -104,17 +122,11 @@ export function createMdxPlugin(): Plugin {
 
         return {
           code: chunks.join('\n') + '\n',
+          map: vfile.map,
         };
       } catch (err: any) {
         this.error(err);
       }
     },
-    // async transform(code, id, options = {}) {
-    //   if (!id.endsWith('.mdx.js')) {
-    //     return;
-    //   }
-    //   console.log('transform mdx', id);
-
-    // },
   };
 }

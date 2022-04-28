@@ -13,7 +13,15 @@ export default defineConfig({
     routingPlugin({
       routesPath: './src/routes',
     }),
-    twindPlugin({ shimHtml: false }),
+    twindPlugin({
+      shimHtml: false,
+      twindConfig: {
+        preflight: {
+          '@import':
+            "url('https://fonts.googleapis.com/css2?family=Monoton&display=swap&text=N')",
+        },
+      },
+    }),
     markupPlugin(),
   ],
 });

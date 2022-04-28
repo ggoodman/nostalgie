@@ -6,8 +6,7 @@
     "outDir": "dist",
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    // "rootDir": "../",
-    "baseUrl": ".",
+    "rootDir": "./",
     "strict": true
   },
   "include": ["nostalgie.config.js", "src"],

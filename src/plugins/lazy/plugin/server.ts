@@ -70,9 +70,14 @@ export default function createPlugin(options: {}): ServerPlugin<{
  * @returns
  */
 function maybeDecorateNonJsPath(path: string): string {
-  // if (!/\.(jsx?|tsx?|css)$/.test(path)) {
-  //   return `${path}?import`;
-  // }
+  // This is a hack to support `.mdx` imports in dev mode. Otherwise, we
+  // wend a path to the browser that Vite will treat as an asset and
+  // short-circuit the plugin pipeline.
+  if (import.meta.env.DEV && import.meta.env.SSR) {
+    if (/\.(mdx?)$/.test(path)) {
+      return `${path}?import`;
+    }
+  }
 
   return path;
 }

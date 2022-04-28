@@ -1,11 +1,12 @@
 import { createElement } from 'react';
 import type { ClientPlugin } from '../../../internal/client/clientRenderPlugin';
 import { MarkupContext } from '../context';
-import { MarkupLayer, MarkupManager } from '../manager';
+import { MarkupManager } from '../manager';
+import type { MarkupOptions } from '../options';
 import { pluginName } from './plugin';
 
 export default function createPlugin(options: {}): ClientPlugin<
-  MarkupLayer,
+  MarkupOptions,
   { manager: MarkupManager }
 > {
   return {
