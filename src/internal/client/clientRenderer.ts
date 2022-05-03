@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { invariant } from '../../invariant';
 import { RendererPluginHost, type ClientPlugin } from './clientRenderPlugin';
+import { reactInspectorPlugin } from './plugins/reactInspectorPlugin';
 
 export type RootComponent = (props: any) => React.ReactElement;
 
@@ -23,6 +24,10 @@ export class ClientRenderer {
     // this.lazyComponents = options.lazyComponents;
     // this.publicUrl = options.publicUrl;
     this.plugins = options.plugins ?? [];
+
+    if (import.meta.env.DEV) {
+      this.plugins.push(reactInspectorPlugin());
+    }
   }
 
   async render(pluginBootstrapData: Record<string, unknown> = {}) {

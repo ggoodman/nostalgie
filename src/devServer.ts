@@ -3,6 +3,7 @@ import reactRefreshPlugin from '@vitejs/plugin-react';
 import Debug from 'debug';
 import fastify, { FastifyReply } from 'fastify';
 import { Headers } from 'headers-utils/lib';
+import { inspectorServer } from 'react-dev-inspector/plugins/vite';
 import { createServer, InlineConfig } from 'vite';
 import type { NostalgieConfig } from './config';
 import { NOSTALGIE_MANIFEST_MODULE_ID } from './constants';
@@ -46,6 +47,7 @@ export async function runDevServer(
     clearScreen: false,
     logLevel: 'info',
     plugins: [
+      inspectorServer(),
       ...(config.plugins || []),
       errorBoundaryPlugin(),
       nostalgiePluginsPlugin({
@@ -86,8 +88,8 @@ export async function runDevServer(
           }
         },
       },
-      reactRefreshPlugin({}),
       createMdxPlugin(),
+      reactRefreshPlugin({}),
     ],
   };
 
