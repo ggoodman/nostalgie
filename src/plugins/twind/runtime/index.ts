@@ -141,8 +141,8 @@ function isStyled(cmp: ElementType): cmp is StyledComponent<any, any> {
 }
 
 function dedupeClassNames(className: string) {
-  return className;
-  // return [...new Set(className.split(' '))].join(' ');
+  // Necessary to avoid warnings about SSR / CSR mismatch
+  return [...new Set(className.split(' '))].join(' ');
 }
 
 export function variant<Options extends string>(
