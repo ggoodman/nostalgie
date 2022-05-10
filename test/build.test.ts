@@ -203,5 +203,5 @@ describe.concurrent('buildProject', () => {
     expect(root.textContent).toMatchInlineSnapshot(
       `"Navigation herePostsPost 123Footer here"`
     );
-  });
+  }, 10000);
 });
