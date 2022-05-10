@@ -65,6 +65,20 @@ export class ServerRenderer {
     if (import.meta.env.DEV) {
       this.plugins.push(vitePlugin());
     }
+
+    this.plugins.push({
+      name: 'nostalgie-plugin-strict-mode',
+      decorateApp(ctx, app) {
+        return function NostalgieStrictMode() {
+          return React.createElement(
+            React.StrictMode,
+            null,
+            React.createElement(app)
+          );
+        };
+      },
+    });
+
     this.htmlTemplateData = toJSON(
       parseHTML(options.htmlTemplate ?? DEFAULT_HTML_TEMPLATE).document
     );

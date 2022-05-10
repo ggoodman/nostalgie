@@ -28,6 +28,19 @@ export class ClientRenderer {
     if (import.meta.env.DEV) {
       this.plugins.push(reactInspectorPlugin());
     }
+
+    this.plugins.push({
+      name: 'nostalgie-plugin-strict-mode',
+      decorateApp(ctx, app) {
+        return function NostalgieStrictMode() {
+          return React.createElement(
+            React.StrictMode,
+            null,
+            React.createElement(app)
+          );
+        };
+      },
+    });
   }
 
   async render(pluginBootstrapData: Record<string, unknown> = {}) {
