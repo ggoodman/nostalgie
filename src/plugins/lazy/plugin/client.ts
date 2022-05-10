@@ -30,7 +30,13 @@ export default function createPlugin(options: {}): ClientPlugin<
         const promises: Promise<unknown>[] = [];
 
         for (const [srcPath, assetUrl] of ctx.serverData) {
-          const promise = ctx.state.preload(srcPath, () => i(assetUrl));
+          const factory = () => i(assetUrl);
+          const promise = ctx.state.preload(
+            Object.defineProperty(factory, Symbol.for('nostalgie.id'), {
+              configurable: true,
+              value: { id: srcPath },
+            })
+          );
 
           if (promise) {
             promises.push(promise);

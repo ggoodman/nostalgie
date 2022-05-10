@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { invariant } from '../../invariant';
-import { getFactoryMeta, LazyFactoryMetadata } from './factory';
+import { getFactoryMeta } from './factory';
 import type { Idle, Loading, LoadState, Rejected, Resolved } from './state';
 
 export interface LazyOptions<
@@ -25,37 +25,22 @@ export interface LazyOptions<
 export class LazyManager {
   private readonly loadStateById: Map<string, LoadState<unknown>> = new Map();
 
-  preload<T>(id: string, factory: () => Promise<T>): Promise<T> | undefined {
-    const { key, loadState, map } = this.ensureKnownChunkRegistered(factory, {
-      id,
-    });
-
-    return this.load(factory, key, map, loadState);
+  preload<T>(
+    factory: () => Promise<T>,
+    onStateChange?: (loadState: LoadState<T>) => void
+  ): Promise<T> | undefined {
+    return this.load(factory, onStateChange);
   }
 
-  /**
-   * Ensure that the factory is already registered without actually starting any loading.
-   */
-  ensureRegistered<T>(factory: () => Promise<T>): {
+  private ensureKnownChunkRegistered<T>(factory: () => Promise<T>): {
     loadState: LoadState<T>;
     key: unknown;
     map: { set(key: unknown, loadState: LoadState<unknown>): unknown };
   } {
     const meta = getFactoryMeta(factory);
 
-    invariant(meta, 'Lazy component is not recognized');
+    invariant(meta, 'Missing factory metadata for lazy import');
 
-    return this.ensureKnownChunkRegistered(factory, meta);
-  }
-
-  private ensureKnownChunkRegistered<T>(
-    factory: () => Promise<T>,
-    meta: LazyFactoryMetadata
-  ): {
-    loadState: LoadState<T>;
-    key: unknown;
-    map: { set(key: unknown, loadState: LoadState<unknown>): unknown };
-  } {
     const key = meta.id;
     const trackedLoadState = this.loadStateById.get(key);
 
@@ -67,30 +52,32 @@ export class LazyManager {
       };
     }
 
-    if (meta.sync) {
-      // The same logic that sets a truthy falue to `meta.sync` will replace dynamic `import()`
-      // expressions with synchronous `require()` expressions at build time allowing us to treat
-      // the component as synchronous during SSR. However, that doesn't mix super well with
-      // a strict type system so we need to do a dangerous cast through unknown.
-      const factoryReturn = factory() as unknown as T;
+    if (import.meta.env.SSR) {
+      if (meta.sync) {
+        // The same logic that sets a truthy falue to `meta.sync` will replace dynamic `import()`
+        // expressions with synchronous `require()` expressions at build time allowing us to treat
+        // the component as synchronous during SSR. However, that doesn't mix super well with
+        // a strict type system so we need to do a dangerous cast through unknown.
+        const factoryReturn = factory() as unknown as T;
 
-      const loadState: Resolved<T> = {
-        status: 'success',
-        value: factoryReturn,
-        isError: false,
-        isIdle: false,
-        isLoading: false,
-        isSuccess: true,
-        url: meta.id,
-      };
+        const loadState: Resolved<T> = {
+          status: 'success',
+          value: factoryReturn,
+          isError: false,
+          isIdle: false,
+          isLoading: false,
+          isSuccess: true,
+          url: meta.id,
+        };
 
-      this.loadStateById.set(key, loadState);
+        this.loadStateById.set(key, loadState);
 
-      return {
-        key,
-        loadState,
-        map: this.loadStateById,
-      };
+        return {
+          key,
+          loadState,
+          map: this.loadStateById,
+        };
+      }
     }
 
     const loadState: Idle<T> = {
@@ -126,11 +113,11 @@ export class LazyManager {
     factory: () => Promise<T>,
     options?: LazyOptions<T, K>
   ): LoadState<K extends keyof T ? T[K] : T> {
-    const {
-      key,
-      loadState: initialLoadState,
-      map,
-    } = React.useMemo(() => this.ensureRegistered(factory), []);
+    const { loadState: initialLoadState } = React.useMemo(
+      () => this.ensureKnownChunkRegistered(factory),
+      [factory]
+    );
+    const [, startTransition] = React.useTransition();
     const name = options?.name;
     const [loadState, setLoadState] = React.useState(() =>
       name != null ? mapLoadState(initialLoadState, name!) : initialLoadState
@@ -138,53 +125,82 @@ export class LazyManager {
     const [disposed, setDisposed] = React.useState(false);
 
     React.useEffect(() => {
-      if (!loadState.isIdle) {
-        return;
-      }
+      // if (!loadState.isIdle) {
+      //   return;
+      // }
 
-      this.load(factory, key, map, initialLoadState, (loadState) => {
-        if (!disposed) {
-          // We're not re-mapping the load state for `name` because the initial mapping should result
-          // in this getting the mapped state.
-          setLoadState(loadState);
-        }
+      this.load(factory, (loadState) => {
+        // We're not re-mapping the load state for `name` because the initial mapping should result
+        // in this getting the mapped state.
+        startTransition(() => {
+          if (!disposed) {
+            setLoadState(loadState);
+          }
+        });
       });
+
       return () => setDisposed(true);
     }, [factory, loadState]);
 
     return loadState as LoadState<K extends keyof T ? T[K] : T>;
   }
 
+  ensureLoading<T>(
+    factory: () => Promise<T>,
+    onStateChange?: (loadState: LoadState<T>) => void
+  ) {
+    this.load(factory, onStateChange);
+    const { loadState } = this.ensureKnownChunkRegistered(factory);
+
+    return loadState;
+  }
+
   private load<T>(
     factory: () => Promise<T>,
-    key: unknown,
-    map: { set(key: unknown, loadState: LoadState<unknown>): unknown },
-    loadState: LoadState<T>,
     onStateChange?: (loadState: LoadState<T>) => void
   ): Promise<T> | undefined {
+    const { key, loadState, map } = this.ensureKnownChunkRegistered(factory);
     let promise: Promise<T> | undefined;
     let disposed = false;
 
     const url = loadState.url;
 
-    if (loadState.status === 'idle') {
-      promise = factory();
-      const loadingState: Loading<T> = {
-        status: 'loading',
-        isError: false,
-        isIdle: false,
-        isLoading: true,
-        isSuccess: false,
-        promise,
-        url,
-      };
+    switch (loadState.status) {
+      case 'idle': {
+        promise = factory();
+        const loadingState: Loading<T> = {
+          status: 'loading',
+          isError: false,
+          isIdle: false,
+          isLoading: true,
+          isSuccess: false,
+          promise,
+          url,
+        };
 
-      map.set(key, loadingState);
-      if (!disposed) {
-        onStateChange?.(loadingState);
+        map.set(key, loadingState);
+        if (!disposed) {
+          queueMicrotask(() => {
+            if (!disposed) {
+              onStateChange?.(loadingState);
+            }
+          });
+        }
+        break;
       }
-    } else if (loadState.status === 'loading') {
-      promise = loadState.promise;
+      case 'loading': {
+        promise = loadState.promise;
+        break;
+      }
+      case 'error':
+      case 'success': {
+        // Already in a final state. No need to start work so we fire
+        // any callback and return immediately.
+        if (onStateChange) {
+          queueMicrotask(() => onStateChange(loadState));
+        }
+        return;
+      }
     }
 
     if (promise) {
