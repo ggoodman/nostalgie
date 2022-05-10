@@ -155,9 +155,9 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
 
             if (this.lazyPath) {
               lines.push(
-                `element: createRoute(createLazy(() => import(${JSON.stringify(
+                `element: createRoute(() => import(${JSON.stringify(
                   this.lazyPath
-                )})))`
+                )}))`
               );
             }
 
@@ -282,21 +282,17 @@ export function routingPlugin(options: RoutingPluginOptions): Plugin {
 
         debug('Finished discovering pages', routesCode);
 
-        const prelude = `
-        import { useRoutes } from 'react-router-dom';
-        import { createLazy } from 'nostalgie/lazy';
-        import { createRoute } from 'nostalgie/routing';
-      `;
-
         const code = `
-        ${prelude};
+          import { createRoute, NostalgieRouter } from 'nostalgie/routing';
+          import { createElement } from 'react';
 
-        export default function() {
-          const el = useRoutes(${routesCode});
+          // Make the route definition static
+          const routes = ${routesCode};
 
-          return el;
-        }
-      `;
+          export default function() {
+            return createElement(NostalgieRouter, { routes });
+          }
+        `;
 
         return { code, map: { mappings: '' } };
       };
