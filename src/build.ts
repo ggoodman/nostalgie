@@ -140,6 +140,7 @@ export async function buildProject(
         minify: false,
         manifest: false,
         assetsDir: './assets',
+        sourcemap: true,
 
         ssr: true,
 
